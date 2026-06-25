@@ -1,6 +1,50 @@
 html {
-  background: #eef2f6;
-  color: #17202a;
+  --demo-bg: #eef2f6;
+  --demo-fg: #17202a;
+  --demo-toolbar-bg: #ffffff;
+  --demo-toolbar-border: #d6dee8;
+  --demo-toolbar-shadow: 0 8px 20px rgb(16 24 40 / 8%);
+  --demo-text-secondary: #667085;
+  --demo-link-bg: #17202a;
+  --demo-link-fg: #ffffff;
+
+  background: var(--demo-bg);
+  color: var(--demo-fg);
+}
+
+html.pgv-dark {
+  --demo-bg: #0f172a;
+  --demo-fg: #e2e8f0;
+  --demo-toolbar-bg: #1e293b;
+  --demo-toolbar-border: #334155;
+  --demo-toolbar-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  --demo-text-secondary: #94a3b8;
+  --demo-link-bg: #334155;
+  --demo-link-fg: #f8fafc;
+}
+
+html.pgv-light {
+  --demo-bg: #eef2f6;
+  --demo-fg: #17202a;
+  --demo-toolbar-bg: #ffffff;
+  --demo-toolbar-border: #d6dee8;
+  --demo-toolbar-shadow: 0 8px 20px rgb(16 24 40 / 8%);
+  --demo-text-secondary: #667085;
+  --demo-link-bg: #17202a;
+  --demo-link-fg: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.pgv-light) {
+    --demo-bg: #0f172a;
+    --demo-fg: #e2e8f0;
+    --demo-toolbar-bg: #1e293b;
+    --demo-toolbar-border: #334155;
+    --demo-toolbar-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    --demo-text-secondary: #94a3b8;
+    --demo-link-bg: #334155;
+    --demo-link-fg: #f8fafc;
+  }
 }
 
 body {
@@ -22,10 +66,10 @@ a {
 
 .demo-toolbar {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #d6dee8;
+  background: var(--demo-toolbar-bg);
+  border: 1px solid var(--demo-toolbar-border);
   border-radius: 8px;
-  box-shadow: 0 8px 20px rgb(16 24 40 / 8%);
+  box-shadow: var(--demo-toolbar-shadow);
   display: flex;
   gap: 16px;
   justify-content: space-between;
@@ -39,16 +83,16 @@ a {
 }
 
 .demo-toolbar p {
-  color: #667085;
+  color: var(--demo-text-secondary);
   font-size: 13px;
   margin: 4px 0 0;
 }
 
 .demo-toolbar a {
   align-items: center;
-  background: #17202a;
+  background: var(--demo-link-bg);
   border-radius: 6px;
-  color: #ffffff;
+  color: var(--demo-link-fg);
   display: inline-flex;
   font-size: 13px;
   font-weight: 700;

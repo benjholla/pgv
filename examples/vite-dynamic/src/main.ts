@@ -57,6 +57,11 @@ function updateGraph(): void {
     layout: currentLayout,
     selection: currentSelection,
     usePanZoom: true,
+    useThemeToggle: true,
+    onThemeChange: (theme: string) => {
+      document.documentElement.classList.remove("pgv-light", "pgv-dark", "pgv-auto");
+      document.documentElement.classList.add(`pgv-${theme}`);
+    },
     onNodeClick: (nodeId: string) => {
       const nodes = new Set(currentSelection.nodes);
       if (nodes.has(nodeId)) {
