@@ -6,7 +6,64 @@
   font-size: 14px;
   line-height: 1.35;
   overflow: auto;
+  position: relative;
   width: 100%;
+}
+
+.pgv-graph-view.pgv-pan-zoom {
+  overflow: hidden;
+}
+
+.pgv-viewport {
+  cursor: grab;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.pgv-viewport:active {
+  cursor: grabbing;
+}
+
+.pgv-controls {
+  bottom: 16px;
+  display: grid;
+  gap: 4px;
+  grid-template-areas:
+    "zoom-in  .        pan-up   ."
+    ".        pan-left reset    pan-right"
+    "zoom-out .        pan-down .";
+  grid-template-columns: repeat(4, 32px);
+  grid-template-rows: repeat(3, 32px);
+  position: absolute;
+  right: 16px;
+  z-index: 10;
+}
+
+.pgv-controls button {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d6dee8;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: #445160;
+  cursor: pointer;
+  display: flex;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 600;
+  justify-content: center;
+  padding: 0;
+  transition: background 0.2s ease;
+}
+
+.pgv-controls button:hover {
+  background: #f3f4f6;
+}
+
+.pgv-controls button:active {
+  background: #e5e7eb;
 }
 
 .pgv-graph-stage {
