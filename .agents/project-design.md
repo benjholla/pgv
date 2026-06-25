@@ -697,7 +697,7 @@ Render only changed nodes/edges.
 
 ---
 
-## Milestone 5
+## Milestone 5 (Completed)
 
 Pan and Zoom.
 

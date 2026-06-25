@@ -54,6 +54,12 @@ First, make sure that the Spring Boot graph producer example is also running the
 npm run dev:dynamic
 ```
 
+## Features
+
+- **Pan and Zoom**: Interactive exploration with mouse or touch.
+- **Theming**: Built-in support for light, dark, and system themes.
+- **Customizable**: Control layers for zooming, panning, and theme toggling.
+
 ## Basic Usage
 
 ```ts
@@ -68,7 +74,12 @@ import "@pgv/graph-core/style.css";
 const graph = graphSnapshotFromJson(json as GraphSnapshotJson);
 const layout = verticalLayout(graph);
 
-renderGraph(document.querySelector("#graph")!, graph, { layout });
+renderGraph(document.querySelector("#graph")!, graph, {
+  layout,
+  usePanZoom: true,
+  useThemeToggle: true,
+  theme: "auto", // or "light", "dark"
+});
 ```
 
 ## Project Layout
