@@ -23,6 +23,10 @@ It is responsible for:
 * Projection
 * Visualization
 
+## License
+
+The goal of this effort is to create a library releasable under the MIT License.
+
 ---
 
 # Core Architectural Principles
