@@ -18,6 +18,7 @@ export interface GraphViewOptions {
   readonly theme?: "light" | "dark" | "auto";
   readonly usePanZoom?: boolean;
   readonly useThemeToggle?: boolean;
+  readonly onThemeChange?: (theme: "light" | "dark" | "auto") => void;
   readonly onNodeClick?: (nodeId: string, event: MouseEvent) => void;
   readonly onEdgeClick?: (edgeId: string, event: MouseEvent) => void;
 }
@@ -47,6 +48,9 @@ export class GraphView {
   setGraph(graph: GraphSnapshot, options: GraphViewOptions = {}): void {
     this.#graph = graph;
     this.#options = { ...this.#options, ...options };
+    if (options.theme !== undefined) {
+      this.#currentTheme = options.theme;
+    }
     this.#layout =
       this.#options.layout ?? verticalLayout(graph, this.#options.layoutOptions);
 
@@ -231,6 +235,7 @@ export class GraphView {
     const themes: Array<"light" | "dark" | "auto"> = ["light", "dark", "auto"];
     const currentIndex = themes.indexOf(this.#currentTheme);
     this.#currentTheme = themes[(currentIndex + 1) % themes.length];
+    this.#options.onThemeChange?.(this.#currentTheme);
     this.#render();
   }
 
