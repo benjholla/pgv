@@ -3,12 +3,20 @@ import type { AttributeValue, GraphEdge, GraphNode, GraphSnapshot } from "./mode
 
 let markerIdSequence = 0;
 
+export interface SelectionState {
+  readonly nodes: ReadonlySet<string>;
+  readonly edges: ReadonlySet<string>;
+}
+
 export interface GraphViewOptions {
   readonly className?: string;
   readonly layout?: LayoutSnapshot;
   readonly layoutOptions?: VerticalLayoutOptions;
   readonly nodeContent?: (node: GraphNode) => HTMLElement | string;
   readonly edgeLabel?: (edge: GraphEdge) => string | null | undefined;
+  readonly selection?: SelectionState;
+  readonly onNodeClick?: (nodeId: string, event: MouseEvent) => void;
+  readonly onEdgeClick?: (edgeId: string, event: MouseEvent) => void;
 }
 
 export class GraphView {
@@ -62,7 +70,27 @@ export class GraphView {
     stage.append(...renderNodes(graph, layout, this.#options));
     root.appendChild(stage);
 
+    this.#setupEvents(root);
+
     this.container.replaceChildren(root);
+  }
+
+  #setupEvents(element: HTMLElement): void {
+    element.addEventListener("click", (event) => {
+      const target = event.target as HTMLElement;
+
+      const nodeElement = target.closest<HTMLElement>(".pgv-graph-node");
+      if (nodeElement && nodeElement.dataset.nodeId) {
+        this.#options.onNodeClick?.(nodeElement.dataset.nodeId, event);
+        return;
+      }
+
+      const edgeElement = target.closest<HTMLElement>(".pgv-graph-edge");
+      if (edgeElement && edgeElement.dataset.edgeId) {
+        this.#options.onEdgeClick?.(edgeElement.dataset.edgeId, event);
+        return;
+      }
+    });
   }
 }
 
@@ -121,6 +149,10 @@ function renderEdges(
       "pgv-graph-edge",
       ...edge.tags.map(tagToClassName),
     ];
+
+    if (options.selection?.edges.has(edge.id)) {
+      classNames.push("pgv-selected");
+    }
     const curveMidY = endpoints.source.y + (endpoints.target.y - endpoints.source.y) / 2;
     const pathData = [
       `M ${endpoints.source.x} ${endpoints.source.y}`,
@@ -169,11 +201,17 @@ function renderNodes(
 
     const element = document.createElement("div");
 
-    element.className = joinClassNames(
+    const classNames = [
       "graph-node",
       "pgv-graph-node",
       ...node.tags.map(tagToClassName),
-    );
+    ];
+
+    if (options.selection?.nodes.has(node.id)) {
+      classNames.push("pgv-selected");
+    }
+
+    element.className = joinClassNames(...classNames);
     element.dataset.nodeId = node.id;
     element.style.transform = `translate(${position.x}px, ${position.y}px)`;
 

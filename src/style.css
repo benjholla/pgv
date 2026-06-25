@@ -30,15 +30,33 @@
   position: absolute;
 }
 
+.pgv-graph-edge {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
 .pgv-graph-edge path {
   fill: none;
   stroke: #697586;
   stroke-linecap: round;
   stroke-width: 2;
+  transition:
+    stroke 0.2s ease,
+    stroke-width 0.2s ease;
 }
 
 .pgv-graph-edge marker path {
   fill: #697586;
+  transition: fill 0.2s ease;
+}
+
+.pgv-graph-edge.pgv-selected path {
+  stroke: #2563eb;
+  stroke-width: 3;
+}
+
+.pgv-graph-edge.pgv-selected marker path {
+  fill: #2563eb;
 }
 
 .pgv-edge-label {
@@ -55,6 +73,7 @@
 .graph-node {
   align-items: stretch;
   background: #ffffff;
+  cursor: pointer;
   border: 1px solid #bfccd9;
   border-left: 5px solid #697586;
   border-radius: 8px;
@@ -66,7 +85,15 @@
   overflow: hidden;
   padding: 12px 14px;
   position: absolute;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
   width: var(--pgv-node-width);
+}
+
+.graph-node.pgv-selected {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
 }
 
 .pgv-node-content {
