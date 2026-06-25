@@ -7,11 +7,17 @@ import {
 import "../../../src/style.css";
 import "./demo.css";
 
-const graphElement = document.querySelector<HTMLElement>("#graph");
-const summaryElement = document.querySelector<HTMLElement>("#graph-summary");
+const graphElement = requireElement("#graph");
+const summaryElement = requireElement("#graph-summary");
 
-if (!graphElement || !summaryElement) {
-  throw new Error("Demo shell is missing required graph elements.");
+function requireElement(selector: string): HTMLElement {
+  const element = document.querySelector<HTMLElement>(selector);
+
+  if (!element) {
+    throw new Error(`Demo shell is missing "${selector}".`);
+  }
+
+  return element;
 }
 
 async function loadGraph(): Promise<void> {

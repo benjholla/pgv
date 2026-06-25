@@ -2,7 +2,7 @@ export function toReadonlyMap<K, V>(source: ReadonlyMap<K, V>): ReadonlyMap<K, V
   const snapshot = new Map(source);
   let readonlyMap!: ReadonlyMap<K, V>;
 
-  const view = {
+  const view: ReadonlyMap<K, V> = {
     get size(): number {
       return snapshot.size;
     },
@@ -32,10 +32,7 @@ export function toReadonlyMap<K, V>(source: ReadonlyMap<K, V>): ReadonlyMap<K, V
     [Symbol.iterator](): IterableIterator<[K, V]> {
       return snapshot[Symbol.iterator]();
     },
-    get [Symbol.toStringTag](): string {
-      return "ReadonlyMap";
-    },
-  } satisfies ReadonlyMap<K, V>;
+  };
 
   readonlyMap = Object.freeze(view);
 
