@@ -2,12 +2,6 @@
 
 ## Repository
 
-Current project root:
-
-```text
-C:\Users\benjh\Documents\pgv
-```
-
 This is a TypeScript npm package named `@pgv/graph-core`.
 
 ## Main Package
