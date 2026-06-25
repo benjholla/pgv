@@ -25,10 +25,13 @@
   "scripts": {
     "dev": "vite --config examples/vite-static/vite.config.ts --host 127.0.0.1",
     "dev:backend": "mvn -f examples/spring-boot-producer/pom.xml spring-boot:run",
+    "dev:dynamic": "vite --config examples/vite-dynamic/vite.config.ts --host 127.0.0.1",
     "build": "npm run typecheck && vite build && tsc -p tsconfig.build.json && npm run copy:css",
     "build:demo": "vite build --config examples/vite-static/vite.config.ts",
+    "build:dynamic": "vite build --config examples/vite-dynamic/vite.config.ts",
     "copy:css": "node -e \"fs=require('node:fs');fs.mkdirSync('dist',{recursive:true});fs.copyFileSync('src/style.css','dist/style.css')\"",
     "preview:demo": "vite preview --config examples/vite-static/vite.config.ts --host 127.0.0.1",
+    "preview:dynamic": "vite preview --config examples/vite-dynamic/vite.config.ts --host 127.0.0.1",
     "typecheck": "tsc --noEmit"
   },
   "keywords": [
