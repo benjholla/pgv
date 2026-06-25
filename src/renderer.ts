@@ -111,21 +111,48 @@ export class GraphView {
     const controls = document.createElement("div");
     controls.className = "pgv-controls";
 
+    const icons = {
+      plus: "M12 5v14m-7-7h14",
+      minus: "M5 12h14",
+      up: "M12 19V5m-7 7 7-7 7 7",
+      down: "M12 5v14m-7-7 7 7 7-7",
+      left: "M19 12H5m7 7-7-7 7-7",
+      right: "M5 12h14m-7 7 7-7-7-7",
+      reset: "M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0 M12 12L12 12",
+    };
+
     const buttons = [
-      { label: "+", action: () => this.#zoom(0.1), gridArea: "zoom-in" },
-      { label: "^", action: () => this.#pan(0, 40), gridArea: "pan-up" },
-      { label: "-", action: () => this.#zoom(-0.1), gridArea: "zoom-out" },
-      { label: "<", action: () => this.#pan(40, 0), gridArea: "pan-left" },
-      { label: "x", action: () => this.#reset(), gridArea: "reset" },
-      { label: ">", action: () => this.#pan(-40, 0), gridArea: "pan-right" },
-      { label: "V", action: () => this.#pan(0, -40), gridArea: "pan-down" },
+      { id: "zoom-in", icon: icons.plus, action: () => this.#zoom(0.1), gridArea: "zoom-in", label: "Zoom In" },
+      { id: "pan-up", icon: icons.up, action: () => this.#pan(0, 40), gridArea: "pan-up", label: "Pan Up" },
+      { id: "zoom-out", icon: icons.minus, action: () => this.#zoom(-0.1), gridArea: "zoom-out", label: "Zoom Out" },
+      { id: "pan-left", icon: icons.left, action: () => this.#pan(40, 0), gridArea: "pan-left", label: "Pan Left" },
+      { id: "reset", icon: icons.reset, action: () => this.#reset(), gridArea: "reset", label: "Reset View" },
+      { id: "pan-right", icon: icons.right, action: () => this.#pan(-40, 0), gridArea: "pan-right", label: "Pan Right" },
+      { id: "pan-down", icon: icons.down, action: () => this.#pan(0, -40), gridArea: "pan-down", label: "Pan Down" },
     ];
 
     for (const btn of buttons) {
       const button = document.createElement("button");
       button.type = "button";
-      button.textContent = btn.label;
       button.style.gridArea = btn.gridArea;
+      button.setAttribute("aria-label", btn.label);
+      button.setAttribute("title", btn.label);
+
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.setAttribute("width", "20");
+      svg.setAttribute("height", "20");
+      svg.setAttribute("fill", "none");
+      svg.setAttribute("stroke", "currentColor");
+      svg.setAttribute("stroke-width", "2.5");
+      svg.setAttribute("stroke-linecap", "round");
+      svg.setAttribute("stroke-linejoin", "round");
+
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", btn.icon);
+      svg.appendChild(path);
+      button.appendChild(svg);
+
       button.addEventListener("click", (e) => {
         e.preventDefault();
         e.stopPropagation();

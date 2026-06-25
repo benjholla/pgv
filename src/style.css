@@ -27,15 +27,21 @@
 }
 
 .pgv-controls {
+  background: rgba(243, 244, 246, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(209, 213, 219, 0.3);
+  border-radius: 12px;
   bottom: 16px;
   display: grid;
   gap: 4px;
   grid-template-areas:
     "zoom-in  .        pan-up   ."
-    ".        pan-left reset    pan-right"
-    "zoom-out .        pan-down .";
+    "zoom-out pan-left reset    pan-right"
+    ".        .        pan-down .";
   grid-template-columns: repeat(4, 32px);
   grid-template-rows: repeat(3, 32px);
+  padding: 6px;
   position: absolute;
   right: 16px;
   z-index: 10;
@@ -45,17 +51,14 @@
   align-items: center;
   background: #ffffff;
   border: 1px solid #d6dee8;
-  border-radius: 4px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   color: #445160;
   cursor: pointer;
   display: flex;
-  font-family: inherit;
-  font-size: 16px;
-  font-weight: 600;
   justify-content: center;
   padding: 0;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .pgv-controls button:hover {

@@ -56,6 +56,7 @@ function updateGraph(): void {
   const options = {
     layout: currentLayout,
     selection: currentSelection,
+    usePanZoom: true,
     onNodeClick: (nodeId: string) => {
       const nodes = new Set(currentSelection.nodes);
       if (nodes.has(nodeId)) {
