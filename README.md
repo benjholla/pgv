@@ -27,7 +27,7 @@ npm run build
 Build the Static Vite example:
 
 ```bash
-npm run build:demo
+npm run build:static
 ```
 
 Run the Spring Boot graph producer example:
