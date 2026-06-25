@@ -51,14 +51,19 @@ npm run build:demo
 Run the Spring Boot graph producer example:
 
 ```bash
-cd examples/spring-boot-producer
-mvn spring-boot:run
+npm run dev:backend
 ```
 
 Then fetch:
 
 ```text
 http://localhost:8080/api/graphs/cfg-main
+```
+
+The equivalent direct Maven command is:
+
+```bash
+mvn -f examples/spring-boot-producer/pom.xml spring-boot:run
 ```
 
 ## Basic Usage

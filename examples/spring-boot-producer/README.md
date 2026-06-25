@@ -8,6 +8,18 @@ Run it with:
 mvn spring-boot:run
 ```
 
+Or, from the repository root:
+
+```bash
+mvn -f examples/spring-boot-producer/pom.xml spring-boot:run
+```
+
+If your Maven installation cannot resolve the `spring-boot` prefix, use the full plugin coordinate:
+
+```bash
+mvn -f examples/spring-boot-producer/pom.xml org.springframework.boot:spring-boot-maven-plugin:3.3.5:run
+```
+
 Fetch the milestone-1 sample graph:
 
 ```text
