@@ -15,8 +15,15 @@ export interface GraphViewOptions {
   readonly nodeContent?: (node: GraphNode) => HTMLElement | string;
   readonly edgeLabel?: (edge: GraphEdge) => string | null | undefined;
   readonly selection?: SelectionState;
+  readonly usePanZoom?: boolean;
   readonly onNodeClick?: (nodeId: string, event: MouseEvent) => void;
   readonly onEdgeClick?: (edgeId: string, event: MouseEvent) => void;
+}
+
+interface ViewportState {
+  x: number;
+  y: number;
+  scale: number;
 }
 
 export class GraphView {
@@ -25,6 +32,8 @@ export class GraphView {
   #options: GraphViewOptions;
   #graph: GraphSnapshot | null = null;
   #layout: LayoutSnapshot | null = null;
+  #viewportState: ViewportState = { x: 0, y: 0, scale: 1 };
+  #panZoomAbortController: AbortController | null = null;
 
   constructor(container: HTMLElement, options: GraphViewOptions = {}) {
     this.container = container;
@@ -43,6 +52,8 @@ export class GraphView {
   destroy(): void {
     this.#graph = null;
     this.#layout = null;
+    this.#panZoomAbortController?.abort();
+    this.#panZoomAbortController = null;
     this.container.replaceChildren();
   }
 
@@ -55,7 +66,11 @@ export class GraphView {
     const layout = this.#layout;
     const root = document.createElement("div");
 
-    root.className = joinClassNames("pgv-graph-view", this.#options.className);
+    root.className = joinClassNames(
+      "pgv-graph-view",
+      this.#options.usePanZoom ? "pgv-pan-zoom" : undefined,
+      this.#options.className,
+    );
     root.style.setProperty("--pgv-canvas-width", `${layout.width}px`);
     root.style.setProperty("--pgv-canvas-height", `${layout.height}px`);
     root.style.setProperty("--pgv-node-width", `${layout.nodeSize.width}px`);
@@ -68,11 +83,160 @@ export class GraphView {
 
     stage.appendChild(renderEdges(graph, layout, this.#options));
     stage.append(...renderNodes(graph, layout, this.#options));
-    root.appendChild(stage);
+
+    if (this.#options.usePanZoom) {
+      const viewport = document.createElement("div");
+      viewport.className = "pgv-viewport";
+
+      stage.style.transform = `translate(${this.#viewportState.x}px, ${this.#viewportState.y}px) scale(${this.#viewportState.scale})`;
+      stage.style.transformOrigin = "0 0";
+
+      viewport.appendChild(stage);
+      root.appendChild(viewport);
+      root.appendChild(this.#renderControls());
+
+      this.#panZoomAbortController?.abort();
+      this.#panZoomAbortController = new AbortController();
+      this.#setupPanZoomEvents(viewport, this.#panZoomAbortController.signal);
+    } else {
+      root.appendChild(stage);
+    }
 
     this.#setupEvents(root);
 
     this.container.replaceChildren(root);
+  }
+
+  #renderControls(): HTMLElement {
+    const controls = document.createElement("div");
+    controls.className = "pgv-controls";
+
+    const icons = {
+      plus: "M12 5v14m-7-7h14",
+      minus: "M5 12h14",
+      up: "M12 19V5m-7 7 7-7 7 7",
+      down: "M12 5v14m-7-7 7 7 7-7",
+      left: "M19 12H5m7 7-7-7 7-7",
+      right: "M5 12h14m-7 7 7-7-7-7",
+      reset: "M12 12m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0 M12 12L12 12",
+    };
+
+    const zoomButtons = [
+      { id: "zoom-in", icon: icons.plus, action: () => this.#zoom(0.1), label: "Zoom In" },
+      { id: "zoom-out", icon: icons.minus, action: () => this.#zoom(-0.1), label: "Zoom Out" },
+    ];
+
+    const panButtons = [
+      { id: "pan-up", icon: icons.up, action: () => this.#pan(0, 40), gridArea: "pan-up", label: "Pan Up" },
+      { id: "pan-left", icon: icons.left, action: () => this.#pan(40, 0), gridArea: "pan-left", label: "Pan Left" },
+      { id: "reset", icon: icons.reset, action: () => this.#reset(), gridArea: "reset", label: "Reset View" },
+      { id: "pan-right", icon: icons.right, action: () => this.#pan(-40, 0), gridArea: "pan-right", label: "Pan Right" },
+      { id: "pan-down", icon: icons.down, action: () => this.#pan(0, -40), gridArea: "pan-down", label: "Pan Down" },
+    ];
+
+    const zoomGroup = document.createElement("div");
+    zoomGroup.className = "pgv-control-group pgv-zoom-group";
+    for (const btn of zoomButtons) {
+      zoomGroup.appendChild(this.#createControlButton(btn));
+    }
+
+    const panGroup = document.createElement("div");
+    panGroup.className = "pgv-control-group pgv-pan-group";
+    for (const btn of panButtons) {
+      const button = this.#createControlButton(btn);
+      button.style.gridArea = btn.gridArea!;
+      panGroup.appendChild(button);
+    }
+
+    controls.append(zoomGroup, panGroup);
+    return controls;
+  }
+
+  #createControlButton(btn: { icon: string, action: () => void, label: string }): HTMLButtonElement {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("aria-label", btn.label);
+    button.setAttribute("title", btn.label);
+
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", "20");
+    svg.setAttribute("height", "20");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2.5");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", btn.icon);
+    svg.appendChild(path);
+    button.appendChild(svg);
+
+    button.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      btn.action();
+    });
+    return button;
+  }
+
+  #zoom(delta: number): void {
+    this.#viewportState.scale = Math.max(0.1, this.#viewportState.scale + delta);
+    this.#applyViewport();
+  }
+
+  #pan(dx: number, dy: number): void {
+    this.#viewportState.x += dx;
+    this.#viewportState.y += dy;
+    this.#applyViewport();
+  }
+
+  #reset(): void {
+    this.#viewportState = { x: 0, y: 0, scale: 1 };
+    this.#applyViewport();
+  }
+
+  #applyViewport(): void {
+    const stage = this.container.querySelector<HTMLElement>(".pgv-graph-stage");
+    if (stage) {
+      stage.style.transform = `translate(${this.#viewportState.x}px, ${this.#viewportState.y}px) scale(${this.#viewportState.scale})`;
+    }
+  }
+
+  #setupPanZoomEvents(viewport: HTMLElement, signal: AbortSignal): void {
+    let isDragging = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    viewport.addEventListener("mousedown", (e) => {
+      if (e.button !== 0) return;
+      if ((e.target as HTMLElement).closest(".pgv-graph-node, .pgv-graph-edge")) {
+        return;
+      }
+      isDragging = true;
+      lastX = e.clientX;
+      lastY = e.clientY;
+    }, { signal });
+
+    window.addEventListener("mousemove", (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      this.#pan(dx, dy);
+    }, { signal });
+
+    window.addEventListener("mouseup", () => {
+      isDragging = false;
+    }, { signal });
+
+    viewport.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      this.#zoom(delta);
+    }, { passive: false, signal });
   }
 
   #setupEvents(element: HTMLElement): void {
