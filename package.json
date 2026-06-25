@@ -1,0 +1,46 @@
+{
+  "name": "@pgv/graph-core",
+  "version": "0.1.0",
+  "description": "Frontend-only graph visualization primitives for immutable attributed program-analysis graphs.",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "sideEffects": [
+    "./src/style.css",
+    "./dist/style.css"
+  ],
+  "scripts": {
+    "dev": "vite --config examples/vite-static/vite.config.ts --host 127.0.0.1",
+    "build": "npm run typecheck && vite build && tsc -p tsconfig.build.json && npm run copy:css",
+    "build:demo": "vite build --config examples/vite-static/vite.config.ts",
+    "copy:css": "node -e \"fs=require('node:fs');fs.mkdirSync('dist',{recursive:true});fs.copyFileSync('src/style.css','dist/style.css')\"",
+    "preview:demo": "vite preview --config examples/vite-static/vite.config.ts --host 127.0.0.1",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "graph",
+    "visualization",
+    "program-analysis",
+    "control-flow-graph",
+    "dominator-tree",
+    "typescript"
+  ],
+  "devDependencies": {
+    "@types/node": "^20.14.12",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.10"
+  }
+}

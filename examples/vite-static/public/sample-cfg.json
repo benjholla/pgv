@@ -1,0 +1,104 @@
+{
+  "graphId": "cfg-main",
+  "version": 1,
+  "nodes": [
+    {
+      "id": "entry",
+      "tags": ["entry"],
+      "attributes": {
+        "label": "Entry",
+        "kind": "basic-block"
+      }
+    },
+    {
+      "id": "init",
+      "tags": [],
+      "attributes": {
+        "label": "Initialize i = 0",
+        "line": 3
+      }
+    },
+    {
+      "id": "condition",
+      "tags": ["decision", "loop"],
+      "attributes": {
+        "label": "i < n?",
+        "line": 4
+      }
+    },
+    {
+      "id": "body",
+      "tags": [],
+      "attributes": {
+        "label": "sum += values[i]",
+        "line": 5
+      }
+    },
+    {
+      "id": "increment",
+      "tags": ["loop"],
+      "attributes": {
+        "label": "i++",
+        "line": 6
+      }
+    },
+    {
+      "id": "exit",
+      "tags": ["exit"],
+      "attributes": {
+        "label": "Return sum",
+        "line": 8
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-entry-init",
+      "source": "entry",
+      "target": "init",
+      "tags": [],
+      "attributes": {}
+    },
+    {
+      "id": "e-init-condition",
+      "source": "init",
+      "target": "condition",
+      "tags": [],
+      "attributes": {}
+    },
+    {
+      "id": "e-condition-body",
+      "source": "condition",
+      "target": "body",
+      "tags": ["true-branch"],
+      "attributes": {
+        "label": "true"
+      }
+    },
+    {
+      "id": "e-body-increment",
+      "source": "body",
+      "target": "increment",
+      "tags": [],
+      "attributes": {}
+    },
+    {
+      "id": "e-increment-condition",
+      "source": "increment",
+      "target": "condition",
+      "tags": ["back-edge"],
+      "attributes": {
+        "label": "next"
+      }
+    },
+    {
+      "id": "e-condition-exit",
+      "source": "condition",
+      "target": "exit",
+      "tags": ["false-branch"],
+      "attributes": {
+        "label": "false"
+      }
+    }
+  ]
+}

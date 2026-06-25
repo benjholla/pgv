@@ -1,0 +1,78 @@
+html {
+  background: #eef2f6;
+  color: #17202a;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+a {
+  font: inherit;
+}
+
+.demo-shell {
+  box-sizing: border-box;
+  display: grid;
+  gap: 16px;
+  min-height: 100vh;
+  padding: 18px;
+}
+
+.demo-toolbar {
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid #d6dee8;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgb(16 24 40 / 8%);
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+  padding: 14px 16px;
+}
+
+.demo-toolbar h1 {
+  font-size: 20px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.demo-toolbar p {
+  color: #667085;
+  font-size: 13px;
+  margin: 4px 0 0;
+}
+
+.demo-toolbar a {
+  align-items: center;
+  background: #17202a;
+  border-radius: 6px;
+  color: #ffffff;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 34px;
+  padding: 0 12px;
+  text-decoration: none;
+}
+
+#graph {
+  min-height: 0;
+  overflow: auto;
+}
+
+#graph .pgv-graph-stage {
+  min-height: calc(100vh - 110px);
+}
+
+@media (max-width: 640px) {
+  .demo-shell {
+    padding: 10px;
+  }
+
+  .demo-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
