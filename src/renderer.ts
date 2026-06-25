@@ -15,7 +15,9 @@ export interface GraphViewOptions {
   readonly nodeContent?: (node: GraphNode) => HTMLElement | string;
   readonly edgeLabel?: (edge: GraphEdge) => string | null | undefined;
   readonly selection?: SelectionState;
+  readonly theme?: "light" | "dark" | "auto";
   readonly usePanZoom?: boolean;
+  readonly useThemeToggle?: boolean;
   readonly onNodeClick?: (nodeId: string, event: MouseEvent) => void;
   readonly onEdgeClick?: (edgeId: string, event: MouseEvent) => void;
 }
@@ -34,10 +36,12 @@ export class GraphView {
   #layout: LayoutSnapshot | null = null;
   #viewportState: ViewportState = { x: 0, y: 0, scale: 1 };
   #panZoomAbortController: AbortController | null = null;
+  #currentTheme: "light" | "dark" | "auto";
 
   constructor(container: HTMLElement, options: GraphViewOptions = {}) {
     this.container = container;
     this.#options = options;
+    this.#currentTheme = options.theme ?? "auto";
   }
 
   setGraph(graph: GraphSnapshot, options: GraphViewOptions = {}): void {
@@ -69,6 +73,8 @@ export class GraphView {
     root.className = joinClassNames(
       "pgv-graph-view",
       this.#options.usePanZoom ? "pgv-pan-zoom" : undefined,
+      this.#currentTheme === "light" ? "pgv-light" : undefined,
+      this.#currentTheme === "dark" ? "pgv-dark" : undefined,
       this.#options.className,
     );
     root.style.setProperty("--pgv-canvas-width", `${layout.width}px`);
@@ -84,7 +90,7 @@ export class GraphView {
     stage.appendChild(renderEdges(graph, layout, this.#options));
     stage.append(...renderNodes(graph, layout, this.#options));
 
-    if (this.#options.usePanZoom) {
+    if (this.#options.usePanZoom || this.#options.useThemeToggle) {
       const viewport = document.createElement("div");
       viewport.className = "pgv-viewport";
 
@@ -95,9 +101,11 @@ export class GraphView {
       root.appendChild(viewport);
       root.appendChild(this.#renderControls());
 
-      this.#panZoomAbortController?.abort();
-      this.#panZoomAbortController = new AbortController();
-      this.#setupPanZoomEvents(viewport, this.#panZoomAbortController.signal);
+      if (this.#options.usePanZoom) {
+        this.#panZoomAbortController?.abort();
+        this.#panZoomAbortController = new AbortController();
+        this.#setupPanZoomEvents(viewport, this.#panZoomAbortController.signal);
+      }
     } else {
       root.appendChild(stage);
     }
@@ -119,36 +127,58 @@ export class GraphView {
       left: "M19 12H5m7 7-7-7 7-7",
       right: "M5 12h14m-7 7 7-7-7-7",
       reset: "M12 12m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0 M12 12L12 12",
+      sun: "M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0 M3 12h1M20 12h1M12 3v1M12 20v1M5.6 5.6l.7.7M17.7 17.7l.7.7M5.6 17.7l.7-.7M17.7 5.6l-.7.7",
+      moon: "M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z",
+      auto: "M12 3v18M3 12h18M12 3l9 9-9 9-9-9 9-9",
     };
 
-    const zoomButtons = [
-      { id: "zoom-in", icon: icons.plus, action: () => this.#zoom(0.1), label: "Zoom In" },
-      { id: "zoom-out", icon: icons.minus, action: () => this.#zoom(-0.1), label: "Zoom Out" },
-    ];
+    if (this.#options.usePanZoom) {
+      const zoomButtons = [
+        { id: "zoom-in", icon: icons.plus, action: () => this.#zoom(0.1), label: "Zoom In" },
+        { id: "zoom-out", icon: icons.minus, action: () => this.#zoom(-0.1), label: "Zoom Out" },
+      ];
 
-    const panButtons = [
-      { id: "pan-up", icon: icons.up, action: () => this.#pan(0, 40), gridArea: "pan-up", label: "Pan Up" },
-      { id: "pan-left", icon: icons.left, action: () => this.#pan(40, 0), gridArea: "pan-left", label: "Pan Left" },
-      { id: "reset", icon: icons.reset, action: () => this.#reset(), gridArea: "reset", label: "Reset View" },
-      { id: "pan-right", icon: icons.right, action: () => this.#pan(-40, 0), gridArea: "pan-right", label: "Pan Right" },
-      { id: "pan-down", icon: icons.down, action: () => this.#pan(0, -40), gridArea: "pan-down", label: "Pan Down" },
-    ];
+      const panButtons = [
+        { id: "pan-up", icon: icons.up, action: () => this.#pan(0, 40), gridArea: "pan-up", label: "Pan Up" },
+        { id: "pan-left", icon: icons.left, action: () => this.#pan(40, 0), gridArea: "pan-left", label: "Pan Left" },
+        { id: "reset", icon: icons.reset, action: () => this.#reset(), gridArea: "reset", label: "Reset View" },
+        { id: "pan-right", icon: icons.right, action: () => this.#pan(-40, 0), gridArea: "pan-right", label: "Pan Right" },
+        { id: "pan-down", icon: icons.down, action: () => this.#pan(0, -40), gridArea: "pan-down", label: "Pan Down" },
+      ];
 
-    const zoomGroup = document.createElement("div");
-    zoomGroup.className = "pgv-control-group pgv-zoom-group";
-    for (const btn of zoomButtons) {
-      zoomGroup.appendChild(this.#createControlButton(btn));
+      const zoomGroup = document.createElement("div");
+      zoomGroup.className = "pgv-control-group pgv-zoom-group";
+      for (const btn of zoomButtons) {
+        zoomGroup.appendChild(this.#createControlButton(btn));
+      }
+
+      const panGroup = document.createElement("div");
+      panGroup.className = "pgv-control-group pgv-pan-group";
+      for (const btn of panButtons) {
+        const button = this.#createControlButton(btn);
+        button.style.gridArea = btn.gridArea!;
+        panGroup.appendChild(button);
+      }
+
+      controls.append(zoomGroup, panGroup);
     }
 
-    const panGroup = document.createElement("div");
-    panGroup.className = "pgv-control-group pgv-pan-group";
-    for (const btn of panButtons) {
-      const button = this.#createControlButton(btn);
-      button.style.gridArea = btn.gridArea!;
-      panGroup.appendChild(button);
+    if (this.#options.useThemeToggle) {
+      const themeGroup = document.createElement("div");
+      themeGroup.className = "pgv-control-group pgv-theme-group";
+
+      const themeIcon = this.#currentTheme === "light" ? icons.sun : this.#currentTheme === "dark" ? icons.moon : icons.auto;
+      const themeLabel = `Theme: ${this.#currentTheme.charAt(0).toUpperCase() + this.#currentTheme.slice(1)}`;
+
+      themeGroup.appendChild(this.#createControlButton({
+        icon: themeIcon,
+        action: () => this.#toggleTheme(),
+        label: themeLabel,
+      }));
+
+      controls.appendChild(themeGroup);
     }
 
-    controls.append(zoomGroup, panGroup);
     return controls;
   }
 
@@ -195,6 +225,13 @@ export class GraphView {
   #reset(): void {
     this.#viewportState = { x: 0, y: 0, scale: 1 };
     this.#applyViewport();
+  }
+
+  #toggleTheme(): void {
+    const themes: Array<"light" | "dark" | "auto"> = ["light", "dark", "auto"];
+    const currentIndex = themes.indexOf(this.#currentTheme);
+    this.#currentTheme = themes[(currentIndex + 1) % themes.length];
+    this.#render();
   }
 
   #applyViewport(): void {
@@ -448,7 +485,6 @@ function createArrowMarker(markerId: string): SVGDefsElement {
   marker.setAttribute("markerHeight", "6");
   marker.setAttribute("orient", "auto-start-reverse");
   path.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
-  path.setAttribute("fill", "#697586");
   marker.appendChild(path);
   defs.appendChild(marker);
 
