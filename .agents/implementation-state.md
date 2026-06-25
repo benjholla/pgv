@@ -77,3 +77,36 @@ mvn -f examples/spring-boot-producer/pom.xml org.springframework.boot:spring-boo
   original Vite 5 scaffold.
 - The Spring Boot Maven plugin is pinned to `3.3.5`.
 - `.gitattributes` should keep repository text files on LF line endings.
+
+
+# Milestone Progress
+
+## Milestone 1
+
+- Immutable graph snapshot model with stable producer-assigned node and edge IDs.
+- JSON transport parser for `{ graphId, version, nodes, edges }`.
+- Vertical frontend-owned layout.
+- HTML node rendering with SVG edge rendering.
+- Tag-to-CSS-class styling, including classes like `graph-node`, `graph-edge`, and `tag-entry`.
+- Vite TypeScript static frontend example.
+- Spring Boot backend example that emits graph JSON without coordinates or view state.
+
+Pipeline:
+
+```text
+JSON -> GraphSnapshot -> Vertical LayoutSnapshot -> HTML/SVG Render
+```
+
+## Milestone 2
+
+- Implemented interactive node and edge selection for the graph visualization library. This includes defining the selection state, handling click events, applying visual feedback via CSS, and updating the demo application to showcase the new functionality. Architectural improvements were made to prevent event listener leaks and optimize rendering performance.
+
+## Milestone 2.1
+
+- Added an example `vite-dynamic` that pulls data from the `spring-boot-producer` backend.
+
+Changes include:
+- New directory `examples/vite-dynamic` with `index.html`, `vite.config.ts`, and source files.
+- New npm scripts: `dev:dynamic`, `build:dynamic`, and `preview:dynamic`.
+- Verified UI functionality and backend connectivity.
+
