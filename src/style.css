@@ -33,18 +33,34 @@
   border: 1px solid rgba(209, 213, 219, 0.3);
   border-radius: 12px;
   bottom: 16px;
-  display: grid;
-  gap: 4px;
-  grid-template-areas:
-    "zoom-in  .        pan-up   ."
-    "zoom-out pan-left reset    pan-right"
-    ".        .        pan-down .";
-  grid-template-columns: repeat(4, 32px);
-  grid-template-rows: repeat(3, 32px);
-  padding: 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
   position: absolute;
   right: 16px;
   z-index: 10;
+}
+
+.pgv-control-group {
+  display: grid;
+  gap: 4px;
+}
+
+.pgv-zoom-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  justify-content: center;
+}
+
+.pgv-pan-group {
+  grid-template-areas:
+    ".        pan-up   ."
+    "pan-left reset    pan-right"
+    ".        pan-down .";
+  grid-template-columns: repeat(3, 32px);
+  grid-template-rows: repeat(3, 32px);
 }
 
 .pgv-controls button {
@@ -56,9 +72,11 @@
   color: #445160;
   cursor: pointer;
   display: flex;
+  height: 32px;
   justify-content: center;
   padding: 0;
   transition: all 0.2s ease;
+  width: 32px;
 }
 
 .pgv-controls button:hover {

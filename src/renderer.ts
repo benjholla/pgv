@@ -118,50 +118,67 @@ export class GraphView {
       down: "M12 5v14m-7-7 7 7 7-7",
       left: "M19 12H5m7 7-7-7 7-7",
       right: "M5 12h14m-7 7 7-7-7-7",
-      reset: "M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0 -18 0 M12 12L12 12",
+      reset: "M12 12m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0 M12 12L12 12",
     };
 
-    const buttons = [
-      { id: "zoom-in", icon: icons.plus, action: () => this.#zoom(0.1), gridArea: "zoom-in", label: "Zoom In" },
+    const zoomButtons = [
+      { id: "zoom-in", icon: icons.plus, action: () => this.#zoom(0.1), label: "Zoom In" },
+      { id: "zoom-out", icon: icons.minus, action: () => this.#zoom(-0.1), label: "Zoom Out" },
+    ];
+
+    const panButtons = [
       { id: "pan-up", icon: icons.up, action: () => this.#pan(0, 40), gridArea: "pan-up", label: "Pan Up" },
-      { id: "zoom-out", icon: icons.minus, action: () => this.#zoom(-0.1), gridArea: "zoom-out", label: "Zoom Out" },
       { id: "pan-left", icon: icons.left, action: () => this.#pan(40, 0), gridArea: "pan-left", label: "Pan Left" },
       { id: "reset", icon: icons.reset, action: () => this.#reset(), gridArea: "reset", label: "Reset View" },
       { id: "pan-right", icon: icons.right, action: () => this.#pan(-40, 0), gridArea: "pan-right", label: "Pan Right" },
       { id: "pan-down", icon: icons.down, action: () => this.#pan(0, -40), gridArea: "pan-down", label: "Pan Down" },
     ];
 
-    for (const btn of buttons) {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.style.gridArea = btn.gridArea;
-      button.setAttribute("aria-label", btn.label);
-      button.setAttribute("title", btn.label);
-
-      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-      svg.setAttribute("viewBox", "0 0 24 24");
-      svg.setAttribute("width", "20");
-      svg.setAttribute("height", "20");
-      svg.setAttribute("fill", "none");
-      svg.setAttribute("stroke", "currentColor");
-      svg.setAttribute("stroke-width", "2.5");
-      svg.setAttribute("stroke-linecap", "round");
-      svg.setAttribute("stroke-linejoin", "round");
-
-      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-      path.setAttribute("d", btn.icon);
-      svg.appendChild(path);
-      button.appendChild(svg);
-
-      button.addEventListener("click", (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        btn.action();
-      });
-      controls.appendChild(button);
+    const zoomGroup = document.createElement("div");
+    zoomGroup.className = "pgv-control-group pgv-zoom-group";
+    for (const btn of zoomButtons) {
+      zoomGroup.appendChild(this.#createControlButton(btn));
     }
 
+    const panGroup = document.createElement("div");
+    panGroup.className = "pgv-control-group pgv-pan-group";
+    for (const btn of panButtons) {
+      const button = this.#createControlButton(btn);
+      button.style.gridArea = btn.gridArea!;
+      panGroup.appendChild(button);
+    }
+
+    controls.append(zoomGroup, panGroup);
     return controls;
+  }
+
+  #createControlButton(btn: { icon: string, action: () => void, label: string }): HTMLButtonElement {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("aria-label", btn.label);
+    button.setAttribute("title", btn.label);
+
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("width", "20");
+    svg.setAttribute("height", "20");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2.5");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", btn.icon);
+    svg.appendChild(path);
+    button.appendChild(svg);
+
+    button.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      btn.action();
+    });
+    return button;
   }
 
   #zoom(delta: number): void {
