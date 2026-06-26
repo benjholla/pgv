@@ -107,7 +107,7 @@ export class GraphView {
     }
   }
 
-  #navigateHistory(direction: "left" | "right" | "fast-forward"): void {
+  #navigateHistory(direction: "left" | "right" | "fast-forward" | "fast-rewind"): void {
     if (!this.#preHistoryGraph) return;
 
     if (direction === "left") {
@@ -120,6 +120,8 @@ export class GraphView {
       }
     } else if (direction === "fast-forward") {
       this.#historyIndex = this.#history.length - 1;
+    } else if (direction === "fast-rewind") {
+      this.#historyIndex = -1;
     }
 
     let current = this.#preHistoryGraph;
@@ -211,7 +213,14 @@ export class GraphView {
       left: "M15 18l-6-6 6-6",
       right: "M9 18l6-6-6-6",
       fastForward: "M13 18l6-6-6-6M5 18l6-6-6-6",
+      fastRewind: "M11 18l-6-6 6-6M19 18l-6-6 6-6",
     };
+
+    const rwBtn = this.#createControlButton({
+      icon: icons.fastRewind,
+      action: () => this.#navigateHistory("fast-rewind"),
+      label: "Earliest Graph Snapshot",
+    });
 
     const leftBtn = this.#createControlButton({
       icon: icons.left,
@@ -222,6 +231,8 @@ export class GraphView {
     if (this.#historyIndex === -1) {
       leftBtn.disabled = true;
       leftBtn.classList.add("disabled");
+      rwBtn.disabled = true;
+      rwBtn.classList.add("disabled");
     }
 
     const rightBtn = this.#createControlButton({
@@ -243,6 +254,7 @@ export class GraphView {
       ffBtn.classList.add("disabled");
     }
 
+    controls.appendChild(rwBtn);
     controls.appendChild(leftBtn);
     controls.appendChild(rightBtn);
     controls.appendChild(ffBtn);
