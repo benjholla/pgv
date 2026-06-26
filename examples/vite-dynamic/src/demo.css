@@ -88,10 +88,12 @@ a {
   margin: 4px 0 0;
 }
 
-.demo-toolbar a {
+.demo-toolbar a,
+.demo-toolbar button {
   align-items: center;
   background: var(--demo-link-bg);
   border-radius: 6px;
+  border: none;
   color: var(--demo-link-fg);
   display: inline-flex;
   font-size: 13px;
@@ -99,6 +101,7 @@ a {
   min-height: 34px;
   padding: 0 12px;
   text-decoration: none;
+  cursor: pointer;
 }
 
 #graph {
