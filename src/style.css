@@ -157,6 +157,22 @@
   z-index: 10;
 }
 
+.pgv-history-controls {
+  background: var(--pgv-controls-bg);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--pgv-controls-border);
+  border-radius: 12px;
+  top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  position: absolute;
+  right: 16px;
+  z-index: 10;
+}
+
 .pgv-control-group {
   display: grid;
   gap: 4px;
@@ -200,6 +216,35 @@
 
 .pgv-controls button:active {
   background: var(--pgv-control-button-active-bg);
+}
+
+.pgv-history-controls button {
+  align-items: center;
+  background: var(--pgv-control-button-bg);
+  border: 1px solid var(--pgv-control-button-border);
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  color: var(--pgv-control-button-fg);
+  cursor: pointer;
+  display: flex;
+  height: 32px;
+  justify-content: center;
+  padding: 0;
+  transition: all 0.2s ease;
+  width: 32px;
+}
+
+.pgv-history-controls button:hover:not(:disabled) {
+  background: var(--pgv-control-button-hover-bg);
+}
+
+.pgv-history-controls button:active:not(:disabled) {
+  background: var(--pgv-control-button-active-bg);
+}
+
+.pgv-history-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .pgv-graph-stage {

@@ -18,9 +18,11 @@ export interface GraphViewOptions {
   readonly theme?: "light" | "dark" | "auto";
   readonly usePanZoom?: boolean;
   readonly useThemeToggle?: boolean;
+  readonly maxHistory?: number;
   readonly onThemeChange?: (theme: "light" | "dark" | "auto") => void;
   readonly onNodeClick?: (nodeId: string, event: MouseEvent) => void;
   readonly onEdgeClick?: (edgeId: string, event: MouseEvent) => void;
+  readonly onGraphChange?: (graph: GraphSnapshot) => void;
 }
 
 interface ViewportState {
@@ -28,6 +30,8 @@ interface ViewportState {
   y: number;
   scale: number;
 }
+
+import { type GraphDiff, applyGraphDiff } from "./model";
 
 export class GraphView {
   readonly container: HTMLElement;
@@ -39,6 +43,10 @@ export class GraphView {
   #panZoomAbortController: AbortController | null = null;
   #currentTheme: "light" | "dark" | "auto";
 
+  #preHistoryGraph: GraphSnapshot | null = null;
+  #history: Array<{ diff: GraphDiff; version: string | number }> = [];
+  #historyIndex: number = -1;
+
   constructor(container: HTMLElement, options: GraphViewOptions = {}) {
     this.container = container;
     this.#options = options;
@@ -46,6 +54,9 @@ export class GraphView {
   }
 
   setGraph(graph: GraphSnapshot, options: GraphViewOptions = {}): void {
+    this.#preHistoryGraph = graph;
+    this.#history = [];
+    this.#historyIndex = -1;
     this.#graph = graph;
     this.#options = { ...this.#options, ...options };
     if (options.theme !== undefined) {
@@ -54,6 +65,70 @@ export class GraphView {
     this.#layout =
       this.#options.layout ?? verticalLayout(graph, this.#options.layoutOptions);
 
+    this.#render();
+  }
+
+  applyDiff(diff: GraphDiff, newVersion: string | number): void {
+    if (!this.#graph || !this.#preHistoryGraph) {
+      throw new Error("Cannot apply diff to an empty graph view.");
+    }
+    const maxHistory = this.#options.maxHistory ?? 0;
+
+    if (this.#historyIndex < this.#history.length - 1) {
+      // Are we viewing a past state?
+      // "If the graph view is viewing a previous result and applying another graph diff would expire the current view then do not apply the graph diff"
+      const expireCount = (this.#history.length + 1) - maxHistory;
+      if (expireCount > 0 && this.#historyIndex < expireCount - 1) {
+        throw new Error("Graph view is blocked. Applying diff would expire the currently viewed state.");
+      }
+    }
+
+    this.#history.push({ diff, version: newVersion });
+
+    if (maxHistory > 0 && this.#history.length > maxHistory) {
+      // Compress oldest history into preHistoryGraph
+      const oldest = this.#history.shift()!;
+      this.#preHistoryGraph = applyGraphDiff(this.#preHistoryGraph, oldest.diff, oldest.version);
+      if (this.#historyIndex > -1) {
+        this.#historyIndex--;
+      }
+    }
+
+    if (this.#historyIndex === this.#history.length - 2) { // It was at the tip before pushing
+      this.#historyIndex = this.#history.length - 1;
+      this.#graph = applyGraphDiff(this.#graph, diff, newVersion);
+      this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions);
+      this.#options.onGraphChange?.(this.#graph);
+      this.#render();
+    } else {
+      // The view does not update if we are viewing a previous result,
+      // but the control panel buttons might need to re-render (right arrow might become enabled).
+      this.#render();
+    }
+  }
+
+  #navigateHistory(direction: "left" | "right"): void {
+    if (!this.#preHistoryGraph) return;
+
+    if (direction === "left") {
+      if (this.#historyIndex > -1) {
+        this.#historyIndex--;
+      }
+    } else {
+      if (this.#historyIndex < this.#history.length - 1) {
+        this.#historyIndex++;
+      }
+    }
+
+    let current = this.#preHistoryGraph;
+    for (let i = 0; i <= this.#historyIndex; i++) {
+      const h = this.#history[i];
+      current = applyGraphDiff(current, h.diff, h.version);
+    }
+
+    this.#graph = current;
+    this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions);
+    this.#options.onGraphChange?.(this.#graph);
     this.#render();
   }
 
@@ -94,7 +169,7 @@ export class GraphView {
     stage.appendChild(renderEdges(graph, layout, this.#options));
     stage.append(...renderNodes(graph, layout, this.#options));
 
-    if (this.#options.usePanZoom || this.#options.useThemeToggle) {
+    if (this.#options.usePanZoom || this.#options.useThemeToggle || (this.#options.maxHistory && this.#options.maxHistory > 0)) {
       const viewport = document.createElement("div");
       viewport.className = "pgv-viewport";
 
@@ -103,7 +178,14 @@ export class GraphView {
 
       viewport.appendChild(stage);
       root.appendChild(viewport);
-      root.appendChild(this.#renderControls());
+
+      if (this.#options.usePanZoom || this.#options.useThemeToggle) {
+        root.appendChild(this.#renderControls());
+      }
+
+      if (this.#options.maxHistory && this.#options.maxHistory > 0) {
+        root.appendChild(this.#renderHistoryControls());
+      }
 
       if (this.#options.usePanZoom) {
         this.#panZoomAbortController?.abort();
@@ -117,6 +199,43 @@ export class GraphView {
     this.#setupEvents(root);
 
     this.container.replaceChildren(root);
+  }
+
+  #renderHistoryControls(): HTMLElement {
+    const controls = document.createElement("div");
+    controls.className = "pgv-history-controls";
+
+    const icons = {
+      left: "M15 18l-6-6 6-6",
+      right: "M9 18l6-6-6-6",
+    };
+
+    const leftBtn = this.#createControlButton({
+      icon: icons.left,
+      action: () => this.#navigateHistory("left"),
+      label: "Previous Graph Snapshot",
+    });
+
+    if (this.#historyIndex === -1) {
+      leftBtn.disabled = true;
+      leftBtn.classList.add("disabled");
+    }
+
+    const rightBtn = this.#createControlButton({
+      icon: icons.right,
+      action: () => this.#navigateHistory("right"),
+      label: "Next Graph Snapshot",
+    });
+
+    if (this.#historyIndex >= this.#history.length - 1) {
+      rightBtn.disabled = true;
+      rightBtn.classList.add("disabled");
+    }
+
+    controls.appendChild(leftBtn);
+    controls.appendChild(rightBtn);
+
+    return controls;
   }
 
   #renderControls(): HTMLElement {

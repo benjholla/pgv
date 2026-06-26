@@ -12,7 +12,11 @@
           <h1>cfg-main</h1>
           <p id="graph-summary">Loading graph snapshot...</p>
         </div>
-        <a href="/sample-cfg.json">JSON</a>
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <a href="/sample-cfg.json">JSON</a>
+          <button id="apply-diff-add">Apply Diff 1 (Add)</button>
+          <button id="apply-diff-remove">Apply Diff 2 (Remove)</button>
+        </div>
       </header>
       <section id="graph" aria-label="Control flow graph"></section>
     </main>

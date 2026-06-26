@@ -11,11 +11,19 @@ export type {
   GraphSnapshot,
   GraphSnapshotJson,
 } from "./model";
+export type {
+  GraphDiff,
+  GraphDiffJson,
+} from "./model";
 export {
   GraphModelError,
   createGraphSnapshot,
   graphSnapshotFromJson,
   graphSnapshotToJson,
+  createGraphDiff,
+  graphDiffFromJson,
+  graphDiffToJson,
+  applyGraphDiff,
 } from "./model";
 export type {
   LayoutSnapshot,
