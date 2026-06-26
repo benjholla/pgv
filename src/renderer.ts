@@ -42,6 +42,9 @@ export class GraphView {
   #viewportState: ViewportState = { x: 0, y: 0, scale: 1 };
   #panZoomAbortController: AbortController | null = null;
   #currentTheme: "light" | "dark" | "auto";
+  #minimapOpen: boolean = false;
+  #minimapResizeObserver: ResizeObserver | null = null;
+  #minimapAbortController: AbortController | null = null;
 
   #preHistoryGraph: GraphSnapshot | null = null;
   #history: Array<{ diff: GraphDiff; version: string | number }> = [];
@@ -141,6 +144,10 @@ export class GraphView {
     this.#layout = null;
     this.#panZoomAbortController?.abort();
     this.#panZoomAbortController = null;
+    this.#minimapResizeObserver?.disconnect();
+    this.#minimapResizeObserver = null;
+    this.#minimapAbortController?.abort();
+    this.#minimapAbortController = null;
     this.container.replaceChildren();
   }
 
@@ -277,7 +284,11 @@ export class GraphView {
       sun: "M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0 M3 12h1M20 12h1M12 3v1M12 20v1M5.6 5.6l.7.7M17.7 17.7l.7.7M5.6 17.7l.7-.7M17.7 5.6l-.7.7",
       moon: "M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z",
       auto: "M12 3v18M3 12h18M12 3l9 9-9 9-9-9 9-9",
+      map: "M9 20v-14l-4 2v14l4 -2zM15 4v14l4 -2v-14l-4 2zM9 20l6 -2v-14l-6 2z",
     };
+
+    const buttonsContainer = document.createElement("div");
+    buttonsContainer.className = "pgv-controls-buttons";
 
     if (this.#options.usePanZoom) {
       const zoomButtons = [
@@ -307,24 +318,75 @@ export class GraphView {
         panGroup.appendChild(button);
       }
 
-      controls.append(zoomGroup, panGroup);
+      buttonsContainer.append(zoomGroup, panGroup);
     }
 
-    if (this.#options.useThemeToggle) {
-      const themeGroup = document.createElement("div");
-      themeGroup.className = "pgv-control-group pgv-theme-group";
+    if (this.#options.useThemeToggle || this.#options.usePanZoom) {
+      const miscGroup = document.createElement("div");
+      miscGroup.className = "pgv-misc-group";
 
-      const themeIcon = this.#currentTheme === "light" ? icons.sun : this.#currentTheme === "dark" ? icons.moon : icons.auto;
-      const themeLabel = `Theme: ${this.#currentTheme.charAt(0).toUpperCase() + this.#currentTheme.slice(1)}`;
+      if (this.#options.usePanZoom) {
+        miscGroup.appendChild(this.#createControlButton({
+          icon: icons.map,
+          action: () => this.#toggleMinimap(),
+          label: "Toggle Minimap",
+        }));
+      }
 
-      themeGroup.appendChild(this.#createControlButton({
-        icon: themeIcon,
-        action: () => this.#toggleTheme(),
-        label: themeLabel,
-      }));
+      // If we don't have a theme toggle but need a spacer so map stays top-right
+      if (!this.#options.useThemeToggle && this.#options.usePanZoom) {
+        const spacer = document.createElement("div");
+        spacer.style.flexGrow = "1";
+        miscGroup.appendChild(spacer);
+      }
 
-      controls.appendChild(themeGroup);
+      if (this.#options.useThemeToggle) {
+        const themeIcon = this.#currentTheme === "light" ? icons.sun : this.#currentTheme === "dark" ? icons.moon : icons.auto;
+        const themeLabel = `Theme: ${this.#currentTheme.charAt(0).toUpperCase() + this.#currentTheme.slice(1)}`;
+
+        // Add a spacer to push the theme toggle to the bottom if only theme is present
+        if (!this.#options.usePanZoom) {
+            const spacer = document.createElement("div");
+            spacer.style.flexGrow = "1";
+            miscGroup.appendChild(spacer);
+        }
+
+        miscGroup.appendChild(this.#createControlButton({
+          icon: themeIcon,
+          action: () => this.#toggleTheme(),
+          label: themeLabel,
+        }));
+      }
+
+      buttonsContainer.appendChild(miscGroup);
     }
+
+    // Add minimap container if pan/zoom is enabled
+    if (this.#options.usePanZoom) {
+      const minimap = document.createElement("div");
+      minimap.className = `pgv-minimap ${this.#minimapOpen ? "pgv-minimap-open" : ""}`;
+
+      const canvas = document.createElement("canvas");
+      canvas.className = "pgv-minimap-canvas";
+      // Prevent intrinsic canvas size (300x150) from forcing a wider container on first tick
+      canvas.width = 0;
+      canvas.height = 0;
+      minimap.appendChild(canvas);
+
+      const viewportBox = document.createElement("div");
+      viewportBox.className = "pgv-minimap-viewport";
+      minimap.appendChild(viewportBox);
+
+      controls.appendChild(minimap);
+
+      if (this.#minimapOpen) {
+        requestAnimationFrame(() => {
+          this.#setupMinimap(minimap, canvas, viewportBox);
+        });
+      }
+    }
+
+    controls.appendChild(buttonsContainer);
 
     return controls;
   }
@@ -374,6 +436,11 @@ export class GraphView {
     this.#applyViewport();
   }
 
+  #toggleMinimap(): void {
+    this.#minimapOpen = !this.#minimapOpen;
+    this.#render();
+  }
+
   #toggleTheme(): void {
     const themes: Array<"light" | "dark" | "auto"> = ["light", "dark", "auto"];
     const currentIndex = themes.indexOf(this.#currentTheme);
@@ -387,6 +454,181 @@ export class GraphView {
     if (stage) {
       stage.style.transform = `translate(${this.#viewportState.x}px, ${this.#viewportState.y}px) scale(${this.#viewportState.scale})`;
     }
+    this.#updateMinimapViewport();
+  }
+
+  #setupMinimap(minimap: HTMLElement, canvas: HTMLCanvasElement, viewportBox: HTMLElement): void {
+    this.#minimapResizeObserver?.disconnect();
+    this.#minimapAbortController?.abort();
+    this.#minimapAbortController = new AbortController();
+
+    this.#minimapResizeObserver = new ResizeObserver(() => {
+      this.#drawMinimap(canvas);
+      this.#updateMinimapViewport();
+    });
+
+    this.#minimapResizeObserver.observe(minimap);
+    this.#minimapResizeObserver.observe(this.container);
+
+    this.#drawMinimap(canvas);
+    this.#updateMinimapViewport();
+
+    // Interaction events
+    let isDraggingMinimap = false;
+
+    const mapToViewport = (clientX: number, clientY: number) => {
+      if (!this.#layout) return;
+      const rect = minimap.getBoundingClientRect();
+      const padding = 10;
+      const availWidth = rect.width - padding * 2;
+      const availHeight = rect.height - padding * 2;
+
+      const mapScale = Math.min(availWidth / this.#layout.width, availHeight / this.#layout.height);
+      const offsetX = padding + (availWidth - this.#layout.width * mapScale) / 2;
+      const offsetY = padding + (availHeight - this.#layout.height * mapScale) / 2;
+
+      // Click position relative to the minimap layout area
+      const clickX = clientX - rect.left - offsetX;
+      const clickY = clientY - rect.top - offsetY;
+
+      // Map back to logical coordinates
+      const logicalX = clickX / mapScale;
+      const logicalY = clickY / mapScale;
+
+      const containerRect = this.container.getBoundingClientRect();
+      const viewWidth = containerRect.width / this.#viewportState.scale;
+      const viewHeight = containerRect.height / this.#viewportState.scale;
+
+      this.#viewportState.x = -(logicalX - viewWidth / 2) * this.#viewportState.scale;
+      this.#viewportState.y = -(logicalY - viewHeight / 2) * this.#viewportState.scale;
+
+      this.#applyViewport();
+    };
+
+    const handlePointerDown = (e: MouseEvent) => {
+      if (e.button !== 0) return;
+      isDraggingMinimap = true;
+      mapToViewport(e.clientX, e.clientY);
+      e.stopPropagation(); // prevent pan Zoom events
+    };
+
+    const handlePointerMove = (e: MouseEvent) => {
+      if (!isDraggingMinimap) return;
+      mapToViewport(e.clientX, e.clientY);
+      e.stopPropagation();
+    };
+
+    const handlePointerUp = () => {
+      isDraggingMinimap = false;
+    };
+
+    minimap.addEventListener("mousedown", handlePointerDown, { signal: this.#minimapAbortController.signal });
+    // Bind to window to allow dragging outside the minimap area while tracking
+    window.addEventListener("mousemove", handlePointerMove, { signal: this.#minimapAbortController.signal });
+    window.addEventListener("mouseup", handlePointerUp, { signal: this.#minimapAbortController.signal });
+  }
+
+  #drawMinimap(canvas: HTMLCanvasElement): void {
+    if (!this.#graph || !this.#layout) return;
+
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    const rect = canvas.parentElement!.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    const layout = this.#layout;
+    // Add some padding
+    const padding = 10;
+    const availWidth = canvas.width - padding * 2;
+    const availHeight = canvas.height - padding * 2;
+
+    if (layout.width === 0 || layout.height === 0 || availWidth <= 0 || availHeight <= 0) return;
+
+    const scale = Math.min(availWidth / layout.width, availHeight / layout.height);
+
+    const offsetX = padding + (availWidth - layout.width * scale) / 2;
+    const offsetY = padding + (availHeight - layout.height * scale) / 2;
+
+    // Draw edges
+    ctx.strokeStyle = "rgba(105, 117, 134, 0.4)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+
+    for (const edge of this.#graph.edges.values()) {
+      const endpoints = edgeEndpoints(edge, layout);
+      if (!endpoints) continue;
+
+      const sourceX = offsetX + endpoints.source.x * scale;
+      const sourceY = offsetY + endpoints.source.y * scale;
+      const targetX = offsetX + endpoints.target.x * scale;
+      const targetY = offsetY + endpoints.target.y * scale;
+
+      const curveMidY = sourceY + (targetY - sourceY) / 2;
+
+      ctx.moveTo(sourceX, sourceY);
+      ctx.bezierCurveTo(sourceX, curveMidY, targetX, curveMidY, targetX, targetY);
+    }
+    ctx.stroke();
+
+    // Draw nodes
+    ctx.fillStyle = "rgba(105, 117, 134, 0.6)";
+    const nw = layout.nodeSize.width * scale;
+    const nh = layout.nodeSize.height * scale;
+
+    for (const node of this.#graph.nodes.values()) {
+      const position = layout.positions.get(node.id);
+      if (!position) continue;
+
+      const nx = offsetX + position.x * scale;
+      const ny = offsetY + position.y * scale;
+
+      ctx.fillRect(nx, ny, nw, nh);
+    }
+  }
+
+  #updateMinimapViewport(): void {
+    if (!this.#minimapOpen || !this.#layout) return;
+
+    const minimap = this.container.querySelector<HTMLElement>(".pgv-minimap");
+    const viewportBox = this.container.querySelector<HTMLElement>(".pgv-minimap-viewport");
+
+    if (!minimap || !viewportBox) return;
+
+    const layout = this.#layout;
+    const rect = minimap.getBoundingClientRect();
+    const padding = 10;
+    const availWidth = rect.width - padding * 2;
+    const availHeight = rect.height - padding * 2;
+
+    if (layout.width === 0 || layout.height === 0 || availWidth <= 0 || availHeight <= 0) return;
+
+    const mapScale = Math.min(availWidth / layout.width, availHeight / layout.height);
+    const offsetX = padding + (availWidth - layout.width * mapScale) / 2;
+    const offsetY = padding + (availHeight - layout.height * mapScale) / 2;
+
+    const containerRect = this.container.getBoundingClientRect();
+
+    // Calculate the visible area in logical layout coordinates
+    const viewWidth = containerRect.width / this.#viewportState.scale;
+    const viewHeight = containerRect.height / this.#viewportState.scale;
+
+    const viewX = -this.#viewportState.x / this.#viewportState.scale;
+    const viewY = -this.#viewportState.y / this.#viewportState.scale;
+
+    // Map to minimap coordinates
+    const boxX = offsetX + viewX * mapScale;
+    const boxY = offsetY + viewY * mapScale;
+    const boxWidth = viewWidth * mapScale;
+    const boxHeight = viewHeight * mapScale;
+
+    viewportBox.style.left = `${boxX}px`;
+    viewportBox.style.top = `${boxY}px`;
+    viewportBox.style.width = `${boxWidth}px`;
+    viewportBox.style.height = `${boxHeight}px`;
   }
 
   #setupPanZoomEvents(viewport: HTMLElement, signal: AbortSignal): void {

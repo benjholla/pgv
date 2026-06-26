@@ -149,12 +149,56 @@
   border-radius: 12px;
   bottom: 16px;
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
   padding: 8px;
   position: absolute;
   right: 16px;
   z-index: 10;
+}
+
+.pgv-controls-buttons {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+}
+
+.pgv-misc-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+}
+
+.pgv-minimap {
+  position: relative;
+  width: 100%;
+  height: 130px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--pgv-controls-border);
+  display: none;
+  box-sizing: border-box;
+  cursor: crosshair;
+}
+
+.pgv-minimap.pgv-minimap-open {
+  display: block;
+}
+
+.pgv-minimap-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.pgv-minimap-viewport {
+  position: absolute;
+  border: 1px solid var(--pgv-selected-color);
+  background: rgba(37, 99, 235, 0.1);
+  box-sizing: border-box;
+  pointer-events: none;
 }
 
 .pgv-history-controls {

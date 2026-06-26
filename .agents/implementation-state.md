@@ -124,9 +124,9 @@ Changes include:
   - Built-in theme toggle UI control.
   - `onThemeChange` callback for synchronization with host application styles.
 
-## Milestone 4 (Pending)
+## Milestone 4 (Completed)
 
-Minimap functionality.
+Minimap functionality using an HTML canvas for fast silhouette rendering and interactive viewport bounding box navigation.
 
 ## Milestone 5 (Pending)
 
