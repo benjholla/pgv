@@ -159,8 +159,15 @@
 
 .pgv-controls-buttons {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 12px;
+}
+
+.pgv-misc-group {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
 }
 
 .pgv-minimap {

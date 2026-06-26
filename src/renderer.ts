@@ -321,37 +321,43 @@ export class GraphView {
       buttonsContainer.append(zoomGroup, panGroup);
     }
 
-    if (this.#options.useThemeToggle) {
-      const themeGroup = document.createElement("div");
-      themeGroup.className = "pgv-control-group pgv-theme-group";
-
-      const themeIcon = this.#currentTheme === "light" ? icons.sun : this.#currentTheme === "dark" ? icons.moon : icons.auto;
-      const themeLabel = `Theme: ${this.#currentTheme.charAt(0).toUpperCase() + this.#currentTheme.slice(1)}`;
-
-      themeGroup.appendChild(this.#createControlButton({
-        icon: themeIcon,
-        action: () => this.#toggleTheme(),
-        label: themeLabel,
-      }));
+    if (this.#options.useThemeToggle || this.#options.usePanZoom) {
+      const miscGroup = document.createElement("div");
+      miscGroup.className = "pgv-misc-group";
 
       if (this.#options.usePanZoom) {
-        themeGroup.appendChild(this.#createControlButton({
+        miscGroup.appendChild(this.#createControlButton({
           icon: icons.map,
           action: () => this.#toggleMinimap(),
           label: "Toggle Minimap",
         }));
       }
 
-      buttonsContainer.appendChild(themeGroup);
-    } else if (this.#options.usePanZoom) {
-      // If theme toggle is off but pan/zoom is on, put map button in its own group
-      const miscGroup = document.createElement("div");
-      miscGroup.className = "pgv-control-group";
-      miscGroup.appendChild(this.#createControlButton({
-        icon: icons.map,
-        action: () => this.#toggleMinimap(),
-        label: "Toggle Minimap",
-      }));
+      // If we don't have a theme toggle but need a spacer so map stays top-right
+      if (!this.#options.useThemeToggle && this.#options.usePanZoom) {
+        const spacer = document.createElement("div");
+        spacer.style.flexGrow = "1";
+        miscGroup.appendChild(spacer);
+      }
+
+      if (this.#options.useThemeToggle) {
+        const themeIcon = this.#currentTheme === "light" ? icons.sun : this.#currentTheme === "dark" ? icons.moon : icons.auto;
+        const themeLabel = `Theme: ${this.#currentTheme.charAt(0).toUpperCase() + this.#currentTheme.slice(1)}`;
+
+        // Add a spacer to push the theme toggle to the bottom if only theme is present
+        if (!this.#options.usePanZoom) {
+            const spacer = document.createElement("div");
+            spacer.style.flexGrow = "1";
+            miscGroup.appendChild(spacer);
+        }
+
+        miscGroup.appendChild(this.#createControlButton({
+          icon: themeIcon,
+          action: () => this.#toggleTheme(),
+          label: themeLabel,
+        }));
+      }
+
       buttonsContainer.appendChild(miscGroup);
     }
 
@@ -362,6 +368,9 @@ export class GraphView {
 
       const canvas = document.createElement("canvas");
       canvas.className = "pgv-minimap-canvas";
+      // Prevent intrinsic canvas size (300x150) from forcing a wider container on first tick
+      canvas.width = 0;
+      canvas.height = 0;
       minimap.appendChild(canvas);
 
       const viewportBox = document.createElement("div");
