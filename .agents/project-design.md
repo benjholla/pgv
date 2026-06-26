@@ -637,7 +637,7 @@ Frontend uses graph-core.
 
 # Milestones
 
-## Milestone 1
+## Milestone 1 (Completed)
 
 Static rendering.
 
@@ -664,7 +664,7 @@ Render
 
 ---
 
-## Milestone 2
+## Milestone 2 (Completed)
 
 Selection.
 
@@ -676,34 +676,41 @@ Features:
 
 ---
 
-## Milestone 3
+## Milestone 2.1 (Completed)
 
-Smart View.
-
-Features:
-
-* ContextProjection
-* forward depth
-* reverse depth
-* expand/collapse buttons
+Dynamic Vite Example.
 
 ---
 
-## Milestone 4
-
-Incremental rendering.
-
-Render only changed nodes/edges.
-
----
-
-## Milestone 5 (Completed)
+## Milestone 3 (Completed)
 
 Pan and Zoom.
 
 ---
 
-## Milestone 6
+## Milestone 4 (Pending)
+
+Minimap.
+
+---
+
+## Milestone 5 (Pending)
+
+Graph Schema Mechanism.
+
+Identify edge classes as containment relationships and support visual nesting of nodes for a compound graph.
+
+---
+
+## Milestone 6 (Pending)
+
+Hierarchical Expand/Collapse Buttons.
+
+Hierarchical expand/collapse based on containment relationships.
+
+---
+
+## Milestone 7 (Pending)
 
 Node Dragging.
 
@@ -715,13 +722,23 @@ Features:
 
 ---
 
-## Milestone 7
+## Milestone 8 (Pending)
 
-Minimap.
+Edge Joints.
+
+Adding edge joints and dragging joints to assist in manual layout rendering.
 
 ---
 
-## Milestone 8
+## Milestone 9 (Pending)
+
+Incremental rendering.
+
+Render only changed nodes/edges. (Partially completed with graph diff, need to add viewer constraints to prevent re-rendering/moving of unchanged graph elements).
+
+---
+
+## Milestone 10 (Pending)
 
 Animations.
 
@@ -733,19 +750,39 @@ Features:
 
 ---
 
-## Milestone 9
+## Milestone 11 (Pending)
+
+Integrate pg library to producer example.
+
+Integrate "pg" (property graph) library that was co-designed with this repository, keeping in mind that this repository is not strictly coupled with "pg" because any graph backend could be used as a producer if it satisfies the JSON interface.
+
+---
+
+## Milestone 12 (Pending)
+
+Smart View.
+
+Features:
+
+* ContextProjection
+* forward depth
+* reverse depth
+
+---
+
+## Milestone 13 (Pending)
 
 Vue adapter repository.
 
 ---
 
-## Milestone 10
+## Milestone 14 (Pending)
 
 VSCode adapter repository.
 
 ---
 
-## Milestone 11
+## Milestone 15 (Pending)
 
 Jupyter adapter repository.
 
