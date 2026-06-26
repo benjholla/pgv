@@ -32,7 +32,8 @@
     "copy:css": "node -e \"fs=require('node:fs');fs.mkdirSync('dist',{recursive:true});fs.copyFileSync('src/style.css','dist/style.css')\"",
     "preview:demo": "vite preview --config examples/vite-static/vite.config.ts --host 127.0.0.1",
     "preview:dynamic": "vite preview --config examples/vite-dynamic/vite.config.ts --host 127.0.0.1",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "keywords": [
     "graph",
@@ -45,6 +46,7 @@
   "devDependencies": {
     "@types/node": "^20.14.12",
     "typescript": "^5.5.4",
-    "vite": "^8.1.0"
+    "vite": "^8.1.0",
+    "vitest": "^4.1.9"
   }
 }
