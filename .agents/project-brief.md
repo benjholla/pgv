@@ -87,7 +87,6 @@ JSON -> Graph -> Layout -> Render
 - Selection state and click events.
 - Smart View / context projection.
 - Incremental rendering.
-- Pan and zoom.
 - Node dragging and pinned positions.
 - Minimap.
 - Animations.

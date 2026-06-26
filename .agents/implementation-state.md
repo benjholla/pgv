@@ -110,3 +110,16 @@ Changes include:
 - New npm scripts: `dev:dynamic`, `build:dynamic`, and `preview:dynamic`.
 - Verified UI functionality and backend connectivity.
 
+## Milestone 5
+
+- Implemented Pan and Zoom functionality.
+  - Viewport state management (x, y, scale).
+  - Mouse/wheel/touch event handling for interactive navigation.
+  - CSS transform-based rendering for the graph stage.
+  - Optional control layer with zoom and pan buttons.
+- Added custom theming and Light/Dark mode support.
+  - CSS variable-based styling system (`--pgv-*`).
+  - Support for 'light', 'dark', and 'auto' (system preference) themes.
+  - Programmatic theme updates via `setGraph` and `GraphViewOptions`.
+  - Built-in theme toggle UI control.
+  - `onThemeChange` callback for synchronization with host application styles.
