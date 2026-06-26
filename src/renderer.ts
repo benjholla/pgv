@@ -43,6 +43,7 @@ export class GraphView {
   #panZoomAbortController: AbortController | null = null;
   #currentTheme: "light" | "dark" | "auto";
   #minimapOpen: boolean = false;
+  #firstRender: boolean = true;
   #minimapResizeObserver: ResizeObserver | null = null;
   #minimapAbortController: AbortController | null = null;
 
@@ -69,6 +70,13 @@ export class GraphView {
       this.#options.layout ?? verticalLayout(graph, this.#options.layoutOptions);
 
     this.#render();
+
+    if (this.#firstRender && this.#options.usePanZoom) {
+      requestAnimationFrame(() => {
+        this.#reset();
+        this.#firstRender = false;
+      });
+    }
   }
 
   applyDiff(diff: GraphDiff, newVersion: string | number): void {
@@ -432,7 +440,39 @@ export class GraphView {
   }
 
   #reset(): void {
-    this.#viewportState = { x: 0, y: 0, scale: 1 };
+    if (!this.#layout) {
+      this.#viewportState = { x: 0, y: 0, scale: 1 };
+      this.#applyViewport();
+      return;
+    }
+
+    const viewport = this.container.querySelector<HTMLElement>(".pgv-viewport");
+    if (!viewport) {
+      this.#viewportState = { x: 0, y: 0, scale: 1 };
+      this.#applyViewport();
+      return;
+    }
+
+    const rect = viewport.getBoundingClientRect();
+    const padding = 40;
+
+    const availWidth = Math.max(1, rect.width - padding * 2);
+    const availHeight = Math.max(1, rect.height - padding * 2);
+
+    const layoutWidth = Math.max(1, this.#layout.width);
+    const layoutHeight = Math.max(1, this.#layout.height);
+
+    let scale = Math.min(availWidth / layoutWidth, availHeight / layoutHeight);
+
+    // Cap max scale to 1 to avoid over-zooming tiny graphs
+    if (scale > 1) {
+      scale = 1;
+    }
+
+    const cx = (rect.width - layoutWidth * scale) / 2;
+    const cy = (rect.height - layoutHeight * scale) / 2;
+
+    this.#viewportState = { x: cx, y: cy, scale };
     this.#applyViewport();
   }
 

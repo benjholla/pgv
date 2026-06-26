@@ -58,9 +58,11 @@ a {
 
 .demo-shell {
   box-sizing: border-box;
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   gap: 16px;
-  min-height: 100vh;
+
   padding: 18px;
 }
 
@@ -105,13 +107,11 @@ a {
 }
 
 #graph {
+  flex-grow: 1;
   min-height: 0;
-  overflow: auto;
+  overflow: hidden;
 }
 
-#graph .pgv-graph-stage {
-  min-height: calc(100vh - 110px);
-}
 
 @media (max-width: 640px) {
   .demo-shell {
