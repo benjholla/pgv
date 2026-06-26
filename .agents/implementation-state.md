@@ -81,7 +81,7 @@ mvn -f examples/spring-boot-producer/pom.xml org.springframework.boot:spring-boo
 
 # Milestone Progress
 
-## Milestone 1
+## Milestone 1 (Completed)
 
 - Immutable graph snapshot model with stable producer-assigned node and edge IDs.
 - JSON transport parser for `{ graphId, version, nodes, edges }`.
@@ -97,11 +97,11 @@ Pipeline:
 JSON -> GraphSnapshot -> Vertical LayoutSnapshot -> HTML/SVG Render
 ```
 
-## Milestone 2
+## Milestone 2 (Completed)
 
 - Implemented interactive node and edge selection for the graph visualization library. This includes defining the selection state, handling click events, applying visual feedback via CSS, and updating the demo application to showcase the new functionality. Architectural improvements were made to prevent event listener leaks and optimize rendering performance.
 
-## Milestone 2.1
+## Milestone 2.1 (Completed)
 
 - Added an example `vite-dynamic` that pulls data from the `spring-boot-producer` backend.
 
@@ -110,7 +110,7 @@ Changes include:
 - New npm scripts: `dev:dynamic`, `build:dynamic`, and `preview:dynamic`.
 - Verified UI functionality and backend connectivity.
 
-## Milestone 5
+## Milestone 3 (Completed)
 
 - Implemented Pan and Zoom functionality.
   - Viewport state management (x, y, scale).
@@ -123,3 +123,51 @@ Changes include:
   - Programmatic theme updates via `setGraph` and `GraphViewOptions`.
   - Built-in theme toggle UI control.
   - `onThemeChange` callback for synchronization with host application styles.
+
+## Milestone 4 (Pending)
+
+Minimap functionality.
+
+## Milestone 5 (Pending)
+
+Graph Schema Mechanism to identify edge classes as containment relationships and support visual nesting of nodes for a compound graph.
+
+## Milestone 6 (Pending)
+
+Hierarchical Expand/Collapse Buttons based on containment relationships.
+
+## Milestone 7 (Pending)
+
+Node Dragging, including layout constraints and pinned positions.
+
+## Milestone 8 (Pending)
+
+Edge Joints (adding edge joints and dragging joints to assist in manual layout rendering).
+
+## Milestone 9 (Pending)
+
+Incremental rendering. Render only changed nodes/edges. (Partially completed with graph diff, need to add viewer constraints to prevent re-rendering/moving of unchanged graph elements).
+
+## Milestone 10 (Pending)
+
+Animations (graph transitions, projection transitions, layout transitions).
+
+## Milestone 11 (Pending)
+
+Integrate pg library to producer example.
+
+## Milestone 12 (Pending)
+
+Smart View (ContextProjection, forward depth, reverse depth).
+
+## Milestone 13 (Pending)
+
+Vue adapter repository.
+
+## Milestone 14 (Pending)
+
+VSCode adapter repository.
+
+## Milestone 15 (Pending)
+
+Jupyter adapter repository.
