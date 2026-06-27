@@ -762,19 +762,91 @@ export class GraphView {
     const width = this.#layout.width;
     const height = this.#layout.height;
 
-    // Get the background color of the stage based on the current theme
-    const style = window.getComputedStyle(stage);
-    const backgroundColor = style.backgroundColor;
+    // Get the computed styles to extract the CSS variables applied by the theme
+    // We must pass these down because html-to-image clones the stage element
+    // without its parent container, losing the theme variables.
+    const containerStyle = window.getComputedStyle(this.container);
+    const themeVariables: Record<string, string> = {};
+    for (let i = 0; i < containerStyle.length; i++) {
+      const prop = containerStyle[i];
+      if (prop.startsWith("--pgv-")) {
+        themeVariables[prop] = containerStyle.getPropertyValue(prop);
+      }
+    }
 
     const options = {
       width,
       height,
-      backgroundColor,
+      backgroundColor: themeVariables["--pgv-color-bg"] || "transparent",
       style: {
+        ...themeVariables,
         transform: "none", // Override the translate/scale for pan and zoom
         transformOrigin: "top left",
+      },
+      filter: (node: HTMLElement) => {
+        // Exclude the controls from the image if we ever capture the container directly
+        if (node.classList?.contains("pgv-controls") || node.classList?.contains("pgv-history-controls")) {
+          return false;
+        }
+        return true;
       }
     };
+
+    // html-to-image has issues copying CSS variables down into SVG contexts properly during cloning.
+    // To ensure edges render correctly, we temporarily inline the critical stroke/fill properties
+    // on the SVG paths before exporting, and then remove them afterward.
+    const edgePaths = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge path");
+    const edgeMarkers = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge marker path");
+    const edgeLabels = stage.querySelectorAll<SVGTextElement>(".pgv-edge-label");
+
+    const edgeColor = themeVariables["--pgv-edge-color"] || "#697586";
+    const selectedColor = themeVariables["--pgv-selected-color"] || "#2563eb";
+    const labelFg = themeVariables["--pgv-edge-label-fg"] || "#445160";
+    const labelBg = themeVariables["--pgv-edge-label-bg"] || "#f9fbfd";
+
+    const originalStyles = new Map<Element, string | null>();
+
+    const applyInlineStyle = (el: Element, styleStr: string) => {
+      originalStyles.set(el, el.getAttribute("style"));
+      el.setAttribute("style", (el.getAttribute("style") || "") + ";" + styleStr);
+    };
+
+    edgePaths.forEach((path) => {
+      const isSelected = path.parentElement?.classList.contains("pgv-selected");
+      // Read specific path styles
+      const pathStyle = window.getComputedStyle(path);
+      const computedStroke = pathStyle.getPropertyValue("stroke");
+      const computedStrokeWidth = pathStyle.getPropertyValue("stroke-width");
+      const computedStrokeLinecap = pathStyle.getPropertyValue("stroke-linecap");
+
+      // Use specific styles if present, else fallback
+      const finalStroke = isSelected ? selectedColor : (computedStroke !== "none" && computedStroke ? computedStroke : edgeColor);
+      const finalStrokeWidth = isSelected ? "3px" : (computedStrokeWidth || "2px");
+
+      applyInlineStyle(path, `fill: transparent; stroke: ${finalStroke}; stroke-linecap: ${computedStrokeLinecap || "round"}; stroke-width: ${finalStrokeWidth};`);
+    });
+
+    edgeMarkers.forEach((path) => {
+      const isSelected = path.closest(".pgv-graph-edge")?.classList.contains("pgv-selected");
+
+      const pathStyle = window.getComputedStyle(path);
+      const computedFill = pathStyle.getPropertyValue("fill");
+
+      const finalFill = isSelected ? selectedColor : (computedFill !== "none" && computedFill ? computedFill : edgeColor);
+
+      applyInlineStyle(path, `fill: ${finalFill}; stroke: none;`);
+    });
+
+    edgeLabels.forEach((text) => {
+      const textStyle = window.getComputedStyle(text);
+      const computedFill = textStyle.getPropertyValue("fill");
+      const computedStroke = textStyle.getPropertyValue("stroke");
+
+      const finalFill = computedFill !== "none" && computedFill ? computedFill : labelFg;
+      const finalStroke = computedStroke !== "none" && computedStroke ? computedStroke : labelBg;
+
+      applyInlineStyle(text, `fill: ${finalFill}; stroke: ${finalStroke}; paint-order: stroke; stroke-width: 4px; font-size: 12px; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-anchor: middle; stroke-linejoin: round; pointer-events: none;`);
+    });
 
     try {
       let dataUrl: string;
@@ -798,6 +870,15 @@ export class GraphView {
       link.click();
     } catch (error) {
       console.error("Failed to download graph image:", error);
+    } finally {
+      // Restore original styles
+      originalStyles.forEach((style, el) => {
+        if (style === null) {
+          el.removeAttribute("style");
+        } else {
+          el.setAttribute("style", style);
+        }
+      });
     }
   }
 
