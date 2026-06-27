@@ -128,14 +128,22 @@ function assignVerticalDepths(
   const roots = nodeIds.filter((id) => (incomingCounts.get(id) ?? 0) === 0);
   const starts = roots.length > 0 ? roots : nodeIds.slice(0, 1);
 
+  let currentMaxDepth = -1;
+
   for (const id of starts) {
-    visitComponent(id, 0, outgoing, depths);
+    const maxDepthReached = visitComponent(id, 0, outgoing, depths);
+    if (maxDepthReached > currentMaxDepth) {
+      currentMaxDepth = maxDepthReached;
+    }
   }
 
   for (const id of nodeIds) {
     if (!depths.has(id)) {
-      const nextDepth = Math.max(-1, ...depths.values()) + 1;
-      visitComponent(id, nextDepth, outgoing, depths);
+      const nextDepth = currentMaxDepth + 1;
+      const maxDepthReached = visitComponent(id, nextDepth, outgoing, depths);
+      if (maxDepthReached > currentMaxDepth) {
+        currentMaxDepth = maxDepthReached;
+      }
     }
   }
 
@@ -147,26 +155,39 @@ function visitComponent(
   startDepth: number,
   outgoing: ReadonlyMap<string, readonly string[]>,
   depths: Map<string, number>,
-): void {
+): number {
   const queue: string[] = [startId];
+  let maxDepthReached = startDepth;
 
   if (!depths.has(startId)) {
     depths.set(startId, startDepth);
+  } else {
+    maxDepthReached = depths.get(startId)!;
   }
 
   for (let index = 0; index < queue.length; index += 1) {
     const sourceId = queue[index];
     const sourceDepth = depths.get(sourceId) ?? startDepth;
 
+    if (sourceDepth > maxDepthReached) {
+      maxDepthReached = sourceDepth;
+    }
+
     for (const targetId of outgoing.get(sourceId) ?? []) {
       if (depths.has(targetId)) {
         continue;
       }
 
-      depths.set(targetId, sourceDepth + 1);
+      const targetDepth = sourceDepth + 1;
+      depths.set(targetId, targetDepth);
+      if (targetDepth > maxDepthReached) {
+        maxDepthReached = targetDepth;
+      }
       queue.push(targetId);
     }
   }
+
+  return maxDepthReached;
 }
 
 function groupByDepth(
