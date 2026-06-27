@@ -259,6 +259,12 @@
   background: var(--pgv-control-button-active-bg);
 }
 
+.pgv-controls button:focus-visible {
+  outline: none;
+  box-shadow: var(--pgv-selected-shadow);
+  border-color: var(--pgv-selected-color);
+}
+
 .pgv-history-controls button {
   align-items: center;
   background: var(--pgv-control-button-bg);
@@ -281,6 +287,12 @@
 
 .pgv-history-controls button:active:not(:disabled) {
   background: var(--pgv-control-button-active-bg);
+}
+
+.pgv-history-controls button:focus-visible:not(:disabled) {
+  outline: none;
+  box-shadow: var(--pgv-selected-shadow);
+  border-color: var(--pgv-selected-color);
 }
 
 .pgv-history-controls button:disabled {
