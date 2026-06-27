@@ -32,7 +32,7 @@ interface ViewportState {
   scale: number;
 }
 
-import { type GraphDiff, applyGraphDiff } from "./model";
+import { type GraphDiff, applyGraphDiff, graphSnapshotToJson } from "./model";
 
 export class GraphView {
   readonly container: HTMLElement;
@@ -47,7 +47,7 @@ export class GraphView {
   #firstRender: boolean = true;
   #minimapResizeObserver: ResizeObserver | null = null;
   #minimapAbortController: AbortController | null = null;
-  #downloadFormat: "svg" | "png" | "jpeg" = "svg";
+  #downloadFormat: "svg" | "png" | "jpeg" | "json" = "svg";
   #downloadDropdownOpen: boolean = false;
   #downloadAbortController: AbortController | null = null;
 
@@ -341,39 +341,47 @@ export class GraphView {
       const miscGroup = document.createElement("div");
       miscGroup.className = "pgv-misc-group";
 
-      if (this.#options.usePanZoom) {
-        miscGroup.appendChild(this.#createControlButton({
-          icon: icons.map,
-          action: () => this.#toggleMinimap(),
-          label: "Toggle Minimap",
-        }));
-      }
-
-      // Add a spacer to push the bottom buttons down
-      const spacer = document.createElement("div");
-      spacer.style.flexGrow = "1";
-      miscGroup.appendChild(spacer);
-
-      const bottomButtonsContainer = document.createElement("div");
-      bottomButtonsContainer.className = "pgv-misc-bottom-buttons";
-      bottomButtonsContainer.style.display = "flex";
-      bottomButtonsContainer.style.gap = "12px";
-      bottomButtonsContainer.style.alignItems = "center";
+      const topButtonsContainer = document.createElement("div");
+      topButtonsContainer.style.display = "flex";
+      topButtonsContainer.style.gap = "12px";
+      topButtonsContainer.style.justifyContent = "flex-end";
 
       if (this.#options.useThemeToggle) {
         const themeIcon = this.#currentTheme === "light" ? icons.sun : this.#currentTheme === "dark" ? icons.moon : icons.auto;
         const themeLabel = `Theme: ${this.#currentTheme.charAt(0).toUpperCase() + this.#currentTheme.slice(1)}`;
 
-        bottomButtonsContainer.appendChild(this.#createControlButton({
+        topButtonsContainer.appendChild(this.#createControlButton({
           icon: themeIcon,
           action: () => this.#toggleTheme(),
           label: themeLabel,
         }));
       }
 
+      if (this.#options.usePanZoom) {
+        topButtonsContainer.appendChild(this.#createControlButton({
+          icon: icons.map,
+          action: () => this.#toggleMinimap(),
+          label: "Toggle Minimap",
+        }));
+      }
+
+      miscGroup.appendChild(topButtonsContainer);
+
+      // Add a spacer to push the bottom buttons down
+      const spacer = document.createElement("div");
+      spacer.style.flexGrow = "1";
+      miscGroup.appendChild(spacer);
+
       // Download button split control
       const downloadGroup = document.createElement("div");
       downloadGroup.className = "pgv-control-split-button";
+
+      const formatLabels: Record<string, string> = {
+        svg: " SVG",
+        png: " PNG",
+        jpeg: "JPEG",
+        json: "JSON"
+      };
 
       const downloadBtn = document.createElement("button");
       downloadBtn.type = "button";
@@ -384,7 +392,7 @@ export class GraphView {
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="${icons.download}"></path>
         </svg>
-        <span>${this.#downloadFormat.toUpperCase()}</span>
+        <span>${formatLabels[this.#downloadFormat]}</span>
       `;
       downloadBtn.addEventListener("click", () => this.#downloadGraph());
       downloadGroup.appendChild(downloadBtn);
@@ -410,25 +418,25 @@ export class GraphView {
       const updateFormatLabel = () => {
         const span = downloadBtn.querySelector("span");
         if (span) {
-          span.textContent = this.#downloadFormat.toUpperCase();
+          span.textContent = formatLabels[this.#downloadFormat];
         }
       };
 
-      const formats = ["svg", "png", "jpeg"] as const;
+      const formats = ["svg", "png", "jpeg", "json"] as const;
       formats.forEach((format) => {
         const option = document.createElement("div");
         option.className = "pgv-dropdown-option";
         if (format === this.#downloadFormat) {
           option.classList.add("selected");
         }
-        option.textContent = format.toUpperCase();
+        option.textContent = formatLabels[format];
         option.addEventListener("click", () => {
           this.#downloadFormat = format;
           this.#downloadDropdownOpen = false;
           dropdownMenu.classList.remove("open");
           updateFormatLabel();
           dropdownMenu.querySelectorAll(".pgv-dropdown-option").forEach(opt => {
-            if (opt.textContent === format.toUpperCase()) {
+            if (opt.textContent === formatLabels[format]) {
               opt.classList.add("selected");
             } else {
               opt.classList.remove("selected");
@@ -459,8 +467,7 @@ export class GraphView {
         }
       }, { signal: this.#downloadAbortController.signal });
 
-      bottomButtonsContainer.appendChild(downloadGroup);
-      miscGroup.appendChild(bottomButtonsContainer);
+      miscGroup.appendChild(downloadGroup);
 
       buttonsContainer.appendChild(miscGroup);
     }
@@ -728,7 +735,20 @@ export class GraphView {
 
   async #downloadGraph(): Promise<void> {
     const stage = this.container.querySelector<HTMLElement>(".pgv-graph-stage");
-    if (!stage || !this.#layout) return;
+    if (!stage || !this.#layout || !this.#graph) return;
+
+    if (this.#downloadFormat === "json") {
+      const json = graphSnapshotToJson(this.#graph);
+      const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+      const dataUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      link.download = `graph-${timestamp}.json`;
+      link.href = dataUrl;
+      link.click();
+      URL.revokeObjectURL(dataUrl);
+      return;
+    }
 
     // We want to download the entire graph, ignoring current viewport transform
     const width = this.#layout.width;

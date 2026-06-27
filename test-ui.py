@@ -11,8 +11,8 @@ def run_cuj(page):
 
     page.screenshot(path="/home/jules/verification/screenshots/verification1.png")
 
-    # Select PNG format
-    page.locator(".pgv-dropdown-option", has_text="PNG").click()
+    # Select JSON format
+    page.locator(".pgv-dropdown-option", has_text="JSON").click()
     page.wait_for_timeout(1000)
 
     # Take another screenshot to see PNG format is set
