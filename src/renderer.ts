@@ -1,5 +1,6 @@
 import { edgeEndpoints, verticalLayout, type LayoutSnapshot, type VerticalLayoutOptions } from "./layout";
 import type { AttributeValue, GraphEdge, GraphNode, GraphSnapshot } from "./model";
+import { toSvg, toPng, toJpeg } from "html-to-image";
 
 let markerIdSequence = 0;
 
@@ -46,6 +47,9 @@ export class GraphView {
   #firstRender: boolean = true;
   #minimapResizeObserver: ResizeObserver | null = null;
   #minimapAbortController: AbortController | null = null;
+  #downloadFormat: "svg" | "png" | "jpeg" = "svg";
+  #downloadDropdownOpen: boolean = false;
+  #downloadAbortController: AbortController | null = null;
 
   #preHistoryGraph: GraphSnapshot | null = null;
   #history: Array<{ diff: GraphDiff; version: string | number }> = [];
@@ -156,6 +160,8 @@ export class GraphView {
     this.#minimapResizeObserver = null;
     this.#minimapAbortController?.abort();
     this.#minimapAbortController = null;
+    this.#downloadAbortController?.abort();
+    this.#downloadAbortController = null;
     this.container.replaceChildren();
   }
 
@@ -293,6 +299,8 @@ export class GraphView {
       moon: "M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z",
       auto: "M12 3v18M3 12h18M12 3l9 9-9 9-9-9 9-9",
       map: "M9 20v-14l-4 2v14l4 -2zM15 4v14l4 -2v-14l-4 2zM9 20l6 -2v-14l-6 2z",
+      download: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
+      chevronDown: "M6 9l6 6 6-6",
     };
 
     const buttonsContainer = document.createElement("div");
@@ -341,30 +349,118 @@ export class GraphView {
         }));
       }
 
-      // If we don't have a theme toggle but need a spacer so map stays top-right
-      if (!this.#options.useThemeToggle && this.#options.usePanZoom) {
-        const spacer = document.createElement("div");
-        spacer.style.flexGrow = "1";
-        miscGroup.appendChild(spacer);
-      }
+      // Add a spacer to push the bottom buttons down
+      const spacer = document.createElement("div");
+      spacer.style.flexGrow = "1";
+      miscGroup.appendChild(spacer);
+
+      const bottomButtonsContainer = document.createElement("div");
+      bottomButtonsContainer.className = "pgv-misc-bottom-buttons";
+      bottomButtonsContainer.style.display = "flex";
+      bottomButtonsContainer.style.gap = "12px";
+      bottomButtonsContainer.style.alignItems = "center";
 
       if (this.#options.useThemeToggle) {
         const themeIcon = this.#currentTheme === "light" ? icons.sun : this.#currentTheme === "dark" ? icons.moon : icons.auto;
         const themeLabel = `Theme: ${this.#currentTheme.charAt(0).toUpperCase() + this.#currentTheme.slice(1)}`;
 
-        // Add a spacer to push the theme toggle to the bottom if only theme is present
-        if (!this.#options.usePanZoom) {
-            const spacer = document.createElement("div");
-            spacer.style.flexGrow = "1";
-            miscGroup.appendChild(spacer);
-        }
-
-        miscGroup.appendChild(this.#createControlButton({
+        bottomButtonsContainer.appendChild(this.#createControlButton({
           icon: themeIcon,
           action: () => this.#toggleTheme(),
           label: themeLabel,
         }));
       }
+
+      // Download button split control
+      const downloadGroup = document.createElement("div");
+      downloadGroup.className = "pgv-control-split-button";
+
+      const downloadBtn = document.createElement("button");
+      downloadBtn.type = "button";
+      downloadBtn.className = "pgv-download-action-btn";
+      downloadBtn.setAttribute("aria-label", "Download Graph");
+      downloadBtn.setAttribute("title", "Download Graph");
+      downloadBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="${icons.download}"></path>
+        </svg>
+        <span>${this.#downloadFormat.toUpperCase()}</span>
+      `;
+      downloadBtn.addEventListener("click", () => this.#downloadGraph());
+      downloadGroup.appendChild(downloadBtn);
+
+      const dropdownBtn = document.createElement("button");
+      dropdownBtn.type = "button";
+      dropdownBtn.className = "pgv-download-dropdown-btn";
+      dropdownBtn.setAttribute("aria-label", "Select Download Format");
+      dropdownBtn.setAttribute("title", "Select Download Format");
+      dropdownBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="${icons.chevronDown}"></path>
+        </svg>
+      `;
+      downloadGroup.appendChild(dropdownBtn);
+
+      const dropdownMenu = document.createElement("div");
+      dropdownMenu.className = "pgv-download-dropdown-menu";
+      if (this.#downloadDropdownOpen) {
+        dropdownMenu.classList.add("open");
+      }
+
+      const updateFormatLabel = () => {
+        const span = downloadBtn.querySelector("span");
+        if (span) {
+          span.textContent = this.#downloadFormat.toUpperCase();
+        }
+      };
+
+      const formats = ["svg", "png", "jpeg"] as const;
+      formats.forEach((format) => {
+        const option = document.createElement("div");
+        option.className = "pgv-dropdown-option";
+        if (format === this.#downloadFormat) {
+          option.classList.add("selected");
+        }
+        option.textContent = format.toUpperCase();
+        option.addEventListener("click", () => {
+          this.#downloadFormat = format;
+          this.#downloadDropdownOpen = false;
+          dropdownMenu.classList.remove("open");
+          updateFormatLabel();
+          dropdownMenu.querySelectorAll(".pgv-dropdown-option").forEach(opt => {
+            if (opt.textContent === format.toUpperCase()) {
+              opt.classList.add("selected");
+            } else {
+              opt.classList.remove("selected");
+            }
+          });
+        });
+        dropdownMenu.appendChild(option);
+      });
+      downloadGroup.appendChild(dropdownMenu);
+
+      dropdownBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        this.#downloadDropdownOpen = !this.#downloadDropdownOpen;
+        if (this.#downloadDropdownOpen) {
+          dropdownMenu.classList.add("open");
+        } else {
+          dropdownMenu.classList.remove("open");
+        }
+      });
+
+      // Close dropdown when clicking outside
+      this.#downloadAbortController?.abort();
+      this.#downloadAbortController = new AbortController();
+      document.addEventListener("click", () => {
+        if (this.#downloadDropdownOpen) {
+          this.#downloadDropdownOpen = false;
+          dropdownMenu.classList.remove("open");
+        }
+      }, { signal: this.#downloadAbortController.signal });
+
+      bottomButtonsContainer.appendChild(downloadGroup);
+      miscGroup.appendChild(bottomButtonsContainer);
 
       buttonsContainer.appendChild(miscGroup);
     }
@@ -627,6 +723,53 @@ export class GraphView {
       const ny = offsetY + position.y * scale;
 
       ctx.fillRect(nx, ny, nw, nh);
+    }
+  }
+
+  async #downloadGraph(): Promise<void> {
+    const stage = this.container.querySelector<HTMLElement>(".pgv-graph-stage");
+    if (!stage || !this.#layout) return;
+
+    // We want to download the entire graph, ignoring current viewport transform
+    const width = this.#layout.width;
+    const height = this.#layout.height;
+
+    // Get the background color of the stage based on the current theme
+    const style = window.getComputedStyle(stage);
+    const backgroundColor = style.backgroundColor;
+
+    const options = {
+      width,
+      height,
+      backgroundColor,
+      style: {
+        transform: "none", // Override the translate/scale for pan and zoom
+        transformOrigin: "top left",
+      }
+    };
+
+    try {
+      let dataUrl: string;
+      switch (this.#downloadFormat) {
+        case "png":
+          dataUrl = await toPng(stage, options);
+          break;
+        case "jpeg":
+          dataUrl = await toJpeg(stage, options);
+          break;
+        case "svg":
+        default:
+          dataUrl = await toSvg(stage, options);
+          break;
+      }
+
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      link.download = `graph-${timestamp}.${this.#downloadFormat === "jpeg" ? "jpg" : this.#downloadFormat}`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to download graph image:", error);
     }
   }
 
