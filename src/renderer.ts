@@ -738,7 +738,15 @@ export class GraphView {
     if (!stage || !this.#layout || !this.#graph) return;
 
     if (this.#downloadFormat === "json") {
-      const json = graphSnapshotToJson(this.#graph);
+      const json: any = graphSnapshotToJson(this.#graph);
+
+      if (this.#options.selection) {
+        json.selection = {
+          nodes: Array.from(this.#options.selection.nodes),
+          edges: Array.from(this.#options.selection.edges)
+        };
+      }
+
       const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
       const dataUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
