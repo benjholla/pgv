@@ -60,7 +60,14 @@ export function verticalLayout(
   const depths = assignVerticalDepths(nodeIds, outgoing, incomingCounts);
   const layers = groupByDepth(nodeIds, depths);
   const positions = new Map<string, Point>();
-  const maxLayerSize = Math.max(1, ...Array.from(layers.values(), (ids) => ids.length));
+
+  let maxLayerSize = 1;
+  for (const ids of layers.values()) {
+    if (ids.length > maxLayerSize) {
+      maxLayerSize = ids.length;
+    }
+  }
+
   const maxLayerWidth =
     config.nodeWidth + Math.max(0, maxLayerSize - 1) * config.nodeSpacing;
 
