@@ -27,6 +27,9 @@
   --pgv-selected-color: #2563eb;
   --pgv-selected-shadow: 0 0 0 4px rgba(37, 99, 235, 0.2);
 
+  --pgv-focus-color: #f97316;
+  --pgv-focus-shadow: 0 0 0 4px rgba(249, 115, 22, 0.3);
+
   --pgv-tag-entry: #15803d;
   --pgv-tag-exit: #b42318;
   --pgv-tag-decision: #b7791f;
@@ -75,6 +78,9 @@
   --pgv-selected-color: #3b82f6;
   --pgv-selected-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
 
+  --pgv-focus-color: #f97316;
+  --pgv-focus-shadow: 0 0 0 4px rgba(249, 115, 22, 0.4);
+
   --pgv-tag-entry: #22c55e;
   --pgv-tag-exit: #ef4444;
   --pgv-tag-decision: #f59e0b;
@@ -112,6 +118,9 @@
 
     --pgv-selected-color: #3b82f6;
     --pgv-selected-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+
+    --pgv-focus-color: #f97316;
+    --pgv-focus-shadow: 0 0 0 4px rgba(249, 115, 22, 0.4);
 
     --pgv-tag-entry: #22c55e;
     --pgv-tag-exit: #ef4444;
@@ -261,8 +270,8 @@
 
 .pgv-controls button:focus-visible {
   outline: none;
-  border-color: var(--pgv-selected-color);
-  box-shadow: var(--pgv-selected-shadow);
+  border-color: var(--pgv-focus-color);
+  box-shadow: var(--pgv-focus-shadow);
   z-index: 1;
 }
 
@@ -366,8 +375,8 @@
 
 .pgv-history-controls button:focus-visible {
   outline: none;
-  border-color: var(--pgv-selected-color);
-  box-shadow: var(--pgv-selected-shadow);
+  border-color: var(--pgv-focus-color);
+  box-shadow: var(--pgv-focus-shadow);
   z-index: 1;
 }
 
@@ -413,8 +422,17 @@
   stroke-width: 3;
 }
 
+.pgv-graph-edge:focus-visible {
+  outline: none;
+}
+
 .pgv-graph-edge:focus-visible path {
-  stroke: var(--pgv-selected-color);
+  stroke: var(--pgv-focus-color);
+  filter: drop-shadow(0 0 3px var(--pgv-focus-color));
+}
+
+.pgv-graph-edge:focus-visible marker path {
+  fill: var(--pgv-focus-color);
 }
 
 .pgv-graph-edge.pgv-selected marker path {
@@ -460,8 +478,8 @@
 
 .pgv-graph-node:focus-visible {
   outline: none;
-  border-color: var(--pgv-selected-color);
-  box-shadow: var(--pgv-selected-shadow);
+  border-color: var(--pgv-focus-color);
+  box-shadow: var(--pgv-focus-shadow);
 }
 
 .pgv-node-content {
