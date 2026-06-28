@@ -361,7 +361,7 @@ export class GraphView {
   }
 
   #render(): void {
-    const activePlaceholder = document.activeElement && document.activeElement.tagName === "INPUT" ? (document.activeElement as any).placeholder : null;
+    const activePlaceholder = document.activeElement && this.container.contains(document.activeElement) && document.activeElement.tagName === "INPUT" ? (document.activeElement as any).placeholder : null;
     if (!this.#graph || !this.#layout) {
       return;
     }
@@ -401,7 +401,7 @@ export class GraphView {
       root.appendChild(viewport);
 
       if (this.#options.useSearch) {
-        root.appendChild(this.#renderTopLeftControls());
+        root.appendChild(this.#renderBottomLeftControls());
       }
 
       if (this.#options.usePanZoom || this.#options.useThemeToggle) {
@@ -409,7 +409,7 @@ export class GraphView {
       }
 
       if (this.#options.maxHistory && this.#options.maxHistory > 0) {
-        root.appendChild(this.#renderTopRightControls());
+        root.appendChild(this.#renderHistoryControls());
       }
 
       if (this.#options.usePanZoom) {
@@ -437,20 +437,11 @@ export class GraphView {
     }
   }
 
-  #renderTopRightControls(): HTMLElement {
+
+
+  #renderBottomLeftControls(): HTMLElement {
     const container = document.createElement("div");
-    container.className = "pgv-top-right-container";
-
-    if (this.#options.maxHistory && this.#options.maxHistory > 0) {
-      container.appendChild(this.#renderHistoryControls());
-    }
-
-    return container;
-  }
-
-  #renderTopLeftControls(): HTMLElement {
-    const container = document.createElement("div");
-    container.className = "pgv-top-left-container";
+    container.className = "pgv-bottom-left-container";
 
     if (this.#options.useSearch) {
       container.appendChild(this.#renderSearchControls());
@@ -598,6 +589,7 @@ export class GraphView {
     const cycleBtn = document.createElement("button");
     cycleBtn.type = "button";
     cycleBtn.title = "Cycle Results";
+    cycleBtn.disabled = this.#searchResults.length === 0;
     cycleBtn.innerHTML = `
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
@@ -627,8 +619,8 @@ export class GraphView {
     });
 
     actionsContainer.appendChild(info);
-    actionsContainer.appendChild(cycleBtn);
     actionsContainer.appendChild(searchBtn);
+    actionsContainer.appendChild(cycleBtn);
 
     bar.appendChild(actionsContainer);
 
