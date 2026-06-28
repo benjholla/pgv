@@ -62,6 +62,7 @@ function updateGraph(): void {
     usePanZoom: true,
     useThemeToggle: true,
     maxHistory: 10,
+    useSearch: true,
     onGraphChange: (graph: GraphSnapshot) => {
       summaryElement.textContent = `${graph.nodes.size} nodes, ${graph.edges.size} edges, version ${graph.version}`;
     },
@@ -87,6 +88,10 @@ function updateGraph(): void {
         edges.add(edgeId);
       }
       currentSelection = { ...currentSelection, edges };
+      updateGraph();
+    },
+    onSelectionChange: (selection: SelectionState) => {
+      currentSelection = selection;
       updateGraph();
     },
   };

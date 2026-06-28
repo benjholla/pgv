@@ -21,9 +21,11 @@ export interface GraphViewOptions {
   readonly usePanZoom?: boolean;
   readonly useThemeToggle?: boolean;
   readonly maxHistory?: number;
+  readonly useSearch?: boolean;
   readonly onThemeChange?: (theme: "light" | "dark" | "auto") => void;
   readonly onNodeClick?: (nodeId: string, event: MouseEvent) => void;
   readonly onEdgeClick?: (edgeId: string, event: MouseEvent) => void;
+  readonly onSelectionChange?: (selection: SelectionState) => void;
   readonly onGraphChange?: (graph: GraphSnapshot) => void;
 }
 
@@ -55,6 +57,18 @@ export class GraphView {
   #preHistoryGraph: GraphSnapshot | null = null;
   #history: Array<{ diff: GraphDiff; version: string | number }> = [];
   #historyIndex: number = -1;
+
+  #searchMode: "all" | "id" | "node-id" | "edge-id" | "node-tag" | "node-attribute" | "edge-tag" | "edge-attribute" | "tag" | "attribute" = "all";
+  #searchQuery: string = "";
+  #searchKeyQuery: string = "";
+  #searchCaseSensitiveKey: boolean = false;
+  #searchExactKey: boolean = false;
+  #searchCaseSensitiveValue: boolean = false;
+  #searchExactValue: boolean = false;
+  #searchResults: Array<{ type: "node" | "edge", id: string }> = [];
+  #searchCycleIndex: number = -1;
+  #searchInputRef: HTMLInputElement | null = null;
+  #searchKeyInputRef: HTMLInputElement | null = null;
 
   constructor(container: HTMLElement, options: GraphViewOptions = {}) {
     this.container = container;
@@ -123,6 +137,191 @@ export class GraphView {
     }
   }
 
+
+  #matchString(text: string, query: string, exact: boolean, caseSensitive: boolean): boolean {
+    if (!text || !query) return false;
+    const t = caseSensitive ? text : text.toLowerCase();
+    const q = caseSensitive ? query : query.toLowerCase();
+
+    if (exact) {
+      const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(`\\b${escapedQ}\\b`);
+      return regex.test(t);
+    }
+    return t.includes(q);
+  }
+
+  #executeSearch(): void {
+    if (!this.#graph) return;
+
+    const isAttributeMode = ["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode);
+
+    // If not attribute mode and query is empty, or attribute mode and BOTH are empty, clear
+    if (!isAttributeMode && !this.#searchQuery) {
+      this.#searchResults = [];
+      this.#searchCycleIndex = -1;
+      this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
+      this.#render();
+      return;
+    }
+    if (isAttributeMode && !this.#searchKeyQuery && !this.#searchQuery) {
+      this.#searchResults = [];
+      this.#searchCycleIndex = -1;
+      this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
+      this.#render();
+      return;
+    }
+
+    const matchedNodes = new Set<string>();
+    const matchedEdges = new Set<string>();
+    this.#searchResults = [];
+
+    const searchNodes = ["all", "id", "node-id", "node-tag", "node-attribute", "tag", "attribute"].includes(this.#searchMode);
+    const searchEdges = ["all", "id", "edge-id", "edge-tag", "edge-attribute", "tag", "attribute"].includes(this.#searchMode);
+
+    if (searchNodes) {
+      for (const node of this.#graph.nodes.values()) {
+        let match = false;
+
+        if (this.#searchMode === "all") {
+          if (this.#matchString(node.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
+          if (!match && node.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
+          if (!match) {
+            for (const [k, v] of Object.entries(node.attributes)) {
+              if (this.#matchString(k, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) { match = true; break; }
+              if (v !== null && typeof v !== 'object') {
+                if (this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) { match = true; break; }
+              }
+            }
+          }
+        } else if (this.#searchMode === "id" || this.#searchMode === "node-id") {
+          if (this.#matchString(node.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
+        } else if (this.#searchMode === "node-tag" || this.#searchMode === "tag") {
+          if (node.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
+        } else if (this.#searchMode === "node-attribute" || this.#searchMode === "attribute") {
+          if (!this.#searchKeyQuery) {
+            match = false;
+          } else {
+            for (const [k, v] of Object.entries(node.attributes)) {
+              const keyMatch = this.#matchString(k, this.#searchKeyQuery, this.#searchExactKey, this.#searchCaseSensitiveKey);
+              if (keyMatch) {
+                if (!this.#searchQuery) {
+                  match = true; break;
+                } else if (v !== null && typeof v !== 'object' && this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) {
+                  match = true; break;
+                }
+              }
+            }
+          }
+        }
+
+        if (match) {
+          matchedNodes.add(node.id);
+          this.#searchResults.push({ type: "node", id: node.id });
+        }
+      }
+    }
+
+    if (searchEdges) {
+      for (const edge of this.#graph.edges.values()) {
+        let match = false;
+
+        if (this.#searchMode === "all") {
+          if (this.#matchString(edge.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
+          if (!match && edge.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
+          if (!match) {
+            for (const [k, v] of Object.entries(edge.attributes)) {
+              if (this.#matchString(k, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) { match = true; break; }
+              if (v !== null && typeof v !== 'object') {
+                if (this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) { match = true; break; }
+              }
+            }
+          }
+        } else if (this.#searchMode === "id" || this.#searchMode === "edge-id") {
+          if (this.#matchString(edge.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
+        } else if (this.#searchMode === "edge-tag" || this.#searchMode === "tag") {
+          if (edge.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
+        } else if (this.#searchMode === "edge-attribute" || this.#searchMode === "attribute") {
+          if (!this.#searchKeyQuery) {
+            match = false;
+          } else {
+            for (const [k, v] of Object.entries(edge.attributes)) {
+              const keyMatch = this.#matchString(k, this.#searchKeyQuery, this.#searchExactKey, this.#searchCaseSensitiveKey);
+              if (keyMatch) {
+                if (!this.#searchQuery) {
+                  match = true; break;
+                } else if (v !== null && typeof v !== 'object' && this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) {
+                  match = true; break;
+                }
+              }
+            }
+          }
+        }
+
+        if (match) {
+          matchedEdges.add(edge.id);
+          this.#searchResults.push({ type: "edge", id: edge.id });
+        }
+      }
+    }
+
+    this.#searchCycleIndex = this.#searchResults.length > 0 ? 0 : -1;
+    this.#options.onSelectionChange?.({ nodes: matchedNodes, edges: matchedEdges });
+
+    if (this.#searchResults.length > 0) {
+      this.#focusSearchResult();
+    }
+
+    this.#render();
+  }
+
+  #cycleSearch(): void {
+    if (this.#searchResults.length === 0) return;
+    this.#searchCycleIndex = (this.#searchCycleIndex + 1) % this.#searchResults.length;
+    this.#focusSearchResult();
+    this.#render();
+  }
+
+  #focusSearchResult(): void {
+    if (!this.#layout || this.#searchCycleIndex < 0 || this.#searchCycleIndex >= this.#searchResults.length) return;
+
+    const result = this.#searchResults[this.#searchCycleIndex];
+    let focusX = 0;
+    let focusY = 0;
+
+    if (result.type === "node") {
+      const pos = this.#layout.positions.get(result.id);
+      if (pos) {
+        focusX = pos.x + this.#layout.nodeSize.width / 2;
+        focusY = pos.y + this.#layout.nodeSize.height / 2;
+      }
+    } else {
+      const edge = this.#graph?.edges.get(result.id);
+      if (edge) {
+        const sourcePos = this.#layout.positions.get(edge.source);
+        const targetPos = this.#layout.positions.get(edge.target);
+        if (sourcePos && targetPos) {
+          // Focus shifted slightly from source node towards target
+          focusX = sourcePos.x + this.#layout.nodeSize.width / 2 + (targetPos.x - sourcePos.x) * 0.1;
+          focusY = sourcePos.y + this.#layout.nodeSize.height / 2 + (targetPos.y - sourcePos.y) * 0.1;
+        }
+      }
+    }
+
+    if (focusX > 0 || focusY > 0) {
+      const viewportElement = this.container.querySelector('.pgv-viewport');
+      if (viewportElement) {
+        const vw = viewportElement.clientWidth;
+        const vh = viewportElement.clientHeight;
+
+        this.#viewportState.scale = 1;
+        this.#viewportState.x = vw / 2 - focusX;
+        this.#viewportState.y = vh / 2 - focusY;
+        this.#applyViewport();
+      }
+    }
+  }
+
   #navigateHistory(direction: "left" | "right" | "fast-forward" | "fast-rewind"): void {
     if (!this.#preHistoryGraph) return;
 
@@ -167,6 +366,7 @@ export class GraphView {
   }
 
   #render(): void {
+    const activePlaceholder = document.activeElement && this.container.contains(document.activeElement) && document.activeElement.tagName === "INPUT" ? (document.activeElement as any).placeholder : null;
     if (!this.#graph || !this.#layout) {
       return;
     }
@@ -205,6 +405,10 @@ export class GraphView {
       viewport.appendChild(stage);
       root.appendChild(viewport);
 
+      if (this.#options.useSearch) {
+        root.appendChild(this.#renderBottomLeftControls());
+      }
+
       if (this.#options.usePanZoom || this.#options.useThemeToggle) {
         root.appendChild(this.#renderControls());
       }
@@ -225,6 +429,210 @@ export class GraphView {
     this.#setupEvents(root);
 
     this.container.replaceChildren(root);
+
+    // Restore focus to avoid interrupting typing
+    if (activePlaceholder) {
+      if (activePlaceholder === "Attribute Key..." && this.#searchKeyInputRef) {
+        this.#searchKeyInputRef.focus();
+        this.#searchKeyInputRef.setSelectionRange(this.#searchKeyInputRef.value.length, this.#searchKeyInputRef.value.length);
+      } else if (this.#searchInputRef) {
+        this.#searchInputRef.focus();
+        this.#searchInputRef.setSelectionRange(this.#searchInputRef.value.length, this.#searchInputRef.value.length);
+      }
+    }
+  }
+
+
+
+  #renderBottomLeftControls(): HTMLElement {
+    const container = document.createElement("div");
+    container.className = "pgv-bottom-left-container";
+
+    if (this.#options.useSearch) {
+      container.appendChild(this.#renderSearchControls());
+    }
+
+    return container;
+  }
+
+  #renderSearchControls(): HTMLElement {
+    const bar = document.createElement("div");
+    bar.className = "pgv-search-bar";
+
+    // Select mode
+    const select = document.createElement("select");
+    const modes = [
+      { value: "all", label: "Any" },
+      { value: "node-id", label: "Node Id" },
+      { value: "node-tag", label: "Node Tag" },
+      { value: "node-attribute", label: "Node Attribute" },
+      { value: "edge-id", label: "Edge Id" },
+      { value: "edge-tag", label: "Edge Tag" },
+      { value: "edge-attribute", label: "Edge Attribute" },
+      { value: "id", label: "Element Id" },
+      { value: "tag", label: "Element Tag" },
+      { value: "attribute", label: "Element Attribute" }
+    ];
+    modes.forEach(mode => {
+      const option = document.createElement("option");
+      option.value = mode.value;
+      option.textContent = mode.label;
+      if (mode.value === this.#searchMode) option.selected = true;
+      select.appendChild(option);
+    });
+
+    select.addEventListener("change", (e) => {
+      this.#searchMode = (e.target as HTMLSelectElement).value as any;
+      this.#executeSearch();
+    });
+    bar.appendChild(select);
+
+    const inputsContainer = document.createElement("div");
+    inputsContainer.className = "pgv-search-inputs";
+
+    const isAttributeMode = ["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode);
+
+    const createToggle = (label: string, active: boolean, onClick: () => void) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `pgv-search-toggle ${active ? "active" : ""}`;
+      btn.title = label;
+      btn.textContent = label === "Match Case" ? "Aa" : "W";
+      btn.style.fontSize = "10px";
+      btn.style.fontWeight = "bold";
+      btn.style.width = "20px";
+      btn.style.height = "20px";
+      btn.addEventListener("click", () => {
+        onClick();
+      });
+      return btn;
+    };
+
+    const handleEnter = (e: KeyboardEvent) => {
+      if (e.key === "Enter") {
+        if (this.#searchResults.length > 0) {
+          this.#cycleSearch();
+        } else {
+          this.#executeSearch();
+        }
+      }
+    };
+
+    if (isAttributeMode) {
+      // Key input wrapper
+      const keyWrapper = document.createElement("div");
+      keyWrapper.className = "pgv-search-input-wrapper";
+
+      const keyInput = document.createElement("input");
+      keyInput.type = "text";
+      keyInput.placeholder = "Attribute Key...";
+      keyInput.value = this.#searchKeyQuery;
+      keyInput.addEventListener("input", (e) => {
+        this.#searchKeyQuery = (e.target as HTMLInputElement).value;
+        this.#searchResults = [];
+        this.#searchCycleIndex = -1;
+      });
+      keyInput.addEventListener("keydown", handleEnter);
+      this.#searchKeyInputRef = keyInput;
+      keyWrapper.appendChild(keyInput);
+
+      const keyToggles = document.createElement("div");
+      keyToggles.className = "pgv-search-toggles";
+      keyToggles.appendChild(createToggle("Match Case", this.#searchCaseSensitiveKey, () => {
+        this.#searchCaseSensitiveKey = !this.#searchCaseSensitiveKey;
+        this.#executeSearch();
+      }));
+      keyToggles.appendChild(createToggle("Match Whole Word", this.#searchExactKey, () => {
+        this.#searchExactKey = !this.#searchExactKey;
+        this.#executeSearch();
+      }));
+      keyWrapper.appendChild(keyToggles);
+      inputsContainer.appendChild(keyWrapper);
+    }
+
+    // Value input wrapper
+    const valueWrapper = document.createElement("div");
+    valueWrapper.className = "pgv-search-input-wrapper";
+
+    const valueInput = document.createElement("input");
+    valueInput.type = "text";
+    valueInput.placeholder = isAttributeMode ? "Attribute Value..." : "Search...";
+    valueInput.value = this.#searchQuery;
+    valueInput.addEventListener("input", (e) => {
+      this.#searchQuery = (e.target as HTMLInputElement).value;
+      this.#searchResults = [];
+      this.#searchCycleIndex = -1;
+    });
+    valueInput.addEventListener("keydown", handleEnter);
+    this.#searchInputRef = valueInput;
+    valueWrapper.appendChild(valueInput);
+
+    const valueToggles = document.createElement("div");
+    valueToggles.className = "pgv-search-toggles";
+    valueToggles.appendChild(createToggle("Match Case", this.#searchCaseSensitiveValue, () => {
+      this.#searchCaseSensitiveValue = !this.#searchCaseSensitiveValue;
+      this.#executeSearch();
+    }));
+    valueToggles.appendChild(createToggle("Match Whole Word", this.#searchExactValue, () => {
+      this.#searchExactValue = !this.#searchExactValue;
+      this.#executeSearch();
+    }));
+    valueWrapper.appendChild(valueToggles);
+    inputsContainer.appendChild(valueWrapper);
+
+    bar.appendChild(inputsContainer);
+
+    const actionsContainer = document.createElement("div");
+    actionsContainer.className = "pgv-search-actions";
+
+    const info = document.createElement("div");
+    info.className = "pgv-search-results-info";
+    if (this.#searchResults.length > 0) {
+      info.textContent = `${this.#searchCycleIndex + 1} of ${this.#searchResults.length}`;
+    } else if (this.#searchQuery || (isAttributeMode && this.#searchKeyQuery)) {
+      info.textContent = "0 of 0";
+    }
+
+    // Cycle button
+    const cycleBtn = document.createElement("button");
+    cycleBtn.type = "button";
+    cycleBtn.title = "Cycle Results";
+    cycleBtn.disabled = this.#searchResults.length === 0;
+    cycleBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+        <path d="M3 3v5h5"></path>
+      </svg>
+    `;
+    cycleBtn.addEventListener("click", () => {
+      if (this.#searchResults.length > 0) {
+        this.#cycleSearch();
+      } else {
+        this.#executeSearch();
+      }
+    });
+
+    // Search button
+    const searchBtn = document.createElement("button");
+    searchBtn.type = "button";
+    searchBtn.title = "Search";
+    searchBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    `;
+    searchBtn.addEventListener("click", () => {
+      this.#executeSearch();
+    });
+
+    actionsContainer.appendChild(info);
+    actionsContainer.appendChild(searchBtn);
+    actionsContainer.appendChild(cycleBtn);
+
+    bar.appendChild(actionsContainer);
+
+    return bar;
   }
 
   #renderHistoryControls(): HTMLElement {
