@@ -1,9 +1,7 @@
 import { edgeEndpoints, verticalLayout, type LayoutSnapshot, type VerticalLayoutOptions } from "./layout";
 import type { AttributeValue, GraphEdge, GraphNode, GraphSnapshot } from "./model";
-import { toSvg, toPng, toJpeg } from "html-to-image";
 
 let markerIdSequence = 0;
-const PGV_VIEWPORT_CLASS = "pgv-viewport";
 
 export interface SelectionState {
   readonly nodes: ReadonlySet<string>;
@@ -21,11 +19,9 @@ export interface GraphViewOptions {
   readonly usePanZoom?: boolean;
   readonly useThemeToggle?: boolean;
   readonly maxHistory?: number;
-  readonly useSearch?: boolean;
   readonly onThemeChange?: (theme: "light" | "dark" | "auto") => void;
   readonly onNodeClick?: (nodeId: string, event: MouseEvent) => void;
   readonly onEdgeClick?: (edgeId: string, event: MouseEvent) => void;
-  readonly onSelectionChange?: (selection: SelectionState) => void;
   readonly onGraphChange?: (graph: GraphSnapshot) => void;
 }
 
@@ -35,7 +31,7 @@ interface ViewportState {
   scale: number;
 }
 
-import { type GraphDiff, applyGraphDiff, graphSnapshotToJson } from "./model";
+import { type GraphDiff, applyGraphDiff } from "./model";
 
 export class GraphView {
   readonly container: HTMLElement;
@@ -50,25 +46,10 @@ export class GraphView {
   #firstRender: boolean = true;
   #minimapResizeObserver: ResizeObserver | null = null;
   #minimapAbortController: AbortController | null = null;
-  #downloadFormat: "svg" | "png" | "jpeg" | "json" = "svg";
-  #downloadDropdownOpen: boolean = false;
-  #downloadAbortController: AbortController | null = null;
 
   #preHistoryGraph: GraphSnapshot | null = null;
   #history: Array<{ diff: GraphDiff; version: string | number }> = [];
   #historyIndex: number = -1;
-
-  #searchMode: "all" | "id" | "node-id" | "edge-id" | "node-tag" | "node-attribute" | "edge-tag" | "edge-attribute" | "tag" | "attribute" = "all";
-  #searchQuery: string = "";
-  #searchKeyQuery: string = "";
-  #searchCaseSensitiveKey: boolean = false;
-  #searchExactKey: boolean = false;
-  #searchCaseSensitiveValue: boolean = false;
-  #searchExactValue: boolean = false;
-  #searchResults: Array<{ type: "node" | "edge", id: string }> = [];
-  #searchCycleIndex: number = -1;
-  #searchInputRef: HTMLInputElement | null = null;
-  #searchKeyInputRef: HTMLInputElement | null = null;
 
   constructor(container: HTMLElement, options: GraphViewOptions = {}) {
     this.container = container;
@@ -137,191 +118,6 @@ export class GraphView {
     }
   }
 
-
-  #matchString(text: string, query: string, exact: boolean, caseSensitive: boolean): boolean {
-    if (!text || !query) return false;
-    const t = caseSensitive ? text : text.toLowerCase();
-    const q = caseSensitive ? query : query.toLowerCase();
-
-    if (exact) {
-      const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`\\b${escapedQ}\\b`);
-      return regex.test(t);
-    }
-    return t.includes(q);
-  }
-
-  #executeSearch(): void {
-    if (!this.#graph) return;
-
-    const isAttributeMode = ["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode);
-
-    // If not attribute mode and query is empty, or attribute mode and BOTH are empty, clear
-    if (!isAttributeMode && !this.#searchQuery) {
-      this.#searchResults = [];
-      this.#searchCycleIndex = -1;
-      this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
-      this.#render();
-      return;
-    }
-    if (isAttributeMode && !this.#searchKeyQuery && !this.#searchQuery) {
-      this.#searchResults = [];
-      this.#searchCycleIndex = -1;
-      this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
-      this.#render();
-      return;
-    }
-
-    const matchedNodes = new Set<string>();
-    const matchedEdges = new Set<string>();
-    this.#searchResults = [];
-
-    const searchNodes = ["all", "id", "node-id", "node-tag", "node-attribute", "tag", "attribute"].includes(this.#searchMode);
-    const searchEdges = ["all", "id", "edge-id", "edge-tag", "edge-attribute", "tag", "attribute"].includes(this.#searchMode);
-
-    if (searchNodes) {
-      for (const node of this.#graph.nodes.values()) {
-        let match = false;
-
-        if (this.#searchMode === "all") {
-          if (this.#matchString(node.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
-          if (!match && node.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
-          if (!match) {
-            for (const [k, v] of Object.entries(node.attributes)) {
-              if (this.#matchString(k, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) { match = true; break; }
-              if (v !== null && typeof v !== 'object') {
-                if (this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) { match = true; break; }
-              }
-            }
-          }
-        } else if (this.#searchMode === "id" || this.#searchMode === "node-id") {
-          if (this.#matchString(node.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
-        } else if (this.#searchMode === "node-tag" || this.#searchMode === "tag") {
-          if (node.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
-        } else if (this.#searchMode === "node-attribute" || this.#searchMode === "attribute") {
-          if (!this.#searchKeyQuery) {
-            match = false;
-          } else {
-            for (const [k, v] of Object.entries(node.attributes)) {
-              const keyMatch = this.#matchString(k, this.#searchKeyQuery, this.#searchExactKey, this.#searchCaseSensitiveKey);
-              if (keyMatch) {
-                if (!this.#searchQuery) {
-                  match = true; break;
-                } else if (v !== null && typeof v !== 'object' && this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) {
-                  match = true; break;
-                }
-              }
-            }
-          }
-        }
-
-        if (match) {
-          matchedNodes.add(node.id);
-          this.#searchResults.push({ type: "node", id: node.id });
-        }
-      }
-    }
-
-    if (searchEdges) {
-      for (const edge of this.#graph.edges.values()) {
-        let match = false;
-
-        if (this.#searchMode === "all") {
-          if (this.#matchString(edge.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
-          if (!match && edge.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
-          if (!match) {
-            for (const [k, v] of Object.entries(edge.attributes)) {
-              if (this.#matchString(k, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) { match = true; break; }
-              if (v !== null && typeof v !== 'object') {
-                if (this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) { match = true; break; }
-              }
-            }
-          }
-        } else if (this.#searchMode === "id" || this.#searchMode === "edge-id") {
-          if (this.#matchString(edge.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
-        } else if (this.#searchMode === "edge-tag" || this.#searchMode === "tag") {
-          if (edge.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
-        } else if (this.#searchMode === "edge-attribute" || this.#searchMode === "attribute") {
-          if (!this.#searchKeyQuery) {
-            match = false;
-          } else {
-            for (const [k, v] of Object.entries(edge.attributes)) {
-              const keyMatch = this.#matchString(k, this.#searchKeyQuery, this.#searchExactKey, this.#searchCaseSensitiveKey);
-              if (keyMatch) {
-                if (!this.#searchQuery) {
-                  match = true; break;
-                } else if (v !== null && typeof v !== 'object' && this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) {
-                  match = true; break;
-                }
-              }
-            }
-          }
-        }
-
-        if (match) {
-          matchedEdges.add(edge.id);
-          this.#searchResults.push({ type: "edge", id: edge.id });
-        }
-      }
-    }
-
-    this.#searchCycleIndex = this.#searchResults.length > 0 ? 0 : -1;
-    this.#options.onSelectionChange?.({ nodes: matchedNodes, edges: matchedEdges });
-
-    if (this.#searchResults.length > 0) {
-      this.#focusSearchResult();
-    }
-
-    this.#render();
-  }
-
-  #cycleSearch(): void {
-    if (this.#searchResults.length === 0) return;
-    this.#searchCycleIndex = (this.#searchCycleIndex + 1) % this.#searchResults.length;
-    this.#focusSearchResult();
-    this.#render();
-  }
-
-  #focusSearchResult(): void {
-    if (!this.#layout || this.#searchCycleIndex < 0 || this.#searchCycleIndex >= this.#searchResults.length) return;
-
-    const result = this.#searchResults[this.#searchCycleIndex];
-    let focusX = 0;
-    let focusY = 0;
-
-    if (result.type === "node") {
-      const pos = this.#layout.positions.get(result.id);
-      if (pos) {
-        focusX = pos.x + this.#layout.nodeSize.width / 2;
-        focusY = pos.y + this.#layout.nodeSize.height / 2;
-      }
-    } else {
-      const edge = this.#graph?.edges.get(result.id);
-      if (edge) {
-        const sourcePos = this.#layout.positions.get(edge.source);
-        const targetPos = this.#layout.positions.get(edge.target);
-        if (sourcePos && targetPos) {
-          // Focus shifted slightly from source node towards target
-          focusX = sourcePos.x + this.#layout.nodeSize.width / 2 + (targetPos.x - sourcePos.x) * 0.1;
-          focusY = sourcePos.y + this.#layout.nodeSize.height / 2 + (targetPos.y - sourcePos.y) * 0.1;
-        }
-      }
-    }
-
-    if (focusX > 0 || focusY > 0) {
-      const viewportElement = this.container.querySelector('.pgv-viewport');
-      if (viewportElement) {
-        const vw = viewportElement.clientWidth;
-        const vh = viewportElement.clientHeight;
-
-        this.#viewportState.scale = 1;
-        this.#viewportState.x = vw / 2 - focusX;
-        this.#viewportState.y = vh / 2 - focusY;
-        this.#applyViewport();
-      }
-    }
-  }
-
   #navigateHistory(direction: "left" | "right" | "fast-forward" | "fast-rewind"): void {
     if (!this.#preHistoryGraph) return;
 
@@ -360,13 +156,10 @@ export class GraphView {
     this.#minimapResizeObserver = null;
     this.#minimapAbortController?.abort();
     this.#minimapAbortController = null;
-    this.#downloadAbortController?.abort();
-    this.#downloadAbortController = null;
     this.container.replaceChildren();
   }
 
   #render(): void {
-    const activePlaceholder = document.activeElement && this.container.contains(document.activeElement) && document.activeElement.tagName === "INPUT" ? (document.activeElement as any).placeholder : null;
     if (!this.#graph || !this.#layout) {
       return;
     }
@@ -397,17 +190,13 @@ export class GraphView {
 
     if (this.#options.usePanZoom || this.#options.useThemeToggle || (this.#options.maxHistory && this.#options.maxHistory > 0)) {
       const viewport = document.createElement("div");
-      viewport.className = PGV_VIEWPORT_CLASS;
+      viewport.className = "pgv-viewport";
 
       stage.style.transform = `translate(${this.#viewportState.x}px, ${this.#viewportState.y}px) scale(${this.#viewportState.scale})`;
       stage.style.transformOrigin = "0 0";
 
       viewport.appendChild(stage);
       root.appendChild(viewport);
-
-      if (this.#options.useSearch) {
-        root.appendChild(this.#renderBottomLeftControls());
-      }
 
       if (this.#options.usePanZoom || this.#options.useThemeToggle) {
         root.appendChild(this.#renderControls());
@@ -429,210 +218,6 @@ export class GraphView {
     this.#setupEvents(root);
 
     this.container.replaceChildren(root);
-
-    // Restore focus to avoid interrupting typing
-    if (activePlaceholder) {
-      if (activePlaceholder === "Attribute Key..." && this.#searchKeyInputRef) {
-        this.#searchKeyInputRef.focus();
-        this.#searchKeyInputRef.setSelectionRange(this.#searchKeyInputRef.value.length, this.#searchKeyInputRef.value.length);
-      } else if (this.#searchInputRef) {
-        this.#searchInputRef.focus();
-        this.#searchInputRef.setSelectionRange(this.#searchInputRef.value.length, this.#searchInputRef.value.length);
-      }
-    }
-  }
-
-
-
-  #renderBottomLeftControls(): HTMLElement {
-    const container = document.createElement("div");
-    container.className = "pgv-bottom-left-container";
-
-    if (this.#options.useSearch) {
-      container.appendChild(this.#renderSearchControls());
-    }
-
-    return container;
-  }
-
-  #renderSearchControls(): HTMLElement {
-    const bar = document.createElement("div");
-    bar.className = "pgv-search-bar";
-
-    // Select mode
-    const select = document.createElement("select");
-    const modes = [
-      { value: "all", label: "Any" },
-      { value: "node-id", label: "Node Id" },
-      { value: "node-tag", label: "Node Tag" },
-      { value: "node-attribute", label: "Node Attribute" },
-      { value: "edge-id", label: "Edge Id" },
-      { value: "edge-tag", label: "Edge Tag" },
-      { value: "edge-attribute", label: "Edge Attribute" },
-      { value: "id", label: "Element Id" },
-      { value: "tag", label: "Element Tag" },
-      { value: "attribute", label: "Element Attribute" }
-    ];
-    modes.forEach(mode => {
-      const option = document.createElement("option");
-      option.value = mode.value;
-      option.textContent = mode.label;
-      if (mode.value === this.#searchMode) option.selected = true;
-      select.appendChild(option);
-    });
-
-    select.addEventListener("change", (e) => {
-      this.#searchMode = (e.target as HTMLSelectElement).value as any;
-      this.#executeSearch();
-    });
-    bar.appendChild(select);
-
-    const inputsContainer = document.createElement("div");
-    inputsContainer.className = "pgv-search-inputs";
-
-    const isAttributeMode = ["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode);
-
-    const createToggle = (label: string, active: boolean, onClick: () => void) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = `pgv-search-toggle ${active ? "active" : ""}`;
-      btn.title = label;
-      btn.textContent = label === "Match Case" ? "Aa" : "W";
-      btn.style.fontSize = "10px";
-      btn.style.fontWeight = "bold";
-      btn.style.width = "20px";
-      btn.style.height = "20px";
-      btn.addEventListener("click", () => {
-        onClick();
-      });
-      return btn;
-    };
-
-    const handleEnter = (e: KeyboardEvent) => {
-      if (e.key === "Enter") {
-        if (this.#searchResults.length > 0) {
-          this.#cycleSearch();
-        } else {
-          this.#executeSearch();
-        }
-      }
-    };
-
-    if (isAttributeMode) {
-      // Key input wrapper
-      const keyWrapper = document.createElement("div");
-      keyWrapper.className = "pgv-search-input-wrapper";
-
-      const keyInput = document.createElement("input");
-      keyInput.type = "text";
-      keyInput.placeholder = "Attribute Key...";
-      keyInput.value = this.#searchKeyQuery;
-      keyInput.addEventListener("input", (e) => {
-        this.#searchKeyQuery = (e.target as HTMLInputElement).value;
-        this.#searchResults = [];
-        this.#searchCycleIndex = -1;
-      });
-      keyInput.addEventListener("keydown", handleEnter);
-      this.#searchKeyInputRef = keyInput;
-      keyWrapper.appendChild(keyInput);
-
-      const keyToggles = document.createElement("div");
-      keyToggles.className = "pgv-search-toggles";
-      keyToggles.appendChild(createToggle("Match Case", this.#searchCaseSensitiveKey, () => {
-        this.#searchCaseSensitiveKey = !this.#searchCaseSensitiveKey;
-        this.#executeSearch();
-      }));
-      keyToggles.appendChild(createToggle("Match Whole Word", this.#searchExactKey, () => {
-        this.#searchExactKey = !this.#searchExactKey;
-        this.#executeSearch();
-      }));
-      keyWrapper.appendChild(keyToggles);
-      inputsContainer.appendChild(keyWrapper);
-    }
-
-    // Value input wrapper
-    const valueWrapper = document.createElement("div");
-    valueWrapper.className = "pgv-search-input-wrapper";
-
-    const valueInput = document.createElement("input");
-    valueInput.type = "text";
-    valueInput.placeholder = isAttributeMode ? "Attribute Value..." : "Search...";
-    valueInput.value = this.#searchQuery;
-    valueInput.addEventListener("input", (e) => {
-      this.#searchQuery = (e.target as HTMLInputElement).value;
-      this.#searchResults = [];
-      this.#searchCycleIndex = -1;
-    });
-    valueInput.addEventListener("keydown", handleEnter);
-    this.#searchInputRef = valueInput;
-    valueWrapper.appendChild(valueInput);
-
-    const valueToggles = document.createElement("div");
-    valueToggles.className = "pgv-search-toggles";
-    valueToggles.appendChild(createToggle("Match Case", this.#searchCaseSensitiveValue, () => {
-      this.#searchCaseSensitiveValue = !this.#searchCaseSensitiveValue;
-      this.#executeSearch();
-    }));
-    valueToggles.appendChild(createToggle("Match Whole Word", this.#searchExactValue, () => {
-      this.#searchExactValue = !this.#searchExactValue;
-      this.#executeSearch();
-    }));
-    valueWrapper.appendChild(valueToggles);
-    inputsContainer.appendChild(valueWrapper);
-
-    bar.appendChild(inputsContainer);
-
-    const actionsContainer = document.createElement("div");
-    actionsContainer.className = "pgv-search-actions";
-
-    const info = document.createElement("div");
-    info.className = "pgv-search-results-info";
-    if (this.#searchResults.length > 0) {
-      info.textContent = `${this.#searchCycleIndex + 1} of ${this.#searchResults.length}`;
-    } else if (this.#searchQuery || (isAttributeMode && this.#searchKeyQuery)) {
-      info.textContent = "0 of 0";
-    }
-
-    // Cycle button
-    const cycleBtn = document.createElement("button");
-    cycleBtn.type = "button";
-    cycleBtn.title = "Cycle Results";
-    cycleBtn.disabled = this.#searchResults.length === 0;
-    cycleBtn.innerHTML = `
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-        <path d="M3 3v5h5"></path>
-      </svg>
-    `;
-    cycleBtn.addEventListener("click", () => {
-      if (this.#searchResults.length > 0) {
-        this.#cycleSearch();
-      } else {
-        this.#executeSearch();
-      }
-    });
-
-    // Search button
-    const searchBtn = document.createElement("button");
-    searchBtn.type = "button";
-    searchBtn.title = "Search";
-    searchBtn.innerHTML = `
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      </svg>
-    `;
-    searchBtn.addEventListener("click", () => {
-      this.#executeSearch();
-    });
-
-    actionsContainer.appendChild(info);
-    actionsContainer.appendChild(searchBtn);
-    actionsContainer.appendChild(cycleBtn);
-
-    bar.appendChild(actionsContainer);
-
-    return bar;
   }
 
   #renderHistoryControls(): HTMLElement {
@@ -708,8 +293,6 @@ export class GraphView {
       moon: "M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z",
       auto: "M12 3v18M3 12h18M12 3l9 9-9 9-9-9 9-9",
       map: "M9 20v-14l-4 2v14l4 -2zM15 4v14l4 -2v-14l-4 2zM9 20l6 -2v-14l-6 2z",
-      download: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
-      chevronDown: "M6 9l6 6 6-6",
     };
 
     const buttonsContainer = document.createElement("div");
@@ -750,133 +333,38 @@ export class GraphView {
       const miscGroup = document.createElement("div");
       miscGroup.className = "pgv-misc-group";
 
-      const topButtonsContainer = document.createElement("div");
-      topButtonsContainer.style.display = "flex";
-      topButtonsContainer.style.gap = "12px";
-      topButtonsContainer.style.justifyContent = "flex-end";
-
-      if (this.#options.useThemeToggle) {
-        const themeIcon = this.#currentTheme === "light" ? icons.sun : this.#currentTheme === "dark" ? icons.moon : icons.auto;
-        const themeLabel = `Theme: ${this.#currentTheme.charAt(0).toUpperCase() + this.#currentTheme.slice(1)}`;
-
-        topButtonsContainer.appendChild(this.#createControlButton({
-          icon: themeIcon,
-          action: () => this.#toggleTheme(),
-          label: themeLabel,
-        }));
-      }
-
       if (this.#options.usePanZoom) {
-        topButtonsContainer.appendChild(this.#createControlButton({
+        miscGroup.appendChild(this.#createControlButton({
           icon: icons.map,
           action: () => this.#toggleMinimap(),
           label: "Toggle Minimap",
         }));
       }
 
-      miscGroup.appendChild(topButtonsContainer);
-
-      // Add a spacer to push the bottom buttons down
-      const spacer = document.createElement("div");
-      spacer.style.flexGrow = "1";
-      miscGroup.appendChild(spacer);
-
-      // Download button split control
-      const downloadGroup = document.createElement("div");
-      downloadGroup.className = "pgv-control-split-button";
-
-      const formatLabels: Record<string, string> = {
-        svg: " SVG",
-        png: " PNG",
-        jpeg: "JPEG",
-        json: "JSON"
-      };
-
-      const downloadBtn = document.createElement("button");
-      downloadBtn.type = "button";
-      downloadBtn.className = "pgv-download-action-btn";
-      downloadBtn.setAttribute("aria-label", "Download Graph");
-      downloadBtn.setAttribute("title", "Download Graph");
-      downloadBtn.innerHTML = `
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="${icons.download}"></path>
-        </svg>
-        <span>${formatLabels[this.#downloadFormat]}</span>
-      `;
-      downloadBtn.addEventListener("click", () => this.#downloadGraph());
-      downloadGroup.appendChild(downloadBtn);
-
-      const dropdownBtn = document.createElement("button");
-      dropdownBtn.type = "button";
-      dropdownBtn.className = "pgv-download-dropdown-btn";
-      dropdownBtn.setAttribute("aria-label", "Select Download Format");
-      dropdownBtn.setAttribute("title", "Select Download Format");
-      dropdownBtn.innerHTML = `
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="${icons.chevronDown}"></path>
-        </svg>
-      `;
-      downloadGroup.appendChild(dropdownBtn);
-
-      const dropdownMenu = document.createElement("div");
-      dropdownMenu.className = "pgv-download-dropdown-menu";
-      if (this.#downloadDropdownOpen) {
-        dropdownMenu.classList.add("open");
+      // If we don't have a theme toggle but need a spacer so map stays top-right
+      if (!this.#options.useThemeToggle && this.#options.usePanZoom) {
+        const spacer = document.createElement("div");
+        spacer.style.flexGrow = "1";
+        miscGroup.appendChild(spacer);
       }
 
-      const updateFormatLabel = () => {
-        const span = downloadBtn.querySelector("span");
-        if (span) {
-          span.textContent = formatLabels[this.#downloadFormat];
-        }
-      };
+      if (this.#options.useThemeToggle) {
+        const themeIcon = this.#currentTheme === "light" ? icons.sun : this.#currentTheme === "dark" ? icons.moon : icons.auto;
+        const themeLabel = `Theme: ${this.#currentTheme.charAt(0).toUpperCase() + this.#currentTheme.slice(1)}`;
 
-      const formats = ["svg", "png", "jpeg", "json"] as const;
-      formats.forEach((format) => {
-        const option = document.createElement("div");
-        option.className = "pgv-dropdown-option";
-        if (format === this.#downloadFormat) {
-          option.classList.add("selected");
+        // Add a spacer to push the theme toggle to the bottom if only theme is present
+        if (!this.#options.usePanZoom) {
+            const spacer = document.createElement("div");
+            spacer.style.flexGrow = "1";
+            miscGroup.appendChild(spacer);
         }
-        option.textContent = formatLabels[format];
-        option.addEventListener("click", () => {
-          this.#downloadFormat = format;
-          this.#downloadDropdownOpen = false;
-          dropdownMenu.classList.remove("open");
-          updateFormatLabel();
-          dropdownMenu.querySelectorAll(".pgv-dropdown-option").forEach(opt => {
-            if (opt.textContent === formatLabels[format]) {
-              opt.classList.add("selected");
-            } else {
-              opt.classList.remove("selected");
-            }
-          });
-        });
-        dropdownMenu.appendChild(option);
-      });
-      downloadGroup.appendChild(dropdownMenu);
 
-      dropdownBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        this.#downloadDropdownOpen = !this.#downloadDropdownOpen;
-        if (this.#downloadDropdownOpen) {
-          dropdownMenu.classList.add("open");
-        } else {
-          dropdownMenu.classList.remove("open");
-        }
-      });
-
-      // Close dropdown when clicking outside
-      this.#downloadAbortController?.abort();
-      this.#downloadAbortController = new AbortController();
-      document.addEventListener("click", () => {
-        if (this.#downloadDropdownOpen) {
-          this.#downloadDropdownOpen = false;
-          dropdownMenu.classList.remove("open");
-        }
-      }, { signal: this.#downloadAbortController.signal });
-
-      miscGroup.appendChild(downloadGroup);
+        miscGroup.appendChild(this.#createControlButton({
+          icon: themeIcon,
+          action: () => this.#toggleTheme(),
+          label: themeLabel,
+        }));
+      }
 
       buttonsContainer.appendChild(miscGroup);
     }
@@ -958,7 +446,7 @@ export class GraphView {
       return;
     }
 
-    const viewport = this.container.querySelector<HTMLElement>(`.${PGV_VIEWPORT_CLASS}`);
+    const viewport = this.container.querySelector<HTMLElement>(".pgv-viewport");
     if (!viewport) {
       this.#viewportState = { x: 0, y: 0, scale: 1 };
       this.#applyViewport();
@@ -1139,155 +627,6 @@ export class GraphView {
       const ny = offsetY + position.y * scale;
 
       ctx.fillRect(nx, ny, nw, nh);
-    }
-  }
-
-  async #downloadGraph(): Promise<void> {
-    const stage = this.container.querySelector<HTMLElement>(".pgv-graph-stage");
-    if (!stage || !this.#layout || !this.#graph) return;
-
-    if (this.#downloadFormat === "json") {
-      const json: any = graphSnapshotToJson(this.#graph);
-
-      if (this.#options.selection) {
-        json.selection = {
-          nodes: Array.from(this.#options.selection.nodes),
-          edges: Array.from(this.#options.selection.edges)
-        };
-      }
-
-      const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
-      const dataUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      link.download = `graph-${timestamp}.json`;
-      link.href = dataUrl;
-      link.click();
-      URL.revokeObjectURL(dataUrl);
-      return;
-    }
-
-    // We want to download the entire graph, ignoring current viewport transform
-    const width = this.#layout.width;
-    const height = this.#layout.height;
-
-    // Get the computed styles to extract the CSS variables applied by the theme
-    // We must pass these down because html-to-image clones the stage element
-    // without its parent container, losing the theme variables.
-    const containerStyle = window.getComputedStyle(this.container);
-    const themeVariables: Record<string, string> = {};
-    for (let i = 0; i < containerStyle.length; i++) {
-      const prop = containerStyle[i];
-      if (prop.startsWith("--pgv-")) {
-        themeVariables[prop] = containerStyle.getPropertyValue(prop);
-      }
-    }
-
-    const options = {
-      width,
-      height,
-      backgroundColor: themeVariables["--pgv-color-bg"] || "transparent",
-      style: {
-        ...themeVariables,
-        transform: "none", // Override the translate/scale for pan and zoom
-        transformOrigin: "top left",
-      },
-      filter: (node: HTMLElement) => {
-        // Exclude the controls from the image if we ever capture the container directly
-        if (node.classList?.contains("pgv-controls") || node.classList?.contains("pgv-history-controls")) {
-          return false;
-        }
-        return true;
-      }
-    };
-
-    // html-to-image has issues copying CSS variables down into SVG contexts properly during cloning.
-    // To ensure edges render correctly, we temporarily inline the critical stroke/fill properties
-    // on the SVG paths before exporting, and then remove them afterward.
-    const edgePaths = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge path");
-    const edgeMarkers = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge marker path");
-    const edgeLabels = stage.querySelectorAll<SVGTextElement>(".pgv-edge-label");
-
-    const edgeColor = themeVariables["--pgv-edge-color"] || "#697586";
-    const selectedColor = themeVariables["--pgv-selected-color"] || "#2563eb";
-    const labelFg = themeVariables["--pgv-edge-label-fg"] || "#445160";
-    const labelBg = themeVariables["--pgv-edge-label-bg"] || "#f9fbfd";
-
-    const originalStyles = new Map<Element, string | null>();
-
-    const applyInlineStyle = (el: Element, styleStr: string) => {
-      originalStyles.set(el, el.getAttribute("style"));
-      el.setAttribute("style", (el.getAttribute("style") || "") + ";" + styleStr);
-    };
-
-    edgePaths.forEach((path) => {
-      const isSelected = path.parentElement?.classList.contains("pgv-selected");
-      // Read specific path styles
-      const pathStyle = window.getComputedStyle(path);
-      const computedStroke = pathStyle.getPropertyValue("stroke");
-      const computedStrokeWidth = pathStyle.getPropertyValue("stroke-width");
-      const computedStrokeLinecap = pathStyle.getPropertyValue("stroke-linecap");
-
-      // Use specific styles if present, else fallback
-      const finalStroke = isSelected ? selectedColor : (computedStroke !== "none" && computedStroke ? computedStroke : edgeColor);
-      const finalStrokeWidth = isSelected ? "3px" : (computedStrokeWidth || "2px");
-
-      applyInlineStyle(path, `fill: transparent; stroke: ${finalStroke}; stroke-linecap: ${computedStrokeLinecap || "round"}; stroke-width: ${finalStrokeWidth};`);
-    });
-
-    edgeMarkers.forEach((path) => {
-      const isSelected = path.closest(".pgv-graph-edge")?.classList.contains("pgv-selected");
-
-      const pathStyle = window.getComputedStyle(path);
-      const computedFill = pathStyle.getPropertyValue("fill");
-
-      const finalFill = isSelected ? selectedColor : (computedFill !== "none" && computedFill ? computedFill : edgeColor);
-
-      applyInlineStyle(path, `fill: ${finalFill}; stroke: none;`);
-    });
-
-    edgeLabels.forEach((text) => {
-      const textStyle = window.getComputedStyle(text);
-      const computedFill = textStyle.getPropertyValue("fill");
-      const computedStroke = textStyle.getPropertyValue("stroke");
-
-      const finalFill = computedFill !== "none" && computedFill ? computedFill : labelFg;
-      const finalStroke = computedStroke !== "none" && computedStroke ? computedStroke : labelBg;
-
-      applyInlineStyle(text, `fill: ${finalFill}; stroke: ${finalStroke}; paint-order: stroke; stroke-width: 4px; font-size: 12px; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-anchor: middle; stroke-linejoin: round; pointer-events: none;`);
-    });
-
-    try {
-      let dataUrl: string;
-      switch (this.#downloadFormat) {
-        case "png":
-          dataUrl = await toPng(stage, options);
-          break;
-        case "jpeg":
-          dataUrl = await toJpeg(stage, options);
-          break;
-        case "svg":
-        default:
-          dataUrl = await toSvg(stage, options);
-          break;
-      }
-
-      const link = document.createElement("a");
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      link.download = `graph-${timestamp}.${this.#downloadFormat === "jpeg" ? "jpg" : this.#downloadFormat}`;
-      link.href = dataUrl;
-      link.click();
-    } catch (error) {
-      console.error("Failed to download graph image:", error);
-    } finally {
-      // Restore original styles
-      originalStyles.forEach((style, el) => {
-        if (style === null) {
-          el.removeAttribute("style");
-        } else {
-          el.setAttribute("style", style);
-        }
-      });
     }
   }
 

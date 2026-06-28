@@ -74,6 +74,7 @@ export class GraphModelError extends Error {
 
 export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
   assertNonEmptyString(input.graphId, "graphId");
+
   const nodes = new Map<string, GraphNode>();
   const edges = new Map<string, GraphEdge>();
 
@@ -302,44 +303,10 @@ function freezeAttributes(
     }
   }
 
-  const sanitizedAttributes: Record<string, AttributeValue> = {};
-  for (const [key, value] of Object.entries(attributes)) {
-    sanitizedAttributes[key] = typeof value === "string" ? sanitizeString(value) : value;
-  }
-  return Object.freeze(sanitizedAttributes);
-}
-
-
-function sanitizeString(value: string): string {
-  if (typeof value !== "string") return value;
-
-  // Basic XSS/script sanitization
-  const lower = value.toLowerCase();
-
-  // Block common javascript URIs and inline scripts
-  if (lower.includes("javascript:") || lower.includes("vbscript:") || lower.includes("data:text/html")) {
-    return "#blocked-uri";
-  }
-
-  // Strip <script> tags
-  let sanitized = value.replace(/<\/?script\b[^>]*>/gi, "");
-
-  // Strip inline event handlers (on*)
-  sanitized = sanitized.replace(/\bon[a-z]+\s*=/gi, "data-blocked=");
-
-  // Strip CSS expressions
-  sanitized = sanitized.replace(/expression\s*\(/gi, "blocked-expr(");
-
-  return sanitized;
+  return Object.freeze({ ...attributes });
 }
 
 function assertNonEmptyString(value: unknown, fieldName: string): asserts value is string {
-  if (typeof value === "string") {
-    const sanitized = sanitizeString(value);
-    if (sanitized !== value) {
-      throw new GraphModelError(`${fieldName} contains unsafe content.`);
-    }
-  }
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new GraphModelError(`${fieldName} must be a non-empty string.`);
   }
