@@ -74,7 +74,6 @@ export class GraphModelError extends Error {
 
 export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
   assertNonEmptyString(input.graphId, "graphId");
-
   const nodes = new Map<string, GraphNode>();
   const edges = new Map<string, GraphEdge>();
 
@@ -303,10 +302,37 @@ function freezeAttributes(
     }
   }
 
-  return Object.freeze({ ...attributes });
+  const sanitizedAttributes: Record<string, AttributeValue> = {};
+  for (const [key, value] of Object.entries(attributes)) {
+    sanitizedAttributes[key] = typeof value === "string" ? sanitizeString(value) : value;
+  }
+  return Object.freeze(sanitizedAttributes);
+}
+
+
+export function sanitizeString(value: string): string {
+  if (typeof value !== "string") return value;
+
+  // XSS protection: block javascript: and data: URIs if present at the start of a string.
+  const lower = value.toLowerCase().trim();
+  if (lower.startsWith("javascript:") || lower.startsWith("vbscript:") || lower.startsWith("data:text/html")) {
+    return "#blocked-uri";
+  }
+
+  // We explicitly DO NOT use escapeHtml or overly broad regexes (e.g. for <script> or on*)
+  // because that destroys legitimate generic text (like "math is < fun") and leads to double encoding
+  // in modern frontend frameworks (e.g., React/Vue) which safely escape text content automatically.
+
+  return value;
 }
 
 function assertNonEmptyString(value: unknown, fieldName: string): asserts value is string {
+  if (typeof value === "string") {
+    const sanitized = sanitizeString(value);
+    if (sanitized !== value) {
+      throw new GraphModelError(`${fieldName} contains unsafe content.`);
+    }
+  }
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new GraphModelError(`${fieldName} must be a non-empty string.`);
   }

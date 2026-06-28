@@ -1,0 +1,4 @@
+## 2026-06-27 - Never Sanitize HTML in the Model Layer
+**Vulnerability:** XSS via unsafe JSON string payloads containing `javascript:` URIs.
+**Learning:** Initial attempts to use `DOMPurify` or aggressive regexes (like stripping `<script>`) directly inside `src/model.ts` (the data layer) caused major regressions. Modern UI frameworks automatically escape text, so preemptively HTML-escaping model data causes double-encoding bugs (e.g., `<` becomes `&amp;lt;`). Additionally, blocking all `data:` URIs breaks legitimate inline base64 images.
+**Prevention:** Data models should always store the raw, pure data exactly as provided. XSS sanitization must be minimal at the model layer—restricted only to blocking explicit protocol threats (like `javascript:`, `vbscript:`, `data:text/html`) that could be unsafely bound to an `<a>` tag `href` by a naive consumer of the library. All other HTML escaping is strictly the responsibility of the presentation layer.
