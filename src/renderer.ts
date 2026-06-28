@@ -3,6 +3,7 @@ import type { AttributeValue, GraphEdge, GraphNode, GraphSnapshot } from "./mode
 import { toSvg, toPng, toJpeg } from "html-to-image";
 
 let markerIdSequence = 0;
+const PGV_VIEWPORT_CLASS = "pgv-viewport";
 
 export interface SelectionState {
   readonly nodes: ReadonlySet<string>;
@@ -196,7 +197,7 @@ export class GraphView {
 
     if (this.#options.usePanZoom || this.#options.useThemeToggle || (this.#options.maxHistory && this.#options.maxHistory > 0)) {
       const viewport = document.createElement("div");
-      viewport.className = "pgv-viewport";
+      viewport.className = PGV_VIEWPORT_CLASS;
 
       stage.style.transform = `translate(${this.#viewportState.x}px, ${this.#viewportState.y}px) scale(${this.#viewportState.scale})`;
       stage.style.transformOrigin = "0 0";
@@ -549,7 +550,7 @@ export class GraphView {
       return;
     }
 
-    const viewport = this.container.querySelector<HTMLElement>(".pgv-viewport");
+    const viewport = this.container.querySelector<HTMLElement>(`.${PGV_VIEWPORT_CLASS}`);
     if (!viewport) {
       this.#viewportState = { x: 0, y: 0, scale: 1 };
       this.#applyViewport();
