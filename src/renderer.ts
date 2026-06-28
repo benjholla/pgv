@@ -143,7 +143,7 @@ export class GraphView {
     const q = caseSensitive ? query : query.toLowerCase();
 
     if (exact) {
-      const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\  #navigateHistory');
+      const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       const regex = new RegExp(`\\b${escapedQ}\\b`);
       return regex.test(t);
     }
