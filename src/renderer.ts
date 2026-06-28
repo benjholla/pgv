@@ -722,6 +722,26 @@ export class GraphView {
         return;
       }
     });
+
+    element.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        const target = event.target as HTMLElement;
+
+        const nodeElement = target.closest<HTMLElement>(".pgv-graph-node");
+        if (nodeElement && nodeElement.dataset.nodeId) {
+          event.preventDefault();
+          this.#options.onNodeClick?.(nodeElement.dataset.nodeId, event as unknown as MouseEvent);
+          return;
+        }
+
+        const edgeElement = target.closest<HTMLElement>(".pgv-graph-edge");
+        if (edgeElement && edgeElement.dataset.edgeId) {
+          event.preventDefault();
+          this.#options.onEdgeClick?.(edgeElement.dataset.edgeId, event as unknown as MouseEvent);
+          return;
+        }
+      }
+    });
   }
 }
 
@@ -794,6 +814,7 @@ function renderEdges(
 
     group.classList.add(...classNames);
     group.dataset.edgeId = edge.id;
+    group.setAttribute("tabindex", "0");
     path.setAttribute("d", pathData);
     path.setAttribute("marker-end", `url(#${markerId})`);
     group.appendChild(path);
@@ -844,6 +865,7 @@ function renderNodes(
 
     element.className = joinClassNames(...classNames);
     element.dataset.nodeId = node.id;
+    element.tabIndex = 0;
     element.style.transform = `translate(${position.x}px, ${position.y}px)`;
 
     const content = options.nodeContent?.(node) ?? defaultNodeContent(node);
