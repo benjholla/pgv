@@ -259,6 +259,13 @@
   background: var(--pgv-control-button-active-bg);
 }
 
+.pgv-controls button:focus-visible {
+  outline: none;
+  border-color: var(--pgv-selected-color);
+  box-shadow: var(--pgv-selected-shadow);
+  z-index: 1;
+}
+
 .pgv-control-split-button {
   display: flex;
   position: relative;
@@ -357,6 +364,13 @@
   background: var(--pgv-control-button-active-bg);
 }
 
+.pgv-history-controls button:focus-visible {
+  outline: none;
+  border-color: var(--pgv-selected-color);
+  box-shadow: var(--pgv-selected-shadow);
+  z-index: 1;
+}
+
 .pgv-history-controls button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -399,6 +413,10 @@
   stroke-width: 3;
 }
 
+.pgv-graph-edge:focus-visible path {
+  stroke: var(--pgv-selected-color);
+}
+
 .pgv-graph-edge.pgv-selected marker path {
   fill: var(--pgv-selected-color);
 }
@@ -436,6 +454,12 @@
 }
 
 .graph-node.pgv-selected {
+  border-color: var(--pgv-selected-color);
+  box-shadow: var(--pgv-selected-shadow);
+}
+
+.pgv-graph-node:focus-visible {
+  outline: none;
   border-color: var(--pgv-selected-color);
   box-shadow: var(--pgv-selected-shadow);
 }

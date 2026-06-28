@@ -21,8 +21,8 @@ export interface GraphViewOptions {
   readonly useThemeToggle?: boolean;
   readonly maxHistory?: number;
   readonly onThemeChange?: (theme: "light" | "dark" | "auto") => void;
-  readonly onNodeClick?: (nodeId: string, event: MouseEvent) => void;
-  readonly onEdgeClick?: (edgeId: string, event: MouseEvent) => void;
+  readonly onNodeClick?: (nodeId: string, event: Event) => void;
+  readonly onEdgeClick?: (edgeId: string, event: Event) => void;
   readonly onGraphChange?: (graph: GraphSnapshot) => void;
 }
 
@@ -959,9 +959,7 @@ export class GraphView {
   }
 
   #setupEvents(element: HTMLElement): void {
-    element.addEventListener("click", (event) => {
-      const target = event.target as HTMLElement;
-
+    const handleInteraction = (target: HTMLElement, event: Event) => {
       const nodeElement = target.closest<HTMLElement>(".pgv-graph-node");
       if (nodeElement && nodeElement.dataset.nodeId) {
         this.#options.onNodeClick?.(nodeElement.dataset.nodeId, event);
@@ -972,6 +970,17 @@ export class GraphView {
       if (edgeElement && edgeElement.dataset.edgeId) {
         this.#options.onEdgeClick?.(edgeElement.dataset.edgeId, event);
         return;
+      }
+    };
+
+    element.addEventListener("click", (event) => {
+      handleInteraction(event.target as HTMLElement, event);
+    });
+
+    element.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        handleInteraction(event.target as HTMLElement, event);
       }
     });
   }
@@ -1046,6 +1055,7 @@ function renderEdges(
 
     group.classList.add(...classNames);
     group.dataset.edgeId = edge.id;
+    group.setAttribute("tabindex", "0");
     path.setAttribute("d", pathData);
     path.setAttribute("marker-end", `url(#${markerId})`);
     group.appendChild(path);
@@ -1097,6 +1107,7 @@ function renderNodes(
     element.className = joinClassNames(...classNames);
     element.dataset.nodeId = node.id;
     element.style.transform = `translate(${position.x}px, ${position.y}px)`;
+    element.setAttribute("tabindex", "0");
 
     const content = options.nodeContent?.(node) ?? defaultNodeContent(node);
 
