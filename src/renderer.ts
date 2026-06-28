@@ -57,7 +57,7 @@ export class GraphView {
   #history: Array<{ diff: GraphDiff; version: string | number }> = [];
   #historyIndex: number = -1;
 
-  #searchMode: "all" | "id" | "node-tag" | "node-attribute" | "edge-tag" | "edge-attribute" | "tag" | "attribute" = "all";
+  #searchMode: "all" | "id" | "node-id" | "edge-id" | "node-tag" | "node-attribute" | "edge-tag" | "edge-attribute" | "tag" | "attribute" = "all";
   #searchQuery: string = "";
   #searchKeyQuery: string = "";
   #searchCaseSensitiveKey: boolean = false;
@@ -175,8 +175,8 @@ export class GraphView {
     const matchedEdges = new Set<string>();
     this.#searchResults = [];
 
-    const searchNodes = ["all", "id", "node-tag", "node-attribute", "tag", "attribute"].includes(this.#searchMode);
-    const searchEdges = ["all", "id", "edge-tag", "edge-attribute", "tag", "attribute"].includes(this.#searchMode);
+    const searchNodes = ["all", "id", "node-id", "node-tag", "node-attribute", "tag", "attribute"].includes(this.#searchMode);
+    const searchEdges = ["all", "id", "edge-id", "edge-tag", "edge-attribute", "tag", "attribute"].includes(this.#searchMode);
 
     if (searchNodes) {
       for (const node of this.#graph.nodes.values()) {
@@ -193,7 +193,7 @@ export class GraphView {
               }
             }
           }
-        } else if (this.#searchMode === "id") {
+        } else if (this.#searchMode === "id" || this.#searchMode === "node-id") {
           if (this.#matchString(node.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
         } else if (this.#searchMode === "node-tag" || this.#searchMode === "tag") {
           if (node.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
@@ -236,7 +236,7 @@ export class GraphView {
               }
             }
           }
-        } else if (this.#searchMode === "id") {
+        } else if (this.#searchMode === "id" || this.#searchMode === "edge-id") {
           if (this.#matchString(edge.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
         } else if (this.#searchMode === "edge-tag" || this.#searchMode === "tag") {
           if (edge.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
@@ -461,9 +461,11 @@ export class GraphView {
     // Select mode
     const select = document.createElement("select");
     const modes = [
-      { value: "all", label: "All" },
+      { value: "all", label: "Any" },
+      { value: "node-id", label: "Node Id" },
       { value: "node-tag", label: "Node Tag" },
       { value: "node-attribute", label: "Node Attribute" },
+      { value: "edge-id", label: "Edge Id" },
       { value: "edge-tag", label: "Edge Tag" },
       { value: "edge-attribute", label: "Edge Attribute" },
       { value: "id", label: "Element Id" },
