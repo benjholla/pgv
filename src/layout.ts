@@ -61,8 +61,6 @@ export function verticalLayout(
   const layers = groupByDepth(nodeIds, depths);
   const positions = new Map<string, Point>();
 
-  // Replace spread Math.max with iterative calculation to prevent Maximum Call Stack Size Exceeded
-  // on very large graphs, and to avoid creating a large intermediate array.
   let maxLayerSize = 1;
   for (const ids of layers.values()) {
     if (ids.length > maxLayerSize) {
@@ -137,24 +135,13 @@ function assignVerticalDepths(
   const roots = nodeIds.filter((id) => (incomingCounts.get(id) ?? 0) === 0);
   const starts = roots.length > 0 ? roots : nodeIds.slice(0, 1);
 
-  let currentMaxDepth = -1;
-
   for (const id of starts) {
-    const maxDepthReached = visitComponent(id, 0, outgoing, depths);
-    if (maxDepthReached > currentMaxDepth) {
-      currentMaxDepth = maxDepthReached;
-    }
+    visitComponent(id, 0, outgoing, depths);
   }
 
   for (const id of nodeIds) {
     if (!depths.has(id)) {
-      let maxDepth = -1;
-      for (const depth of depths.values()) {
-        if (depth > maxDepth) {
-          maxDepth = depth;
-        }
-      }
-      const nextDepth = maxDepth + 1;
+      const nextDepth = Math.max(-1, ...depths.values()) + 1;
       visitComponent(id, nextDepth, outgoing, depths);
     }
   }
@@ -167,39 +154,26 @@ function visitComponent(
   startDepth: number,
   outgoing: ReadonlyMap<string, readonly string[]>,
   depths: Map<string, number>,
-): number {
+): void {
   const queue: string[] = [startId];
-  let maxDepthReached = startDepth;
 
   if (!depths.has(startId)) {
     depths.set(startId, startDepth);
-  } else {
-    maxDepthReached = depths.get(startId)!;
   }
 
   for (let index = 0; index < queue.length; index += 1) {
     const sourceId = queue[index];
     const sourceDepth = depths.get(sourceId) ?? startDepth;
 
-    if (sourceDepth > maxDepthReached) {
-      maxDepthReached = sourceDepth;
-    }
-
     for (const targetId of outgoing.get(sourceId) ?? []) {
       if (depths.has(targetId)) {
         continue;
       }
 
-      const targetDepth = sourceDepth + 1;
-      depths.set(targetId, targetDepth);
-      if (targetDepth > maxDepthReached) {
-        maxDepthReached = targetDepth;
-      }
+      depths.set(targetId, sourceDepth + 1);
       queue.push(targetId);
     }
   }
-
-  return maxDepthReached;
 }
 
 function groupByDepth(
