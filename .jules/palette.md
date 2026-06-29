@@ -6,3 +6,6 @@
 3. **Tab Order & Structure:** Native browser tab enumeration (using `tabindex="0"`) is highly preferred over arbitrary indexed counts. To control flow (e.g., UI controls -> Nodes -> Edges), physically construct the DOM in that exact order and use `z-index` if visual layering must contradict DOM layering.
 4. **Auto-Centering:** When the user tabs to a graph element off-screen, auto-panning the canvas via a `focus` capture listener prevents the user from "losing" their cursor.
 **Action:** Implement these behaviors rigorously across new UI components.
+## 2026-06-29 - Adding ARIA attributes to generated DOM components
+**Learning:** When programmatically building complex DOM elements (like the search bar in this application) using `document.createElement`, it is easy to miss adding `aria-label` attributes to inputs, selects, and icon-only buttons, as they don't have static HTML templates where linters might catch them.
+**Action:** When creating new UI controls or reviewing DOM-generation code, always explicitly check if non-text interactive elements (buttons with SVGs, inputs, selects) have an `aria-label` set via `setAttribute` or a visible associated label.

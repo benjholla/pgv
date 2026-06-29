@@ -475,6 +475,7 @@ export class GraphView {
 
     // Select mode
     const select = document.createElement("select");
+    select.setAttribute("aria-label", "Search mode");
     const modes = [
       { value: "all", label: "Any" },
       { value: "node-id", label: "Node Id" },
@@ -511,6 +512,7 @@ export class GraphView {
       btn.type = "button";
       btn.className = `pgv-search-toggle ${active ? "active" : ""}`;
       btn.title = label;
+      btn.setAttribute("aria-label", label);
       btn.textContent = label === "Match Case" ? "Aa" : "W";
       btn.style.fontSize = "10px";
       btn.style.fontWeight = "bold";
@@ -539,6 +541,7 @@ export class GraphView {
 
       const keyInput = document.createElement("input");
       keyInput.type = "text";
+      keyInput.setAttribute("aria-label", "Search attribute key");
       keyInput.placeholder = "Attribute Key...";
       keyInput.value = this.#searchKeyQuery;
       keyInput.addEventListener("input", (e) => {
@@ -570,6 +573,7 @@ export class GraphView {
 
     const valueInput = document.createElement("input");
     valueInput.type = "text";
+    valueInput.setAttribute("aria-label", isAttributeMode ? "Search attribute value" : "Search query");
     valueInput.placeholder = isAttributeMode ? "Attribute Value..." : "Search...";
     valueInput.value = this.#searchQuery;
     valueInput.addEventListener("input", (e) => {
@@ -611,6 +615,7 @@ export class GraphView {
     const cycleBtn = document.createElement("button");
     cycleBtn.type = "button";
     cycleBtn.title = "Cycle Results";
+    cycleBtn.setAttribute("aria-label", "Cycle search results");
     cycleBtn.disabled = this.#searchResults.length === 0;
     cycleBtn.innerHTML = `
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -630,6 +635,7 @@ export class GraphView {
     const searchBtn = document.createElement("button");
     searchBtn.type = "button";
     searchBtn.title = "Search";
+    searchBtn.setAttribute("aria-label", "Execute search");
     searchBtn.innerHTML = `
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"></circle>
