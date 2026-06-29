@@ -64,6 +64,7 @@ function updateGraph(): void {
     maxHistory: 10,
     useSearch: true,
     onGraphChange: (graph: GraphSnapshot) => {
+      currentGraph = graph;
       summaryElement.textContent = `${graph.nodes.size} nodes, ${graph.edges.size} edges, version ${graph.version}`;
     },
     onThemeChange: (theme: string) => {
@@ -99,7 +100,7 @@ function updateGraph(): void {
   if (!graphView) {
     graphView = renderGraph(graphElement, currentGraph, options);
   } else {
-    graphView.setGraph(currentGraph, options);
+    graphView.updateOptions(options);
   }
 
   summaryElement.textContent = `${currentGraph.nodes.size} nodes, ${currentGraph.edges.size} edges, version ${currentGraph.version}`;

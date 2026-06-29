@@ -120,6 +120,19 @@ export class GraphView {
     }
   }
 
+  updateOptions(options: Partial<GraphViewOptions>): void {
+    this.#options = { ...this.#options, ...options };
+    if (options.theme !== undefined) {
+      this.#currentTheme = options.theme;
+    }
+    if (options.layout !== undefined) {
+      this.#layout = options.layout;
+    } else if (options.layoutOptions !== undefined && this.#graph) {
+      this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions);
+    }
+    this.#render();
+  }
+
   applyDiff(diff: GraphDiff, newVersion: string | number): void {
     if (!this.#graph || !this.#preHistoryGraph) {
       throw new Error("Cannot apply diff to an empty graph view.");
