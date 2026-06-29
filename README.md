@@ -1,66 +1,33 @@
 # @pgv/graph-core
 
-Frontend-only graph visualization primitives for immutable attributed graphs produced by external program-analysis systems.
+## What is this?
+Frontend-only graph visualization primitives for immutable attributed program-analysis graphs.
 
 This repository is the `graph-core` package described in the design notes. It owns the graph model, projection pipeline entry point, frontend layout, and HTML/SVG renderer. Host integrations such as Vue, VSCode, and Jupyter should stay thin and reuse this package.
 
-## Install
+## Why does it exist?
+This project is designed to bridge the gap between complex external program-analysis systems and frontend visualization. By representing graphs as immutable snapshots and explicitly decoupling layout from logic, `@pgv/graph-core` guarantees stable, predictable rendering while making features like incremental rendering, historical diffs, and context projections dramatically simpler to build. It intentionally delegates heavy graph analysis to backends, acting strictly as a high-performance presentation layer.
 
-```bash
-npm install
-```
-
-## Develop
-
-Run the static Vite example:
-
-```bash
-npm run dev
-```
-
-Build the library:
-
-```bash
-npm run build
-```
-
-Build the Static Vite example:
-
-```bash
-npm run build:static
-```
-
-Run the Spring Boot graph producer example:
-
-```bash
-npm run dev:backend
-```
-
-Then fetch:
+## Architecture Overview
+The architecture is designed as a strict, unidirectional pipeline:
 
 ```text
-http://localhost:8080/api/graphs/cfg-main
+JSON Data -> Graph Snapshot -> Projection -> Layout -> View Rendering
 ```
+- **Graph Snapshot**: Immutable storage of nodes and edges (pure data).
+- **Projection**: Derives alternate views (e.g., hiding subsets of nodes).
+- **Layout**: Assigns geometry without altering graph logic.
+- **View Rendering**: Interprets layout geometry and graph data into DOM nodes and SVG, managing its own transient view state (like pan/zoom/selection).
 
-The equivalent direct Maven command is:
+## Quick Start
+
+### Install
 
 ```bash
-mvn -f examples/spring-boot-producer/pom.xml spring-boot:run
+npm install @pgv/graph-core
 ```
 
-First, make sure that the Spring Boot graph producer example is also running then run Dynamic Vite example:
-
-```bash
-npm run dev:dynamic
-```
-
-## Features
-
-- **Pan and Zoom**: Interactive exploration with mouse or touch.
-- **Theming**: Built-in support for light, dark, and system themes.
-- **Customizable**: Control layers for zooming, panning, and theme toggling.
-
-## Basic Usage
+### Basic Usage
 
 ```ts
 import {
@@ -82,6 +49,49 @@ renderGraph(document.querySelector("#graph")!, graph, {
 });
 ```
 
+## Documentation
+
+To generate the full HTML API documentation (using TypeDoc), run:
+
+```bash
+npm install
+npm run docs
+```
+
+The output will be placed in the `docs/` directory. Open `docs/index.html` in your browser.
+
+## Examples
+
+Run the static Vite example:
+```bash
+npm run dev:static
+```
+
+Run the Spring Boot graph producer example:
+```bash
+npm run dev:backend &
+```
+
+Then fetch from:
+`http://localhost:8080/api/graphs/cfg-main`
+
+The equivalent direct Maven command is:
+```bash
+mvn -f examples/spring-boot-producer/pom.xml spring-boot:run
+```
+
+To run the Dynamic Vite example, ensure the Spring Boot graph producer is running, then run:
+```bash
+npm run dev:dynamic &
+```
+
+## Features
+
+- **Pan and Zoom**: Interactive exploration with mouse or touch.
+- **Theming**: Built-in support for light, dark, and system themes.
+- **Customizable**: Control layers for zooming, panning, and theme toggling.
+- **Graph History**: Navigate backwards and forwards through snapshots via GraphDiffs.
+
 ## Project Layout
 
 ```text
@@ -94,6 +104,7 @@ src/
 
 examples/
   vite-static/              Static TypeScript frontend demo
+  vite-dynamic/             Dynamic demo fetching from backend
   spring-boot-producer/     Backend JSON producer demo
 ```
 

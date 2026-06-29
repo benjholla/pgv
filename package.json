@@ -33,7 +33,8 @@
     "preview:demo": "vite preview --config examples/vite-static/vite.config.ts --host 127.0.0.1",
     "preview:dynamic": "vite preview --config examples/vite-dynamic/vite.config.ts --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "docs": "typedoc src/index.ts --out docs"
   },
   "keywords": [
     "graph",
@@ -45,6 +46,7 @@
   ],
   "devDependencies": {
     "@types/node": "^20.14.12",
+    "typedoc": "^0.28.19",
     "typescript": "^5.5.4",
     "vite": "^8.1.0",
     "vitest": "^4.1.9"

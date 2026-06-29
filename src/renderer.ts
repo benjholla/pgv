@@ -5,11 +5,24 @@ import { toSvg, toPng, toJpeg } from "html-to-image";
 let markerIdSequence = 0;
 const PGV_VIEWPORT_CLASS = "pgv-viewport";
 
+/**
+ * Represents the currently selected elements in the graph.
+ *
+ * Selection is managed purely by referencing the stable producer-assigned IDs,
+ * keeping interaction state decoupled from the immutable graph data.
+ */
 export interface SelectionState {
   readonly nodes: ReadonlySet<string>;
   readonly edges: ReadonlySet<string>;
 }
 
+/**
+ * Configuration options for a `GraphView` instance.
+ *
+ * Provides hooks for customizing rendering behavior (e.g., node DOM elements),
+ * enabling built-in features (pan/zoom, search, theme toggles), and listening
+ * to interactive events.
+ */
 export interface GraphViewOptions {
   readonly className?: string;
   readonly layout?: LayoutSnapshot;
@@ -37,6 +50,15 @@ interface ViewportState {
 
 import { type GraphDiff, applyGraphDiff, graphSnapshotToJson } from "./model";
 
+/**
+ * The primary class responsible for mounting and managing the interactive
+ * DOM representation of a graph.
+ *
+ * It coordinates the layout, HTML nodes, SVG edges, viewport transformations
+ * (pan/zoom), control panels (minimap, search), and event listeners.
+ *
+ * **Important**: Be sure to call `destroy()` when removing the view to prevent memory leaks.
+ */
 export class GraphView {
   readonly container: HTMLElement;
 
@@ -1423,6 +1445,17 @@ export class GraphView {
   }
 }
 
+/**
+ * A convenience function to instantiate and mount a `GraphView` into a given container.
+ *
+ * This is the recommended entry point for integrating the graph visualization
+ * into a host application.
+ *
+ * @param container The DOM element to attach the graph view to.
+ * @param graph The initial snapshot to render.
+ * @param options Configuration for layout, interactions, and features.
+ * @returns An active `GraphView` controller instance.
+ */
 export function renderGraph(
   container: HTMLElement,
   graph: GraphSnapshot,
