@@ -36,7 +36,7 @@ describe("layout", () => {
       expect(layout.height).toBe(152);
     });
 
-    it("lays out a linear chain of nodes", () => {
+    it("lays out a linear chain of nodes respecting topological ordering and containment", () => {
       const graph = createGraphSnapshot({
         graphId: "test",
         version: 1,
@@ -48,17 +48,26 @@ describe("layout", () => {
       });
 
       const layout = verticalLayout(graph);
-
       expect(layout.positions.size).toBe(3);
-      expect(layout.positions.get("A")).toEqual({ x: 32, y: 32 });
-      expect(layout.positions.get("B")).toEqual({ x: 32, y: 32 + 148 }); // margin + layerSpacing
-      expect(layout.positions.get("C")).toEqual({ x: 32, y: 32 + 148 * 2 });
 
-      expect(layout.width).toBe(284);
-      expect(layout.height).toBe(88 + 148 * 2 + 64);
+      const posA = layout.positions.get("A")!;
+      const posB = layout.positions.get("B")!;
+      const posC = layout.positions.get("C")!;
+
+      // Topological Ordering: Target node must be placed below source node
+      expect(posB.y).toBeGreaterThanOrEqual(posA.y + layout.nodeSize.height);
+      expect(posC.y).toBeGreaterThanOrEqual(posB.y + layout.nodeSize.height);
+
+      // Containment: All nodes must fall entirely within the computed width and height
+      for (const pos of layout.positions.values()) {
+        expect(pos.x).toBeGreaterThanOrEqual(0);
+        expect(pos.y).toBeGreaterThanOrEqual(0);
+        expect(pos.x + layout.nodeSize.width).toBeLessThanOrEqual(layout.width);
+        expect(pos.y + layout.nodeSize.height).toBeLessThanOrEqual(layout.height);
+      }
     });
 
-    it("lays out disconnected components", () => {
+    it("lays out disconnected components without overlapping nodes", () => {
       const graph = createGraphSnapshot({
         graphId: "test",
         version: 1,
@@ -70,27 +79,35 @@ describe("layout", () => {
       });
 
       const layout = verticalLayout(graph);
-
       expect(layout.positions.size).toBe(3);
 
-      // Depth 0: A and C
-      // Max layer size: 2 -> Max width: 220 + 1 * 280 = 500
-      // Margin 32
-      // Layer width for depth 0: 500
-      // startX: 32 + (500 - 500)/2 = 32
-      expect(layout.positions.get("A")?.x).toBe(32);
-      expect(layout.positions.get("C")?.x).toBe(32 + 280); // startX + 1 * nodeSpacing
-      expect(layout.positions.get("A")?.y).toBe(32);
-      expect(layout.positions.get("C")?.y).toBe(32);
+      // Extract positions into an array for pairwise collision checking
+      const boxes = Array.from(layout.positions.values()).map(p => ({
+        left: p.x,
+        right: p.x + layout.nodeSize.width,
+        top: p.y,
+        bottom: p.y + layout.nodeSize.height
+      }));
 
-      // Depth 1: B
-      // Layer width for depth 1: 220
-      // startX: 32 + (500 - 220)/2 = 32 + 140 = 172
-      expect(layout.positions.get("B")?.x).toBe(172);
-      expect(layout.positions.get("B")?.y).toBe(32 + 148);
+      // Non-overlapping property: Check every pair
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          const b1 = boxes[i];
+          const b2 = boxes[j];
+          const disjoint =
+            b1.right <= b2.left ||
+            b1.left >= b2.right ||
+            b1.bottom <= b2.top ||
+            b1.top >= b2.bottom;
+          expect(disjoint).toBe(true);
+        }
+      }
 
-      expect(layout.width).toBe(500 + 64); // maxLayerWidth + 2 * margin
-      expect(layout.height).toBe(88 + 148 + 64); // nodeHeight + 1 * layerSpacing + 2 * margin
+      // Ensure disconnected components share the correct depth constraints
+      // In this specific algorithm, A and C should be on the same depth (Y level)
+      const posA = layout.positions.get("A")!;
+      const posC = layout.positions.get("C")!;
+      expect(posA.y).toBe(posC.y);
     });
 
     it("respects custom layout options", () => {

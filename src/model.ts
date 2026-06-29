@@ -216,6 +216,15 @@ export function applyGraphDiff(
     nodes.set(node.id, node);
   }
 
+  for (const edge of diff.addedEdges) {
+    if (edges.has(edge.id)) {
+      throw new GraphModelError(`Cannot add edge: duplicate edge id "${edge.id}".`);
+    }
+    edges.set(edge.id, edge);
+  }
+
+  // Validate structural invariants across the ENTIRE new graph state,
+  // not just the newly added elements. This ensures removals didn't orphan anything.
   for (const node of nodes.values()) {
     if (node.parent !== undefined && !nodes.has(node.parent)) {
       throw new GraphModelError(
@@ -224,17 +233,13 @@ export function applyGraphDiff(
     }
   }
 
-  for (const edge of diff.addedEdges) {
-    if (edges.has(edge.id)) {
-      throw new GraphModelError(`Cannot add edge: duplicate edge id "${edge.id}".`);
-    }
+  for (const edge of edges.values()) {
     if (!nodes.has(edge.source)) {
       throw new GraphModelError(`Edge "${edge.id}" references missing source "${edge.source}".`);
     }
     if (!nodes.has(edge.target)) {
       throw new GraphModelError(`Edge "${edge.id}" references missing target "${edge.target}".`);
     }
-    edges.set(edge.id, edge);
   }
 
   return Object.freeze({
