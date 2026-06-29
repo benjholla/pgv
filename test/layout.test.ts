@@ -67,6 +67,60 @@ describe("layout", () => {
       }
     });
 
+    it("lays out disconnected cyclic components and calculates depths without initial roots", () => {
+      const graph = createGraphSnapshot({
+        graphId: "test",
+        version: 1,
+        nodes: [{ id: "A" }, { id: "B" }, { id: "C" }, { id: "D" }],
+        edges: [
+          // Cycle 1: A -> B -> A
+          { id: "e1", source: "A", target: "B" },
+          { id: "e2", source: "B", target: "A" },
+          // Cycle 2: C -> D -> C (disconnected from A/B)
+          { id: "e3", source: "C", target: "D" },
+          { id: "e4", source: "D", target: "C" },
+        ],
+      });
+
+      const layout = verticalLayout(graph);
+      expect(layout.positions.size).toBe(4);
+
+      // Verify that all nodes were assigned valid depths/positions
+      for (const pos of layout.positions.values()) {
+        expect(pos.x).toBeGreaterThanOrEqual(0);
+        expect(pos.y).toBeGreaterThanOrEqual(0);
+      }
+    });
+
+    it("lays out diamond dependencies without duplicate traversal visits", () => {
+      const graph = createGraphSnapshot({
+        graphId: "test",
+        version: 1,
+        nodes: [{ id: "A" }, { id: "B" }, { id: "C" }, { id: "D" }],
+        edges: [
+          // Diamond: A -> B, A -> C, B -> D, C -> D
+          { id: "e1", source: "A", target: "B" },
+          { id: "e2", source: "A", target: "C" },
+          { id: "e3", source: "B", target: "D" },
+          { id: "e4", source: "C", target: "D" },
+        ],
+      });
+
+      const layout = verticalLayout(graph);
+      expect(layout.positions.size).toBe(4);
+
+      const posA = layout.positions.get("A")!;
+      const posB = layout.positions.get("B")!;
+      const posC = layout.positions.get("C")!;
+      const posD = layout.positions.get("D")!;
+
+      // Topologically: B and C should be below A, and D should be below B and C.
+      expect(posB.y).toBeGreaterThanOrEqual(posA.y + layout.nodeSize.height);
+      expect(posC.y).toBeGreaterThanOrEqual(posA.y + layout.nodeSize.height);
+      expect(posD.y).toBeGreaterThanOrEqual(posB.y + layout.nodeSize.height);
+      expect(posD.y).toBeGreaterThanOrEqual(posC.y + layout.nodeSize.height);
+    });
+
     it("lays out disconnected components without overlapping nodes", () => {
       const graph = createGraphSnapshot({
         graphId: "test",

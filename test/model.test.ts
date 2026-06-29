@@ -118,6 +118,12 @@ describe("model", () => {
       })).toThrow(/non-empty string/);
     });
 
+    it("throws on unsafe content in graphId", () => {
+      expect(() => createGraphSnapshot({
+        graphId: "javascript:alert(1)", version: 1, nodes: [], edges: []
+      })).toThrow(/contains unsafe content/);
+    });
+
     it("throws on unsupported attribute value types", () => {
       const invalidJson: any = {
         graphId: "test",
@@ -126,6 +132,36 @@ describe("model", () => {
         edges: []
       };
       expect(() => createGraphSnapshot(invalidJson)).toThrow(/unsupported value type/);
+    });
+
+    it("sanitizes unsafe strings in attributes", () => {
+      const json: GraphSnapshotJson = {
+        graphId: "test",
+        version: 1,
+        nodes: [{
+          id: "n1", attributes: {
+            safe: "hello world",
+            jsUri: "javascript:alert(1)",
+            vbUri: "vbscript:msgbox(1)",
+            dataUri: "data:text/html,<script>alert(1)</script>",
+            scriptTag: "<script>alert(1)</script>",
+            inlineEvent: "onclick=alert(1)",
+            cssExpr: "expression(alert(1))"
+          }
+        }],
+        edges: []
+      };
+
+      const snapshot = createGraphSnapshot(json);
+      const attrs = snapshot.nodes.get("n1")!.attributes;
+
+      expect(attrs.safe).toBe("hello world");
+      expect(attrs.jsUri).toBe("#blocked-uri");
+      expect(attrs.vbUri).toBe("#blocked-uri");
+      expect(attrs.dataUri).toBe("#blocked-uri");
+      expect(attrs.scriptTag).toBe("alert(1)");
+      expect(attrs.inlineEvent).toBe("data-blocked=alert(1)");
+      expect(attrs.cssExpr).toBe("blocked-expr(alert(1))");
     });
   });
 
