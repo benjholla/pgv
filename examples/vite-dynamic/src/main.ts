@@ -16,12 +16,19 @@ const applyDiffAddBtn = requireElement("#apply-diff-add");
 const applyDiffRemoveBtn = requireElement("#apply-diff-remove");
 
 let currentGraph: GraphSnapshot | null = null;
-let currentLayout: any = null;
 let currentSelection: SelectionState = {
   nodes: new Set(),
   edges: new Set(),
 };
 let graphView: any = null;
+
+const layoutOptions = {
+  nodeWidth: 240,
+  nodeHeight: 94,
+  layerSpacing: 152,
+  nodeSpacing: 290,
+  margin: 36,
+};
 
 function requireElement(selector: string): HTMLElement {
   const element = document.querySelector<HTMLElement>(selector);
@@ -42,13 +49,6 @@ async function loadGraph(): Promise<void> {
 
   const json = (await response.json()) as GraphSnapshotJson;
   currentGraph = graphSnapshotFromJson(json);
-  currentLayout = verticalLayout(currentGraph, {
-    nodeWidth: 240,
-    nodeHeight: 94,
-    layerSpacing: 152,
-    nodeSpacing: 290,
-    margin: 36,
-  });
 
   updateGraph();
 }
@@ -57,7 +57,7 @@ function updateGraph(): void {
   if (!currentGraph) return;
 
   const options = {
-    layout: currentLayout,
+    layoutOptions,
     selection: currentSelection,
     usePanZoom: true,
     useThemeToggle: true,
