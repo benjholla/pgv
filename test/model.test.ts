@@ -129,6 +129,55 @@ describe("model", () => {
     });
   });
 
+  describe("algebraic properties of applyGraphDiff", () => {
+    const baseSnapshot = createGraphSnapshot({
+      graphId: "test-algebraic",
+      version: 1,
+      nodes: [
+        { id: "n1", tags: ["A"], attributes: { val: 1 } },
+        { id: "n2", parent: "n1", tags: [], attributes: {} }
+      ],
+      edges: [
+        { id: "e1", source: "n1", target: "n2", tags: ["E"], attributes: {} }
+      ]
+    });
+
+    it("Identity: Applying an empty diff yields an equivalent snapshot", () => {
+      const emptyDiff = createGraphDiff({});
+      const nextSnapshot = applyGraphDiff(baseSnapshot, emptyDiff, 2);
+
+      // Same structural contents (JSON serialized representation should be identical except for version)
+      const baseJson = graphSnapshotToJson(baseSnapshot);
+      const nextJson = graphSnapshotToJson(nextSnapshot);
+
+      expect({ ...nextJson, version: 1 }).toEqual(baseJson);
+      expect(nextSnapshot.nodes.size).toBe(baseSnapshot.nodes.size);
+      expect(nextSnapshot.edges.size).toBe(baseSnapshot.edges.size);
+    });
+
+    it("Round-trip/Inverse: Adding elements then removing them yields the original graph", () => {
+      // Step 1: Add new elements
+      const addDiff = createGraphDiff({
+        addedNodes: [{ id: "n3", tags: ["C"], attributes: {} }],
+        addedEdges: [{ id: "e2", source: "n1", target: "n3", tags: [], attributes: {} }]
+      });
+      const snapshotAfterAdd = applyGraphDiff(baseSnapshot, addDiff, 2);
+
+      // Step 2: Remove those exact elements
+      const removeDiff = createGraphDiff({
+        removedNodes: ["n3"],
+        removedEdges: ["e2"]
+      });
+      const snapshotAfterRemove = applyGraphDiff(snapshotAfterAdd, removeDiff, 3);
+
+      // The final snapshot should be structurally identical to the base snapshot
+      const baseJson = graphSnapshotToJson(baseSnapshot);
+      const finalJson = graphSnapshotToJson(snapshotAfterRemove);
+
+      expect({ ...finalJson, version: 1 }).toEqual(baseJson);
+    });
+  });
+
   describe("serialization and deserialization properties", () => {
     it("round-trips GraphSnapshotJson to GraphSnapshot and back", () => {
       const originalJson: GraphSnapshotJson = {
@@ -221,6 +270,16 @@ describe("model", () => {
       expect(() => applyGraphDiff(baseSnapshot, createGraphDiff({
         addedEdges: [{ id: "e2", source: "n1", target: "missing" }]
       }), 2)).toThrow(/references missing target/);
+    });
+
+    it("throws when removing a node leaves an orphaned edge", () => {
+      const diff = createGraphDiff({ removedNodes: ["n2"] }); // n1->n2 edge still exists
+      expect(() => applyGraphDiff(baseSnapshot, diff, 2)).toThrow(/references missing target/);
+    });
+
+    it("throws when removing a node leaves an orphaned child node", () => {
+      const diff = createGraphDiff({ removedNodes: ["n1"], removedEdges: ["e1"] }); // n2 has parent n1
+      expect(() => applyGraphDiff(baseSnapshot, diff, 2)).toThrow(/references missing parent/);
     });
 
     it("allows adding a node and edge simultaneously", () => {
