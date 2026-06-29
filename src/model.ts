@@ -4,26 +4,65 @@ export type AttributeValue = string | number | boolean | bigint | null;
 
 export type AttributeMap = Readonly<Record<string, AttributeValue>>;
 
+/**
+ * Represents the base properties of any element in a graph (nodes or edges).
+ * Provides a unique identity, semantic tags, and a map of domain-specific attributes.
+ *
+ * This interface exists to share common structural properties between nodes and edges.
+ */
 export interface GraphElement {
   readonly id: string;
   readonly tags: readonly string[];
   readonly attributes: AttributeMap;
 }
 
+/**
+ * Represents a single node within a graph.
+ *
+ * Nodes are the primary entities in a graph. The `parent` property allows nodes
+ * to represent hierarchical containment (compound graphs).
+ *
+ * **Invariants**:
+ * - If `parent` is defined, it must refer to a valid node ID existing in the same graph.
+ */
 export interface GraphNode extends GraphElement {
   readonly parent?: string;
 }
 
+/**
+ * Represents a directed connection between two nodes in a graph.
+ *
+ * Edges model relationships or flows between nodes.
+ *
+ * **Invariants**:
+ * - `source` must refer to a valid node ID in the same graph.
+ * - `target` must refer to a valid node ID in the same graph.
+ */
 export interface GraphEdge extends GraphElement {
   readonly source: string;
   readonly target: string;
 }
 
+/**
+ * Represents an immutable, basic graph structure consisting of nodes and edges.
+ *
+ * This interface serves as the foundational mathematical representation of the graph,
+ * disconnected from any specific versioning or rendering state.
+ */
 export interface Graph {
   readonly nodes: ReadonlyMap<string, GraphNode>;
   readonly edges: ReadonlyMap<string, GraphEdge>;
 }
 
+/**
+ * Represents a specific, immutable point-in-time version of a graph.
+ *
+ * Since graphs are immutable in this library, any changes to a graph result
+ * in a new `GraphSnapshot` with an updated `version`.
+ *
+ * **Usage**: Use this type when interacting with the renderer or layout engines,
+ * as it ensures the data cannot be mutated out-from-under the view state.
+ */
 export interface GraphSnapshot extends Graph {
   readonly graphId: string;
   readonly version: string | number;
@@ -51,6 +90,17 @@ export interface GraphSnapshotJson {
   readonly edges: readonly GraphEdgeJson[];
 }
 
+/**
+ * Represents an incremental set of changes (additions and removals) to be applied
+ * to a `GraphSnapshot`.
+ *
+ * This exists to support incremental rendering and updates without needing to
+ * transmit or reconstruct the entire graph layout.
+ *
+ * **Invariants**:
+ * - Removals are processed before additions.
+ * - Added elements must not share an ID with existing elements after removals are processed.
+ */
 export interface GraphDiff {
   readonly addedNodes: readonly GraphNode[];
   readonly addedEdges: readonly GraphEdge[];
@@ -72,6 +122,16 @@ export class GraphModelError extends Error {
   }
 }
 
+/**
+ * Creates an immutable `GraphSnapshot` from a JSON payload, validating all structural invariants.
+ *
+ * This function enforces uniqueness of IDs, verifies that all edge endpoints point to valid
+ * nodes, and checks that parent nodes exist. It also sanitizes string attributes.
+ *
+ * @param input The JSON payload representing the graph.
+ * @returns A frozen, validated `GraphSnapshot`.
+ * @throws {GraphModelError} If duplicate IDs are found, or references (edges, parents) are invalid.
+ */
 export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
   assertNonEmptyString(input.graphId, "graphId");
   const nodes = new Map<string, GraphNode>();
@@ -193,6 +253,18 @@ export function graphDiffToJson(diff: GraphDiff): GraphDiffJson {
   };
 }
 
+/**
+ * Applies a set of structural changes (`GraphDiff`) to an existing `GraphSnapshot`,
+ * returning a new, immutable `GraphSnapshot`.
+ *
+ * This operation is functional; it does not mutate the original snapshot.
+ *
+ * @param snapshot The starting graph state.
+ * @param diff The incremental changes to apply (removals happen before additions).
+ * @param newVersion The version identifier to assign to the new snapshot.
+ * @returns A new, frozen `GraphSnapshot` incorporating the changes.
+ * @throws {GraphModelError} If the diff introduces duplicate IDs or invalid references.
+ */
 export function applyGraphDiff(
   snapshot: GraphSnapshot,
   diff: GraphDiff,

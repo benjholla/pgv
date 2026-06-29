@@ -11,6 +11,13 @@ export interface Size {
   readonly height: number;
 }
 
+/**
+ * Represents the computed visual coordinates and bounding box for a graph.
+ *
+ * This snapshot separates the spatial arrangement of the graph from its logical
+ * structure (`GraphSnapshot`), ensuring that rendering engines can predictably
+ * position elements without coupling logic to geometry.
+ */
 export interface LayoutSnapshot {
   readonly positions: ReadonlyMap<string, Point>;
   readonly width: number;
@@ -18,6 +25,12 @@ export interface LayoutSnapshot {
   readonly nodeSize: Size;
 }
 
+/**
+ * Configuration options for the vertical layout algorithm.
+ *
+ * Allows tuning of node dimensions and spacing layers to fit varying label sizes
+ * or density preferences.
+ */
 export interface VerticalLayoutOptions {
   readonly nodeWidth?: number;
   readonly nodeHeight?: number;
@@ -34,6 +47,16 @@ const DEFAULT_VERTICAL_LAYOUT: Required<VerticalLayoutOptions> = {
   margin: 32,
 };
 
+/**
+ * Computes a basic hierarchical vertical layout for a given graph.
+ *
+ * This function assigns an `(x, y)` coordinate to each node by organizing
+ * them into depth layers (e.g., BFS layering) and distributing them horizontally.
+ *
+ * @param graph The logical graph to lay out.
+ * @param options Dimensions and spacing parameters.
+ * @returns A computed `LayoutSnapshot` containing absolute coordinates for all nodes.
+ */
 export function verticalLayout(
   graph: Graph,
   options: VerticalLayoutOptions = {},
@@ -105,6 +128,18 @@ export function verticalLayout(
   });
 }
 
+/**
+ * Calculates the exact `(x, y)` connection points for a given edge based on the
+ * layout of its source and target nodes.
+ *
+ * It uses the `nodeSize` from the layout snapshot to snap the endpoints to the
+ * bottom-center of the source node and top-center of the target node, ensuring
+ * edges do not draw over the node bodies in a vertical layout.
+ *
+ * @param edge The edge to calculate endpoints for.
+ * @param layout The layout containing the positions of the connected nodes.
+ * @returns The geometric endpoints for the edge, or null if the connected nodes are missing from the layout.
+ */
 export function edgeEndpoints(
   edge: GraphEdge,
   layout: LayoutSnapshot,
