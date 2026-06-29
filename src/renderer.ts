@@ -23,8 +23,8 @@ export interface GraphViewOptions {
   readonly maxHistory?: number;
   readonly useSearch?: boolean;
   readonly onThemeChange?: (theme: "light" | "dark" | "auto") => void;
-  readonly onNodeClick?: (nodeId: string, event: MouseEvent) => void;
-  readonly onEdgeClick?: (edgeId: string, event: MouseEvent) => void;
+  readonly onNodeClick?: (nodeId: string, event: Event) => void;
+  readonly onEdgeClick?: (edgeId: string, event: Event) => void;
   readonly onSelectionChange?: (selection: SelectionState) => void;
   readonly onGraphChange?: (graph: GraphSnapshot) => void;
 }
@@ -286,17 +286,23 @@ export class GraphView {
     if (!this.#layout || this.#searchCycleIndex < 0 || this.#searchCycleIndex >= this.#searchResults.length) return;
 
     const result = this.#searchResults[this.#searchCycleIndex];
+    this.#centerOnGraphElement(result.type, result.id);
+  }
+
+  #centerOnGraphElement(type: "node" | "edge", id: string): void {
+    if (!this.#layout) return;
+
     let focusX = 0;
     let focusY = 0;
 
-    if (result.type === "node") {
-      const pos = this.#layout.positions.get(result.id);
+    if (type === "node") {
+      const pos = this.#layout.positions.get(id);
       if (pos) {
         focusX = pos.x + this.#layout.nodeSize.width / 2;
         focusY = pos.y + this.#layout.nodeSize.height / 2;
       }
     } else {
-      const edge = this.#graph?.edges.get(result.id);
+      const edge = this.#graph?.edges.get(id);
       if (edge) {
         const sourcePos = this.#layout.positions.get(edge.source);
         const targetPos = this.#layout.positions.get(edge.target);
@@ -392,8 +398,11 @@ export class GraphView {
     stage.style.width = `${layout.width}px`;
     stage.style.height = `${layout.height}px`;
 
-    stage.appendChild(renderEdges(graph, layout, this.#options));
+    // We append nodes first then edges in the DOM to ensure natural
+    // keyboard tabbing order (nodes then edges) while keeping z-index
+    // responsible for visual stacking.
     stage.append(...renderNodes(graph, layout, this.#options));
+    stage.appendChild(renderEdges(graph, layout, this.#options));
 
     if (this.#options.usePanZoom || this.#options.useThemeToggle || (this.#options.maxHistory && this.#options.maxHistory > 0)) {
       const viewport = document.createElement("div");
@@ -1372,9 +1381,7 @@ export class GraphView {
   }
 
   #setupEvents(element: HTMLElement): void {
-    element.addEventListener("click", (event) => {
-      const target = event.target as HTMLElement;
-
+    const handleInteraction = (target: HTMLElement, event: Event) => {
       const nodeElement = target.closest<HTMLElement>(".pgv-graph-node");
       if (nodeElement && nodeElement.dataset.nodeId) {
         this.#options.onNodeClick?.(nodeElement.dataset.nodeId, event);
@@ -1386,7 +1393,33 @@ export class GraphView {
         this.#options.onEdgeClick?.(edgeElement.dataset.edgeId, event);
         return;
       }
+    };
+
+    element.addEventListener("click", (event) => {
+      handleInteraction(event.target as HTMLElement, event);
     });
+
+    element.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        const target = event.target as HTMLElement;
+        const isGraphElement = target.closest(".pgv-graph-node") || target.closest(".pgv-graph-edge");
+
+        if (isGraphElement) {
+          event.preventDefault();
+          handleInteraction(target, event);
+        }
+      }
+    });
+
+    element.addEventListener("focus", (event) => {
+      const target = event.target as HTMLElement;
+
+      if (target.classList.contains("pgv-graph-node") && target.dataset.nodeId) {
+        this.#centerOnGraphElement("node", target.dataset.nodeId);
+      } else if (target.classList.contains("pgv-graph-edge") && target.dataset.edgeId) {
+        this.#centerOnGraphElement("edge", target.dataset.edgeId);
+      }
+    }, true);
   }
 }
 
