@@ -151,6 +151,35 @@ export class GraphView {
     return t.includes(q);
   }
 
+  #matchElement(element: GraphNode | GraphEdge, mode: string, type: "node" | "edge"): boolean {
+    if (mode === "all") {
+      if (this.#matchString(element.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) return true;
+      if (element.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) return true;
+      for (const [k, v] of Object.entries(element.attributes)) {
+        if (this.#matchString(k, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) return true;
+        if (v !== null && typeof v !== 'object') {
+          if (this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) return true;
+        }
+      }
+      return false;
+    } else if (mode === "id" || mode === `${type}-id`) {
+      return this.#matchString(element.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue);
+    } else if (mode === `${type}-tag` || mode === "tag") {
+      return element.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue));
+    } else if (mode === `${type}-attribute` || mode === "attribute") {
+      if (!this.#searchKeyQuery) return false;
+      for (const [k, v] of Object.entries(element.attributes)) {
+        const keyMatch = this.#matchString(k, this.#searchKeyQuery, this.#searchExactKey, this.#searchCaseSensitiveKey);
+        if (keyMatch) {
+          if (!this.#searchQuery) return true;
+          if (v !== null && typeof v !== 'object' && this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) return true;
+        }
+      }
+      return false;
+    }
+    return false;
+  }
+
   #executeSearch(): void {
     if (!this.#graph) return;
 
@@ -181,41 +210,7 @@ export class GraphView {
 
     if (searchNodes) {
       for (const node of this.#graph.nodes.values()) {
-        let match = false;
-
-        if (this.#searchMode === "all") {
-          if (this.#matchString(node.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
-          if (!match && node.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
-          if (!match) {
-            for (const [k, v] of Object.entries(node.attributes)) {
-              if (this.#matchString(k, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) { match = true; break; }
-              if (v !== null && typeof v !== 'object') {
-                if (this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) { match = true; break; }
-              }
-            }
-          }
-        } else if (this.#searchMode === "id" || this.#searchMode === "node-id") {
-          if (this.#matchString(node.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
-        } else if (this.#searchMode === "node-tag" || this.#searchMode === "tag") {
-          if (node.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
-        } else if (this.#searchMode === "node-attribute" || this.#searchMode === "attribute") {
-          if (!this.#searchKeyQuery) {
-            match = false;
-          } else {
-            for (const [k, v] of Object.entries(node.attributes)) {
-              const keyMatch = this.#matchString(k, this.#searchKeyQuery, this.#searchExactKey, this.#searchCaseSensitiveKey);
-              if (keyMatch) {
-                if (!this.#searchQuery) {
-                  match = true; break;
-                } else if (v !== null && typeof v !== 'object' && this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) {
-                  match = true; break;
-                }
-              }
-            }
-          }
-        }
-
-        if (match) {
+        if (this.#matchElement(node, this.#searchMode, "node")) {
           matchedNodes.add(node.id);
           this.#searchResults.push({ type: "node", id: node.id });
         }
@@ -224,41 +219,7 @@ export class GraphView {
 
     if (searchEdges) {
       for (const edge of this.#graph.edges.values()) {
-        let match = false;
-
-        if (this.#searchMode === "all") {
-          if (this.#matchString(edge.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
-          if (!match && edge.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
-          if (!match) {
-            for (const [k, v] of Object.entries(edge.attributes)) {
-              if (this.#matchString(k, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) { match = true; break; }
-              if (v !== null && typeof v !== 'object') {
-                if (this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) { match = true; break; }
-              }
-            }
-          }
-        } else if (this.#searchMode === "id" || this.#searchMode === "edge-id") {
-          if (this.#matchString(edge.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) match = true;
-        } else if (this.#searchMode === "edge-tag" || this.#searchMode === "tag") {
-          if (edge.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) match = true;
-        } else if (this.#searchMode === "edge-attribute" || this.#searchMode === "attribute") {
-          if (!this.#searchKeyQuery) {
-            match = false;
-          } else {
-            for (const [k, v] of Object.entries(edge.attributes)) {
-              const keyMatch = this.#matchString(k, this.#searchKeyQuery, this.#searchExactKey, this.#searchCaseSensitiveKey);
-              if (keyMatch) {
-                if (!this.#searchQuery) {
-                  match = true; break;
-                } else if (v !== null && typeof v !== 'object' && this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) {
-                  match = true; break;
-                }
-              }
-            }
-          }
-        }
-
-        if (match) {
+        if (this.#matchElement(edge, this.#searchMode, "edge")) {
           matchedEdges.add(edge.id);
           this.#searchResults.push({ type: "edge", id: edge.id });
         }
