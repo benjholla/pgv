@@ -1457,14 +1457,30 @@ export function renderGraph(
   return view;
 }
 
+// Cache computed class names for graph tags to avoid redundant string allocations
+// and regex evaluations during render loops.
+const tagCache = new Map<string, string>();
+
 export function tagToClassName(tag: string): string {
+  let result = tagCache.get(tag);
+  if (result !== undefined) {
+    return result;
+  }
+
   const normalized = tag
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9_-]+/g, "-")
     .replace(/^-+|-+$/g, "");
 
-  return `tag-${normalized || "untagged"}`;
+  result = `tag-${normalized || "untagged"}`;
+
+  if (tagCache.size > 10000) {
+    tagCache.clear();
+  }
+  tagCache.set(tag, result);
+
+  return result;
 }
 
 function renderEdges(
