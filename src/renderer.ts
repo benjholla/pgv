@@ -120,6 +120,24 @@ export class GraphView {
     }
   }
 
+  updateOptions(options: Partial<GraphViewOptions>): void {
+    const oldLayout = this.#options.layout;
+    const oldLayoutOptions = this.#options.layoutOptions;
+
+    this.#options = { ...this.#options, ...options };
+
+    if (options.theme !== undefined) {
+      this.#currentTheme = options.theme;
+    }
+
+    if (options.layout !== undefined && options.layout !== oldLayout) {
+      this.#layout = options.layout;
+    } else if (options.layoutOptions !== undefined && options.layoutOptions !== oldLayoutOptions && this.#graph) {
+      this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions);
+    }
+    this.#render();
+  }
+
   applyDiff(diff: GraphDiff, newVersion: string | number): void {
     if (!this.#graph || !this.#preHistoryGraph) {
       throw new Error("Cannot apply diff to an empty graph view.");
@@ -1436,10 +1454,22 @@ export class GraphView {
     element.addEventListener("focus", (event) => {
       const target = event.target as HTMLElement;
 
-      if (target.classList.contains("pgv-graph-node") && target.dataset.nodeId) {
-        this.#centerOnGraphElement("node", target.dataset.nodeId);
-      } else if (target.classList.contains("pgv-graph-edge") && target.dataset.edgeId) {
-        this.#centerOnGraphElement("edge", target.dataset.edgeId);
+      // Try to determine if focus was caused by a mouse click vs keyboard tab
+      // The browser outline will only be drawn when :focus-visible is active
+      // In JS we can check if it matches that pseudo-class in modern browsers
+      let isKeyboardFocus = true;
+      try {
+        isKeyboardFocus = target.matches(":focus-visible");
+      } catch (e) {
+        // Fallback for older browsers
+      }
+
+      if (isKeyboardFocus) {
+        if (target.classList.contains("pgv-graph-node") && target.dataset.nodeId) {
+          this.#centerOnGraphElement("node", target.dataset.nodeId);
+        } else if (target.classList.contains("pgv-graph-edge") && target.dataset.edgeId) {
+          this.#centerOnGraphElement("edge", target.dataset.edgeId);
+        }
       }
     }, true);
   }
