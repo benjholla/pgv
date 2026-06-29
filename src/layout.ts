@@ -183,14 +183,11 @@ function assignVerticalDepths(
 
   for (const id of nodeIds) {
     if (!depths.has(id)) {
-      let maxDepth = -1;
-      for (const depth of depths.values()) {
-        if (depth > maxDepth) {
-          maxDepth = depth;
-        }
+      const nextDepth = currentMaxDepth + 1;
+      const maxDepthReached = visitComponent(id, nextDepth, outgoing, depths);
+      if (maxDepthReached > currentMaxDepth) {
+        currentMaxDepth = maxDepthReached;
       }
-      const nextDepth = maxDepth + 1;
-      visitComponent(id, nextDepth, outgoing, depths);
     }
   }
 
