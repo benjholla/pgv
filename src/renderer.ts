@@ -526,7 +526,7 @@ export class GraphView {
     const isAttributeMode = ["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode);
 
     const matchCaseIcon = `Aa`;
-    const matchWholeWordIcon = `<span style="text-decoration: underline; font-style: normal; font-weight: normal; font-family: monospace;">ab</span>`;
+    const matchWholeWordIcon = `<span style="text-decoration: underline; font-style: normal; font-family: monospace;">ab</span>`;
     const matchRegexIcon = `.*`;
 
     const createToggle = (label: string, active: boolean, iconHtml: string, onClick: () => void) => {
@@ -536,13 +536,8 @@ export class GraphView {
       btn.title = label;
       btn.setAttribute("aria-label", label);
       btn.innerHTML = iconHtml;
-      btn.style.fontSize = "10px";
-      btn.style.fontWeight = "bold";
       btn.style.width = "20px";
       btn.style.height = "20px";
-      btn.style.display = "flex";
-      btn.style.alignItems = "center";
-      btn.style.justifyContent = "center";
       btn.addEventListener("click", () => {
         onClick();
       });
