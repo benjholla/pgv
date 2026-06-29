@@ -526,14 +526,7 @@ export class GraphView {
     const isAttributeMode = ["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode);
 
     const matchCaseIcon = `Aa`;
-
-    // VSCode style Match Whole Word icon: "ab" with grouping markers
-    const matchWholeWordIcon = `
-      <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
-        <path d="M4.5 5.5v5h-1v-4h-.5v-1h1.5zm3.5 1h-1v3h1v1h-2v-5h2v1zm-1 2v-1h.5v1h-.5zM2 13h12v1H2v-1zm0-2h1v1H2v-1zm11 0h1v1h-1v-1z"/>
-      </svg>
-    `;
-
+    const matchWholeWordIcon = `<span style="text-decoration: underline; font-style: normal; font-weight: normal; font-family: monospace;">ab</span>`;
     const matchRegexIcon = `.*`;
 
     const createToggle = (label: string, active: boolean, iconHtml: string, onClick: () => void) => {
@@ -566,6 +559,30 @@ export class GraphView {
       }
     };
 
+    // Search button (created early so inputs can update its state)
+    const searchBtn = document.createElement("button");
+    searchBtn.type = "button";
+    searchBtn.title = "Search";
+    searchBtn.setAttribute("aria-label", "Execute search");
+    searchBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+    `;
+    searchBtn.addEventListener("click", () => {
+      this.#executeSearch();
+    });
+
+    const updateSearchBtnState = () => {
+      if (isAttributeMode) {
+        searchBtn.disabled = !this.#searchKeyQuery && !this.#searchQuery;
+      } else {
+        searchBtn.disabled = !this.#searchQuery;
+      }
+    };
+    updateSearchBtnState();
+
     if (isAttributeMode) {
       // Key input wrapper
       const keyWrapper = document.createElement("div");
@@ -580,6 +597,7 @@ export class GraphView {
         this.#searchKeyQuery = (e.target as HTMLInputElement).value;
         this.#searchResults = [];
         this.#searchCycleIndex = -1;
+        updateSearchBtnState();
       });
       keyInput.addEventListener("keydown", handleEnter);
       this.#searchKeyInputRef = keyInput;
@@ -616,6 +634,7 @@ export class GraphView {
       this.#searchQuery = (e.target as HTMLInputElement).value;
       this.#searchResults = [];
       this.#searchCycleIndex = -1;
+      updateSearchBtnState();
     });
     valueInput.addEventListener("keydown", handleEnter);
     this.#searchInputRef = valueInput;
@@ -669,21 +688,6 @@ export class GraphView {
       } else {
         this.#executeSearch();
       }
-    });
-
-    // Search button
-    const searchBtn = document.createElement("button");
-    searchBtn.type = "button";
-    searchBtn.title = "Search";
-    searchBtn.setAttribute("aria-label", "Execute search");
-    searchBtn.innerHTML = `
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      </svg>
-    `;
-    searchBtn.addEventListener("click", () => {
-      this.#executeSearch();
     });
 
     actionsContainer.appendChild(info);
