@@ -403,7 +403,9 @@ export class GraphView {
       stage.style.transformOrigin = "0 0";
 
       viewport.appendChild(stage);
-      root.appendChild(viewport);
+
+      // Append controls *before* viewport to ensure natural tabbing sequence
+      // enters controls first, and graph elements last.
 
       if (this.#options.useSearch) {
         root.appendChild(this.#renderBottomLeftControls());
@@ -416,6 +418,8 @@ export class GraphView {
       if (this.#options.maxHistory && this.#options.maxHistory > 0) {
         root.appendChild(this.#renderHistoryControls());
       }
+
+      root.appendChild(viewport);
 
       if (this.#options.usePanZoom) {
         this.#panZoomAbortController?.abort();
@@ -1455,6 +1459,7 @@ function renderEdges(
 
     group.classList.add(...classNames);
     group.dataset.edgeId = edge.id;
+    group.setAttribute("tabindex", "0");
     path.setAttribute("d", pathData);
     path.setAttribute("marker-end", `url(#${markerId})`);
     group.appendChild(path);
@@ -1505,6 +1510,7 @@ function renderNodes(
 
     element.className = joinClassNames(...classNames);
     element.dataset.nodeId = node.id;
+    element.setAttribute("tabindex", "0");
     element.style.transform = `translate(${position.x}px, ${position.y}px)`;
 
     const content = options.nodeContent?.(node) ?? defaultNodeContent(node);
