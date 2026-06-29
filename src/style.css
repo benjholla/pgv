@@ -631,11 +631,10 @@
   position: relative;
   display: flex;
   align-items: center;
+  gap: 4px;
 }
 
 .pgv-search-toggles {
-  position: absolute;
-  right: 4px;
   display: flex;
   gap: 2px;
 }

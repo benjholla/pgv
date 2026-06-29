@@ -87,6 +87,8 @@ export class GraphView {
   #searchExactKey: boolean = false;
   #searchCaseSensitiveValue: boolean = false;
   #searchExactValue: boolean = false;
+  #searchRegexKey: boolean = false;
+  #searchRegexValue: boolean = false;
   #searchResults: Array<{ type: "node" | "edge", id: string }> = [];
   #searchCycleIndex: number = -1;
   #searchInputRef: HTMLInputElement | null = null;
@@ -178,8 +180,24 @@ export class GraphView {
   }
 
 
-  #matchString(text: string, query: string, exact: boolean, caseSensitive: boolean): boolean {
+  #matchString(text: string, query: string, exact: boolean, caseSensitive: boolean, isRegex: boolean): boolean {
     if (!text || !query) return false;
+
+    if (isRegex) {
+      try {
+        let pattern = query;
+        if (exact) {
+          pattern = `\\b(?:${pattern})\\b`;
+        }
+        const flags = caseSensitive ? '' : 'i';
+        const regex = new RegExp(pattern, flags);
+        return regex.test(text);
+      } catch (e) {
+        // Invalid regex, silently fail match
+        return false;
+      }
+    }
+
     const t = caseSensitive ? text : text.toLowerCase();
     const q = caseSensitive ? query : query.toLowerCase();
 
@@ -193,26 +211,26 @@ export class GraphView {
 
   #matchElement(element: GraphNode | GraphEdge, mode: string, type: "node" | "edge"): boolean {
     if (mode === "all") {
-      if (this.#matchString(element.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) return true;
-      if (element.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue))) return true;
+      if (this.#matchString(element.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue)) return true;
+      if (element.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue))) return true;
       for (const [k, v] of Object.entries(element.attributes)) {
-        if (this.#matchString(k, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) return true;
+        if (this.#matchString(k, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue)) return true;
         if (v !== null && typeof v !== 'object') {
-          if (this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) return true;
+          if (this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue)) return true;
         }
       }
       return false;
     } else if (mode === "id" || mode === `${type}-id`) {
-      return this.#matchString(element.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue);
+      return this.#matchString(element.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue);
     } else if (mode === `${type}-tag` || mode === "tag") {
-      return element.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue));
+      return element.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue));
     } else if (mode === `${type}-attribute` || mode === "attribute") {
       if (!this.#searchKeyQuery) return false;
       for (const [k, v] of Object.entries(element.attributes)) {
-        const keyMatch = this.#matchString(k, this.#searchKeyQuery, this.#searchExactKey, this.#searchCaseSensitiveKey);
+        const keyMatch = this.#matchString(k, this.#searchKeyQuery, this.#searchExactKey, this.#searchCaseSensitiveKey, this.#searchRegexKey);
         if (keyMatch) {
           if (!this.#searchQuery) return true;
-          if (v !== null && typeof v !== 'object' && this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue)) return true;
+          if (v !== null && typeof v !== 'object' && this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue)) return true;
         }
       }
       return false;
@@ -507,17 +525,31 @@ export class GraphView {
 
     const isAttributeMode = ["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode);
 
-    const createToggle = (label: string, active: boolean, onClick: () => void) => {
+    const matchCaseIcon = `Aa`;
+
+    // VSCode style Match Whole Word icon: "ab" with grouping markers
+    const matchWholeWordIcon = `
+      <svg viewBox="0 0 16 16" width="16" height="16" fill="currentColor">
+        <path d="M4.5 5.5v5h-1v-4h-.5v-1h1.5zm3.5 1h-1v3h1v1h-2v-5h2v1zm-1 2v-1h.5v1h-.5zM2 13h12v1H2v-1zm0-2h1v1H2v-1zm11 0h1v1h-1v-1z"/>
+      </svg>
+    `;
+
+    const matchRegexIcon = `.*`;
+
+    const createToggle = (label: string, active: boolean, iconHtml: string, onClick: () => void) => {
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className = `pgv-search-toggle ${active ? "active" : ""}`;
       btn.title = label;
       btn.setAttribute("aria-label", label);
-      btn.textContent = label === "Match Case" ? "Aa" : "W";
+      btn.innerHTML = iconHtml;
       btn.style.fontSize = "10px";
       btn.style.fontWeight = "bold";
       btn.style.width = "20px";
       btn.style.height = "20px";
+      btn.style.display = "flex";
+      btn.style.alignItems = "center";
+      btn.style.justifyContent = "center";
       btn.addEventListener("click", () => {
         onClick();
       });
@@ -555,12 +587,16 @@ export class GraphView {
 
       const keyToggles = document.createElement("div");
       keyToggles.className = "pgv-search-toggles";
-      keyToggles.appendChild(createToggle("Match Case", this.#searchCaseSensitiveKey, () => {
+      keyToggles.appendChild(createToggle("Match Case", this.#searchCaseSensitiveKey, matchCaseIcon, () => {
         this.#searchCaseSensitiveKey = !this.#searchCaseSensitiveKey;
         this.#executeSearch();
       }));
-      keyToggles.appendChild(createToggle("Match Whole Word", this.#searchExactKey, () => {
+      keyToggles.appendChild(createToggle("Match Whole Word", this.#searchExactKey, matchWholeWordIcon, () => {
         this.#searchExactKey = !this.#searchExactKey;
+        this.#executeSearch();
+      }));
+      keyToggles.appendChild(createToggle("Use Regular Expression", this.#searchRegexKey, matchRegexIcon, () => {
+        this.#searchRegexKey = !this.#searchRegexKey;
         this.#executeSearch();
       }));
       keyWrapper.appendChild(keyToggles);
@@ -587,12 +623,16 @@ export class GraphView {
 
     const valueToggles = document.createElement("div");
     valueToggles.className = "pgv-search-toggles";
-    valueToggles.appendChild(createToggle("Match Case", this.#searchCaseSensitiveValue, () => {
+    valueToggles.appendChild(createToggle("Match Case", this.#searchCaseSensitiveValue, matchCaseIcon, () => {
       this.#searchCaseSensitiveValue = !this.#searchCaseSensitiveValue;
       this.#executeSearch();
     }));
-    valueToggles.appendChild(createToggle("Match Whole Word", this.#searchExactValue, () => {
+    valueToggles.appendChild(createToggle("Match Whole Word", this.#searchExactValue, matchWholeWordIcon, () => {
       this.#searchExactValue = !this.#searchExactValue;
+      this.#executeSearch();
+    }));
+    valueToggles.appendChild(createToggle("Use Regular Expression", this.#searchRegexValue, matchRegexIcon, () => {
+      this.#searchRegexValue = !this.#searchRegexValue;
       this.#executeSearch();
     }));
     valueWrapper.appendChild(valueToggles);
