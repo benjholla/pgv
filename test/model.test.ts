@@ -166,6 +166,81 @@ describe("model", () => {
   });
 
   describe("algebraic properties of applyGraphDiff", () => {
+    describe("Property and Edge Case Tests", () => {
+      it("Commutativity: Independent diffs can be applied in any order with identical results", () => {
+        const base = createGraphSnapshot({
+          graphId: "test",
+          version: 1,
+          nodes: [{ id: "n1" }],
+          edges: []
+        });
+
+        const diff1 = createGraphDiff({
+          addedNodes: [{ id: "n2" }],
+          addedEdges: [{ id: "e1", source: "n1", target: "n2" }]
+        });
+
+        const diff2 = createGraphDiff({
+          addedNodes: [{ id: "n3" }],
+          addedEdges: [{ id: "e2", source: "n1", target: "n3" }]
+        });
+
+        const snap1 = applyGraphDiff(applyGraphDiff(base, diff1, 2), diff2, 3);
+        const snap2 = applyGraphDiff(applyGraphDiff(base, diff2, 2), diff1, 3);
+
+        const ids1 = Array.from(snap1.nodes.keys()).sort();
+        const ids2 = Array.from(snap2.nodes.keys()).sort();
+        expect(ids1).toEqual(ids2);
+
+        const eids1 = Array.from(snap1.edges.keys()).sort();
+        const eids2 = Array.from(snap2.edges.keys()).sort();
+        expect(eids1).toEqual(eids2);
+      });
+
+      it("Replacement Property: Safely replace an element in a single diff without duplicate ID errors", () => {
+        const base = createGraphSnapshot({
+          graphId: "test",
+          version: 1,
+          nodes: [{ id: "n1", tags: ["old"] }],
+          edges: []
+        });
+
+        const diff = createGraphDiff({
+          removedNodes: ["n1"],
+          addedNodes: [{ id: "n1", tags: ["new"] }]
+        });
+
+        const snap = applyGraphDiff(base, diff, 2);
+
+        expect(snap.nodes.size).toBe(1);
+        expect(snap.nodes.get("n1")?.tags).toEqual(["new"]);
+      });
+
+      it("Security Properties: Benign URIs are preserved while dangerous ones are blocked", () => {
+        const json: GraphSnapshotJson = {
+          graphId: "test",
+          version: 1,
+          nodes: [{
+            id: "n1", attributes: {
+              safeData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
+              dangerousData: "data:text/html,<script>alert(1)</script>",
+              safeHttp: "https://example.com/image.png",
+              dangerousJs: "javascript:alert(1)"
+            }
+          }],
+          edges: []
+        };
+
+        const snapshot = createGraphSnapshot(json);
+        const attrs = snapshot.nodes.get("n1")!.attributes;
+
+        expect(attrs.safeData).toContain("data:image/png");
+        expect(attrs.dangerousData).toBe("#blocked-uri");
+        expect(attrs.safeHttp).toBe("https://example.com/image.png");
+        expect(attrs.dangerousJs).toBe("#blocked-uri");
+      });
+    });
+
     const baseSnapshot = createGraphSnapshot({
       graphId: "test-algebraic",
       version: 1,

@@ -62,7 +62,8 @@ export function verticalLayout(
   options: VerticalLayoutOptions = {},
 ): LayoutSnapshot {
   const config = { ...DEFAULT_VERTICAL_LAYOUT, ...options };
-  const nodeIds = Array.from(graph.nodes.keys());
+  // Sort node IDs to guarantee determinism in layout regardless of input map iteration order
+  const nodeIds = Array.from(graph.nodes.keys()).sort();
   const outgoing = new Map<string, string[]>();
   const incomingCounts = new Map<string, number>();
 
@@ -78,6 +79,11 @@ export function verticalLayout(
 
     outgoing.get(edge.source)?.push(edge.target);
     incomingCounts.set(edge.target, (incomingCounts.get(edge.target) ?? 0) + 1);
+  }
+
+  // Sort outgoing edges to guarantee deterministic traversal
+  for (const neighbors of outgoing.values()) {
+    neighbors.sort();
   }
 
   const depths = assignVerticalDepths(nodeIds, outgoing, incomingCounts);
