@@ -4,6 +4,42 @@ import { createGraphSnapshot, type GraphSnapshot } from "../src/model";
 
 describe("layout", () => {
   describe("verticalLayout", () => {
+    describe("Property and Edge Case Tests", () => {
+      it("Determinism: layouts are identical regardless of input iteration order", () => {
+        // Construct identical graphs but insert nodes/edges in different orders
+        const nodes1 = [{id: "A"}, {id: "B"}, {id: "C"}];
+        const edges1 = [{id: "e1", source: "A", target: "B"}, {id: "e2", source: "A", target: "C"}];
+        const snap1 = createGraphSnapshot({graphId: "g1", version: 1, nodes: nodes1, edges: edges1});
+        const lay1 = verticalLayout(snap1);
+
+        const nodes2 = [{id: "A"}, {id: "C"}, {id: "B"}];
+        const edges2 = [{id: "e2", source: "A", target: "C"}, {id: "e1", source: "A", target: "B"}];
+        const snap2 = createGraphSnapshot({graphId: "g2", version: 1, nodes: nodes2, edges: edges2});
+        const lay2 = verticalLayout(snap2);
+
+        // Sorting the entries to compare structural equality ignoring map internal order
+        const map1 = Array.from(lay1.positions.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+        const map2 = Array.from(lay2.positions.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+        expect(map1).toEqual(map2);
+      });
+
+      it("Edge Case: gracefully handles self-loops without infinite recursion", () => {
+        const graph = createGraphSnapshot({
+          graphId: "test-self-loop",
+          version: 1,
+          nodes: [{ id: "A" }],
+          edges: [{ id: "e1", source: "A", target: "A" }],
+        });
+
+        // If it loops infinitely, it will crash or timeout.
+        const layout = verticalLayout(graph);
+
+        expect(layout.positions.size).toBe(1);
+        expect(layout.positions.has("A")).toBe(true);
+      });
+    });
+
     it("handles an empty graph", () => {
       const graph = createGraphSnapshot({
         graphId: "test",
