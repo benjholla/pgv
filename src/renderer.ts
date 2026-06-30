@@ -167,6 +167,7 @@ export class GraphView {
   #searchCycleIndex: number = -1;
   #searchInputRef: HTMLInputElement | null = null;
   #searchKeyInputRef: HTMLInputElement | null = null;
+  #updateSearchUI: (() => void) | null = null;
 
   constructor(container: HTMLElement, options: GraphViewOptions = {}) {
     this.container = container;
@@ -328,9 +329,8 @@ export class GraphView {
     } else if (mode === `${type}-tag` || mode === "tag") {
       return element.tags.some(tag => valueMatcher(tag));
     } else if (mode === `${type}-attribute` || mode === "attribute") {
-      if (!this.#searchKeyQuery) return false;
       for (const [k, v] of Object.entries(element.attributes)) {
-        const keyMatch = keyMatcher(k);
+        const keyMatch = !this.#searchKeyQuery || keyMatcher(k);
         if (keyMatch) {
           if (!this.#searchQuery) return true;
           if (v !== null && typeof v !== 'object' && valueMatcher(String(v))) return true;
@@ -381,6 +381,7 @@ export class GraphView {
       this.#searchCycleIndex = -1;
       this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
       this.#render();
+      this.#updateSearchUI?.();
       return;
     }
     if (isAttributeMode && !this.#searchKeyQuery && !this.#searchQuery) {
@@ -388,6 +389,7 @@ export class GraphView {
       this.#searchCycleIndex = -1;
       this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
       this.#render();
+      this.#updateSearchUI?.();
       return;
     }
 
@@ -427,6 +429,7 @@ export class GraphView {
     }
 
     this.#render();
+    this.#updateSearchUI?.();
   }
 
   #cycleSearch(): void {
@@ -434,6 +437,7 @@ export class GraphView {
     this.#searchCycleIndex = (this.#searchCycleIndex + 1) % this.#searchResults.length;
     this.#focusSearchResult();
     this.#render();
+    this.#updateSearchUI?.();
   }
 
   #focusSearchResult(): void {
@@ -736,6 +740,7 @@ export class GraphView {
       }
     };
     updateSearchBtnState();
+    this.#updateSearchUI = updateSearchBtnState;
 
     if (isAttributeMode) {
       // Key input wrapper
