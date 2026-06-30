@@ -1,5 +1,4 @@
 import type { Graph, GraphEdge } from "./model";
-import { toReadonlyMap } from "./readonly-map";
 
 export interface Point {
   readonly x: number;
@@ -118,7 +117,7 @@ export function verticalLayout(
     config.margin * 2;
 
   return Object.freeze({
-    positions: toReadonlyMap(positions),
+    positions,
     width,
     height,
     nodeSize: Object.freeze({

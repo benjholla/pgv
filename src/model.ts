@@ -1,5 +1,3 @@
-import { toReadonlyMap } from "./readonly-map";
-
 export type AttributeValue = string | number | boolean | bigint | null;
 
 export type AttributeMap = Readonly<Record<string, AttributeValue>>;
@@ -180,8 +178,8 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
   return Object.freeze({
     graphId: input.graphId,
     version: input.version,
-    nodes: toReadonlyMap(nodes),
-    edges: toReadonlyMap(edges),
+    nodes,
+    edges,
   });
 }
 
@@ -317,8 +315,8 @@ export function applyGraphDiff(
   return Object.freeze({
     graphId: snapshot.graphId,
     version: newVersion,
-    nodes: toReadonlyMap(nodes),
-    edges: toReadonlyMap(edges),
+    nodes,
+    edges,
   });
 }
 
