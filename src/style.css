@@ -33,6 +33,10 @@
   --pgv-focus-color: #f97316;
   --pgv-focus-shadow: 0 0 0 4px rgba(249, 115, 22, 0.2);
 
+  --pgv-minimap-node-color: rgba(105, 117, 134, 0.6);
+  --pgv-minimap-edge-color: rgba(105, 117, 134, 0.4);
+  --pgv-minimap-selected-color: #d97706; /* dark yellow / amber */
+
   --pgv-tag-entry: #15803d;
   --pgv-tag-exit: #b42318;
   --pgv-tag-decision: #b7791f;
@@ -77,6 +81,10 @@
   --pgv-edge-color: #64748b;
   --pgv-edge-label-fg: #94a3b8;
   --pgv-edge-label-bg: #0f172a;
+
+  --pgv-minimap-node-color: rgba(148, 163, 184, 0.6);
+  --pgv-minimap-edge-color: rgba(148, 163, 184, 0.4);
+  --pgv-minimap-selected-color: #fbbf24; /* lighter yellow for dark mode */
 
   --pgv-selected-color: #3b82f6;
   --pgv-selected-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
