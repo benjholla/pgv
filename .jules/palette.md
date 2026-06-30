@@ -9,3 +9,6 @@
 ## 2026-06-29 - Adding ARIA attributes to generated DOM components
 **Learning:** When programmatically building complex DOM elements (like the search bar in this application) using `document.createElement`, it is easy to miss adding `aria-label` attributes to inputs, selects, and icon-only buttons, as they don't have static HTML templates where linters might catch them.
 **Action:** When creating new UI controls or reviewing DOM-generation code, always explicitly check if non-text interactive elements (buttons with SVGs, inputs, selects) have an `aria-label` set via `setAttribute` or a visible associated label.
+## 2026-06-30 - Dynamic ARIA Attributes for Custom Controls
+**Learning:** When creating custom interactive components like dropdowns and toggle buttons in pure JavaScript, static ARIA attributes are insufficient. Screen readers require stateful updates (like `aria-expanded` on dropdown triggers and `aria-pressed` on custom toggles) to be synchronized synchronously with the underlying javascript state model and the visual DOM classes.
+**Action:** When creating or modifying custom UI controls, always verify that the relevant stateful ARIA attributes are initialized correctly and updated inside the same event listeners that update the visual DOM state.
