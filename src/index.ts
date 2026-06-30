@@ -31,6 +31,7 @@ export type {
   Size,
   VerticalLayoutOptions,
 } from "./layout";
+export type { EdgeEndpointsResult } from "./layout";
 export { edgeEndpoints, verticalLayout } from "./layout";
 export type { GraphProjection } from "./projection";
 export { identityProjection } from "./projection";
