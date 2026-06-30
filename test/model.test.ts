@@ -146,7 +146,10 @@ describe("model", () => {
             dataUri: "data:text/html,<script>alert(1)</script>",
             scriptTag: "<script>alert(1)</script>",
             inlineEvent: "onclick=alert(1)",
-            cssExpr: "expression(alert(1))"
+            cssExpr: "expression(alert(1))",
+            entityBypass: "&#x6A;avascript:alert(1)",
+            whitespaceBypass: "j\ta\nv\ra\ts\nc\rr\ti\np\rt\t:alert(1)",
+            mixedCaseDataUri: "DaTa:TexT/HTmL;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="
           }
         }],
         edges: []
@@ -162,6 +165,9 @@ describe("model", () => {
       expect(attrs.scriptTag).toBe("alert(1)");
       expect(attrs.inlineEvent).toBe("data-blocked=alert(1)");
       expect(attrs.cssExpr).toBe("blocked-expr(alert(1))");
+      expect(attrs.entityBypass).toBe("#blocked-uri");
+      expect(attrs.whitespaceBypass).toBe("#blocked-uri");
+      expect(attrs.mixedCaseDataUri).toBe("#blocked-uri");
     });
   });
 
