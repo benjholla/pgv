@@ -12,7 +12,13 @@ const PGV_VIEWPORT_CLASS = "pgv-viewport";
  * keeping interaction state decoupled from the immutable graph data.
  */
 export interface SelectionState {
+  /**
+   * The set of selected node IDs.
+   */
   readonly nodes: ReadonlySet<string>;
+  /**
+   * The set of selected edge IDs.
+   */
   readonly edges: ReadonlySet<string>;
 }
 
@@ -24,21 +30,86 @@ export interface SelectionState {
  * to interactive events.
  */
 export interface GraphViewOptions {
+  /**
+   * Additional CSS class names to apply to the root graph container.
+   */
   readonly className?: string;
+
+  /**
+   * An optional pre-computed layout snapshot to use. If not provided, a default
+   * vertical layout is generated.
+   */
   readonly layout?: LayoutSnapshot;
+
+  /**
+   * Options to configure the default vertical layout if `layout` is not explicitly provided.
+   */
   readonly layoutOptions?: VerticalLayoutOptions;
+
+  /**
+   * A function returning custom DOM content or a string for a given node.
+   */
   readonly nodeContent?: (node: GraphNode) => HTMLElement | string;
+
+  /**
+   * A function returning a custom string label for a given edge, or null to hide it.
+   */
   readonly edgeLabel?: (edge: GraphEdge) => string | null | undefined;
+
+  /**
+   * The current selection state determining which elements appear active.
+   */
   readonly selection?: SelectionState;
+
+  /**
+   * The initial theme mode. Default is `"auto"` (follows system preferences).
+   */
   readonly theme?: "light" | "dark" | "auto";
+
+  /**
+   * If true, enables interactive panning, zooming, and a minimap control layer.
+   */
   readonly usePanZoom?: boolean;
+
+  /**
+   * If true, enables a built-in theme toggle control button.
+   */
   readonly useThemeToggle?: boolean;
+
+  /**
+   * The maximum number of historical `GraphDiff` changes to keep in memory for
+   * undo/redo navigation. Set to 0 to disable history tracking.
+   */
   readonly maxHistory?: number;
+
+  /**
+   * If true, enables a multi-mode search panel for filtering nodes and edges.
+   */
   readonly useSearch?: boolean;
+
+  /**
+   * Callback invoked when the user toggles the theme via the built-in control.
+   */
   readonly onThemeChange?: (theme: "light" | "dark" | "auto") => void;
+
+  /**
+   * Callback invoked when a node is clicked or activated via keyboard.
+   */
   readonly onNodeClick?: (nodeId: string, event: Event) => void;
+
+  /**
+   * Callback invoked when an edge is clicked or activated via keyboard.
+   */
   readonly onEdgeClick?: (edgeId: string, event: Event) => void;
+
+  /**
+   * Callback invoked when a search action changes the active selection.
+   */
   readonly onSelectionChange?: (selection: SelectionState) => void;
+
+  /**
+   * Callback invoked when the active graph state changes (e.g., via history navigation).
+   */
   readonly onGraphChange?: (graph: GraphSnapshot) => void;
 }
 
@@ -60,6 +131,9 @@ import { type GraphDiff, applyGraphDiff, graphSnapshotToJson } from "./model";
  * **Important**: Be sure to call `destroy()` when removing the view to prevent memory leaks.
  */
 export class GraphView {
+  /**
+   * The root DOM element containing the graph visualization.
+   */
   readonly container: HTMLElement;
 
   #options: GraphViewOptions;
@@ -100,6 +174,12 @@ export class GraphView {
     this.#currentTheme = options.theme ?? "auto";
   }
 
+  /**
+   * Completely replaces the current graph snapshot and resets view history.
+   *
+   * @param graph The new graph state to render.
+   * @param options Optional configuration overrides.
+   */
   setGraph(graph: GraphSnapshot, options: GraphViewOptions = {}): void {
     this.#preHistoryGraph = graph;
     this.#history = [];
@@ -122,6 +202,12 @@ export class GraphView {
     }
   }
 
+  /**
+   * Updates display options and selectively re-renders without destroying the
+   * current graph state or diff history.
+   *
+   * @param options The specific configuration values to override.
+   */
   updateOptions(options: Partial<GraphViewOptions>): void {
     const oldLayout = this.#options.layout;
     const oldLayoutOptions = this.#options.layoutOptions;
@@ -140,6 +226,13 @@ export class GraphView {
     this.#render();
   }
 
+  /**
+   * Applies an incremental structural change to the current graph, tracking it in
+   * the view history (if `maxHistory > 0`), and animating the transition.
+   *
+   * @param diff The incremental changes to apply.
+   * @param newVersion The version identifier to assign to the new snapshot.
+   */
   applyDiff(diff: GraphDiff, newVersion: string | number): void {
     if (!this.#graph || !this.#preHistoryGraph) {
       throw new Error("Cannot apply diff to an empty graph view.");
@@ -376,6 +469,10 @@ export class GraphView {
     this.#render();
   }
 
+  /**
+   * Cleans up all resources, abort controllers, observers, and removes DOM elements.
+   * Must be called when the view is no longer needed to prevent memory leaks.
+   */
   destroy(): void {
     this.#graph = null;
     this.#layout = null;
@@ -1164,11 +1261,14 @@ export class GraphView {
     const offsetX = padding + (availWidth - layout.width * scale) / 2;
     const offsetY = padding + (availHeight - layout.height * scale) / 2;
 
-    // Draw edges
-    ctx.strokeStyle = "rgba(105, 117, 134, 0.4)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
+    // Get CSS variables for colors
+    const computedStyle = getComputedStyle(this.container);
+    const nodeColor = computedStyle.getPropertyValue("--pgv-minimap-node-color").trim() || "rgba(105, 117, 134, 0.6)";
+    const edgeColor = computedStyle.getPropertyValue("--pgv-minimap-edge-color").trim() || "rgba(105, 117, 134, 0.4)";
+    const selectedColor = computedStyle.getPropertyValue("--pgv-minimap-selected-color").trim() || "#d97706";
 
+    // Draw edges
+    ctx.lineWidth = 1;
     for (const edge of this.#graph.edges.values()) {
       const endpoints = edgeEndpoints(edge, layout);
       if (!endpoints) continue;
@@ -1180,13 +1280,14 @@ export class GraphView {
 
       const curveMidY = sourceY + (targetY - sourceY) / 2;
 
+      ctx.strokeStyle = this.#options.selection?.edges.has(edge.id) ? selectedColor : edgeColor;
+      ctx.beginPath();
       ctx.moveTo(sourceX, sourceY);
       ctx.bezierCurveTo(sourceX, curveMidY, targetX, curveMidY, targetX, targetY);
+      ctx.stroke();
     }
-    ctx.stroke();
 
     // Draw nodes
-    ctx.fillStyle = "rgba(105, 117, 134, 0.6)";
     const nw = layout.nodeSize.width * scale;
     const nh = layout.nodeSize.height * scale;
 
@@ -1197,6 +1298,7 @@ export class GraphView {
       const nx = offsetX + position.x * scale;
       const ny = offsetY + position.y * scale;
 
+      ctx.fillStyle = this.#options.selection?.nodes.has(node.id) ? selectedColor : nodeColor;
       ctx.fillRect(nx, ny, nw, nh);
     }
   }
@@ -1506,6 +1608,13 @@ export function renderGraph(
 // and regex evaluations during render loops.
 const tagCache = new Map<string, string>();
 
+/**
+ * Converts a raw semantic tag string into a safe, normalized CSS class name.
+ * Results are memoized for rendering performance.
+ *
+ * @param tag The semantic tag to normalize.
+ * @returns A CSS-safe class name (e.g. `tag-entry`).
+ */
 export function tagToClassName(tag: string): string {
   let result = tagCache.get(tag);
   if (result !== undefined) {

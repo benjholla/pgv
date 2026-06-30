@@ -1,5 +1,8 @@
 export type AttributeValue = string | number | boolean | bigint | null;
 
+/**
+ * An immutable key-value map representing domain-specific data attached to a graph element.
+ */
 export type AttributeMap = Readonly<Record<string, AttributeValue>>;
 
 /**
@@ -9,8 +12,21 @@ export type AttributeMap = Readonly<Record<string, AttributeValue>>;
  * This interface exists to share common structural properties between nodes and edges.
  */
 export interface GraphElement {
+  /**
+   * The globally unique identifier for this element within the graph.
+   * Producer-assigned IDs are sacred and determine identity.
+   */
   readonly id: string;
+
+  /**
+   * An immutable list of semantic tags (e.g., "entry", "loop-header").
+   * Tags are converted into CSS classes during rendering for styling.
+   */
   readonly tags: readonly string[];
+
+  /**
+   * Domain-specific metadata attached to this element.
+   */
   readonly attributes: AttributeMap;
 }
 
@@ -24,6 +40,10 @@ export interface GraphElement {
  * - If `parent` is defined, it must refer to a valid node ID existing in the same graph.
  */
 export interface GraphNode extends GraphElement {
+  /**
+   * The optional ID of a parent node, used for representing hierarchical containment
+   * in compound graphs.
+   */
   readonly parent?: string;
 }
 
@@ -37,7 +57,14 @@ export interface GraphNode extends GraphElement {
  * - `target` must refer to a valid node ID in the same graph.
  */
 export interface GraphEdge extends GraphElement {
+  /**
+   * The ID of the node where this edge originates.
+   */
   readonly source: string;
+
+  /**
+   * The ID of the node where this edge terminates.
+   */
   readonly target: string;
 }
 
@@ -48,7 +75,14 @@ export interface GraphEdge extends GraphElement {
  * disconnected from any specific versioning or rendering state.
  */
 export interface Graph {
+  /**
+   * A read-only map of all nodes in the graph, keyed by their unique IDs.
+   */
   readonly nodes: ReadonlyMap<string, GraphNode>;
+
+  /**
+   * A read-only map of all edges in the graph, keyed by their unique IDs.
+   */
   readonly edges: ReadonlyMap<string, GraphEdge>;
 }
 
@@ -62,29 +96,84 @@ export interface Graph {
  * as it ensures the data cannot be mutated out-from-under the view state.
  */
 export interface GraphSnapshot extends Graph {
+  /**
+   * The unique identifier for the entire logical graph series.
+   */
   readonly graphId: string;
+
+  /**
+   * An identifier representing this specific point-in-time state.
+   */
   readonly version: string | number;
 }
 
+/**
+ * A JSON-serializable representation of a graph element's base properties.
+ */
 export interface GraphElementJson {
+  /**
+   * The unique identifier for this element.
+   */
   readonly id: string;
+
+  /**
+   * Optional semantic tags for the element.
+   */
   readonly tags?: readonly string[];
+
+  /**
+   * Optional domain-specific metadata.
+   */
   readonly attributes?: Readonly<Record<string, AttributeValue>>;
 }
 
+/**
+ * A JSON-serializable representation of a graph node.
+ */
 export interface GraphNodeJson extends GraphElementJson {
+  /**
+   * The optional ID of the parent node.
+   */
   readonly parent?: string;
 }
 
+/**
+ * A JSON-serializable representation of a directed graph edge.
+ */
 export interface GraphEdgeJson extends GraphElementJson {
+  /**
+   * The ID of the node where this edge originates.
+   */
   readonly source: string;
+
+  /**
+   * The ID of the node where this edge terminates.
+   */
   readonly target: string;
 }
 
+/**
+ * A JSON-serializable representation of an entire `GraphSnapshot`.
+ */
 export interface GraphSnapshotJson {
+  /**
+   * The unique identifier for the entire logical graph series.
+   */
   readonly graphId: string;
+
+  /**
+   * An identifier representing this specific point-in-time state.
+   */
   readonly version: string | number;
+
+  /**
+   * The list of nodes in this snapshot.
+   */
   readonly nodes: readonly GraphNodeJson[];
+
+  /**
+   * The list of edges in this snapshot.
+   */
   readonly edges: readonly GraphEdgeJson[];
 }
 
@@ -100,19 +189,56 @@ export interface GraphSnapshotJson {
  * - Added elements must not share an ID with existing elements after removals are processed.
  */
 export interface GraphDiff {
+  /**
+   * The list of new nodes to insert into the graph.
+   */
   readonly addedNodes: readonly GraphNode[];
+
+  /**
+   * The list of new edges to insert into the graph.
+   */
   readonly addedEdges: readonly GraphEdge[];
+
+  /**
+   * The list of node IDs to remove from the graph.
+   */
   readonly removedNodes: readonly string[];
+
+  /**
+   * The list of edge IDs to remove from the graph.
+   */
   readonly removedEdges: readonly string[];
 }
 
+/**
+ * A JSON-serializable representation of a `GraphDiff`.
+ */
 export interface GraphDiffJson {
+  /**
+   * The list of new nodes to insert.
+   */
   readonly addedNodes?: readonly GraphNodeJson[];
+
+  /**
+   * The list of new edges to insert.
+   */
   readonly addedEdges?: readonly GraphEdgeJson[];
+
+  /**
+   * The list of node IDs to remove.
+   */
   readonly removedNodes?: readonly string[];
+
+  /**
+   * The list of edge IDs to remove.
+   */
   readonly removedEdges?: readonly string[];
 }
 
+/**
+ * Represents a violation of structural graph invariants (e.g., duplicate IDs,
+ * missing parent nodes, or dangling edges).
+ */
 export class GraphModelError extends Error {
   constructor(message: string) {
     super(message);
@@ -183,10 +309,24 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
   });
 }
 
+/**
+ * Creates an immutable `GraphSnapshot` from a JSON payload.
+ * Alias for `createGraphSnapshot`.
+ *
+ * @param input The JSON payload representing the graph.
+ * @returns A frozen, validated `GraphSnapshot`.
+ * @throws {GraphModelError} If validation fails.
+ */
 export function graphSnapshotFromJson(input: GraphSnapshotJson): GraphSnapshot {
   return createGraphSnapshot(input);
 }
 
+/**
+ * Serializes a `GraphSnapshot` into a JSON-compatible object.
+ *
+ * @param snapshot The graph snapshot to serialize.
+ * @returns A plain `GraphSnapshotJson` object.
+ */
 export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson {
   return {
     graphId: snapshot.graphId,
@@ -207,6 +347,13 @@ export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson 
   };
 }
 
+/**
+ * Validates and freezes a JSON representation of a graph difference.
+ *
+ * @param input The JSON payload representing the diff.
+ * @returns An immutable `GraphDiff`.
+ * @throws {GraphModelError} If the diff contains invalid data.
+ */
 export function createGraphDiff(input: GraphDiffJson): GraphDiff {
   const addedNodes = (input.addedNodes || []).map(normalizeNode);
   const addedEdges = (input.addedEdges || []).map(normalizeEdge);
@@ -227,10 +374,24 @@ export function createGraphDiff(input: GraphDiffJson): GraphDiff {
   });
 }
 
+/**
+ * Creates an immutable `GraphDiff` from a JSON payload.
+ * Alias for `createGraphDiff`.
+ *
+ * @param input The JSON payload representing the diff.
+ * @returns An immutable `GraphDiff`.
+ * @throws {GraphModelError} If validation fails.
+ */
 export function graphDiffFromJson(input: GraphDiffJson): GraphDiff {
   return createGraphDiff(input);
 }
 
+/**
+ * Serializes a `GraphDiff` into a JSON-compatible object.
+ *
+ * @param diff The diff to serialize.
+ * @returns A plain `GraphDiffJson` object.
+ */
 export function graphDiffToJson(diff: GraphDiff): GraphDiffJson {
   return {
     addedNodes: diff.addedNodes.map((node) => ({
@@ -385,14 +546,23 @@ function freezeAttributes(
 }
 
 
+function decodeHtmlEntities(text: string): string {
+  return text.replace(/&#(\d+);?/g, (match, dec) => {
+    return String.fromCharCode(parseInt(dec, 10));
+  }).replace(/&#x([0-9a-f]+);?/gi, (match, hex) => {
+    return String.fromCharCode(parseInt(hex, 16));
+  });
+}
+
 function sanitizeString(value: string): string {
   if (typeof value !== "string") return value;
 
   // Basic XSS/script sanitization
-  const lower = value.toLowerCase();
+  let clean = decodeHtmlEntities(value);
+  clean = clean.replace(/[\s\x00-\x1F]+/g, "").toLowerCase();
 
   // Block common javascript URIs and inline scripts
-  if (lower.includes("javascript:") || lower.includes("vbscript:") || lower.includes("data:text/html")) {
+  if (clean.includes("javascript:") || clean.includes("vbscript:") || clean.includes("data:text/html")) {
     return "#blocked-uri";
   }
 
