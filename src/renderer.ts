@@ -645,6 +645,7 @@ export class GraphView {
       btn.className = `pgv-search-toggle ${active ? "active" : ""}`;
       btn.title = label;
       btn.setAttribute("aria-label", label);
+      btn.setAttribute("aria-pressed", active ? "true" : "false");
       btn.innerHTML = iconHtml;
       btn.style.width = "20px";
       btn.style.height = "20px";
@@ -980,6 +981,8 @@ export class GraphView {
       dropdownBtn.className = "pgv-download-dropdown-btn";
       dropdownBtn.setAttribute("aria-label", "Select Download Format");
       dropdownBtn.setAttribute("title", "Select Download Format");
+      dropdownBtn.setAttribute("aria-haspopup", "menu");
+      dropdownBtn.setAttribute("aria-expanded", this.#downloadDropdownOpen ? "true" : "false");
       dropdownBtn.innerHTML = `
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="${icons.chevronDown}"></path>
@@ -1011,6 +1014,7 @@ export class GraphView {
         option.addEventListener("click", () => {
           this.#downloadFormat = format;
           this.#downloadDropdownOpen = false;
+          dropdownBtn.setAttribute("aria-expanded", "false");
           dropdownMenu.classList.remove("open");
           updateFormatLabel();
           dropdownMenu.querySelectorAll(".pgv-dropdown-option").forEach(opt => {
@@ -1028,6 +1032,7 @@ export class GraphView {
       dropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         this.#downloadDropdownOpen = !this.#downloadDropdownOpen;
+        dropdownBtn.setAttribute("aria-expanded", this.#downloadDropdownOpen ? "true" : "false");
         if (this.#downloadDropdownOpen) {
           dropdownMenu.classList.add("open");
         } else {
@@ -1041,6 +1046,7 @@ export class GraphView {
       document.addEventListener("click", () => {
         if (this.#downloadDropdownOpen) {
           this.#downloadDropdownOpen = false;
+          dropdownBtn.setAttribute("aria-expanded", "false");
           dropdownMenu.classList.remove("open");
         }
       }, { signal: this.#downloadAbortController.signal });
