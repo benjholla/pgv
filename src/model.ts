@@ -552,14 +552,23 @@ function freezeAttributes(
 }
 
 
+function decodeHtmlEntities(text: string): string {
+  return text.replace(/&#(\d+);?/g, (match, dec) => {
+    return String.fromCharCode(parseInt(dec, 10));
+  }).replace(/&#x([0-9a-f]+);?/gi, (match, hex) => {
+    return String.fromCharCode(parseInt(hex, 16));
+  });
+}
+
 function sanitizeString(value: string): string {
   if (typeof value !== "string") return value;
 
   // Basic XSS/script sanitization
-  const lower = value.toLowerCase();
+  let clean = decodeHtmlEntities(value);
+  clean = clean.replace(/[\s\x00-\x1F]+/g, "").toLowerCase();
 
   // Block common javascript URIs and inline scripts
-  if (lower.includes("javascript:") || lower.includes("vbscript:") || lower.includes("data:text/html")) {
+  if (clean.includes("javascript:") || clean.includes("vbscript:") || clean.includes("data:text/html")) {
     return "#blocked-uri";
   }
 
