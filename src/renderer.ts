@@ -273,8 +273,8 @@ export class GraphView {
   }
 
 
-  #matchString(text: string, query: string, exact: boolean, caseSensitive: boolean, isRegex: boolean): boolean {
-    if (!text || !query) return false;
+  #compileMatcher(query: string, exact: boolean, caseSensitive: boolean, isRegex: boolean): (text: string) => boolean {
+    if (!query) return () => false;
 
     if (isRegex) {
       try {
@@ -284,46 +284,56 @@ export class GraphView {
         }
         const flags = caseSensitive ? '' : 'i';
         const regex = new RegExp(pattern, flags);
-        return regex.test(text);
+        return (text: string) => text ? regex.test(text) : false;
       } catch (e) {
         // Invalid regex, silently fail match
-        return false;
+        return () => false;
       }
     }
 
-    const t = caseSensitive ? text : text.toLowerCase();
-    const q = caseSensitive ? query : query.toLowerCase();
-
     if (exact) {
-      const escapedQ = q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`\\b${escapedQ}\\b`);
-      return regex.test(t);
+      const escapedQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const flags = caseSensitive ? '' : 'i';
+      const regex = new RegExp(`\\b${escapedQ}\\b`, flags);
+      return (text: string) => text ? regex.test(text) : false;
     }
-    return t.includes(q);
+
+    const q = caseSensitive ? query : query.toLowerCase();
+    if (caseSensitive) {
+      return (text: string) => text ? text.includes(q) : false;
+    } else {
+      return (text: string) => text ? text.toLowerCase().includes(q) : false;
+    }
   }
 
-  #matchElement(element: GraphNode | GraphEdge, mode: string, type: "node" | "edge"): boolean {
+  #matchElement(
+    element: GraphNode | GraphEdge,
+    mode: string,
+    type: "node" | "edge",
+    valueMatcher: (text: string) => boolean,
+    keyMatcher: (text: string) => boolean
+  ): boolean {
     if (mode === "all") {
-      if (this.#matchString(element.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue)) return true;
-      if (element.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue))) return true;
+      if (valueMatcher(element.id)) return true;
+      if (element.tags.some(tag => valueMatcher(tag))) return true;
       for (const [k, v] of Object.entries(element.attributes)) {
-        if (this.#matchString(k, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue)) return true;
+        if (valueMatcher(k)) return true;
         if (v !== null && typeof v !== 'object') {
-          if (this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue)) return true;
+          if (valueMatcher(String(v))) return true;
         }
       }
       return false;
     } else if (mode === "id" || mode === `${type}-id`) {
-      return this.#matchString(element.id, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue);
+      return valueMatcher(element.id);
     } else if (mode === `${type}-tag` || mode === "tag") {
-      return element.tags.some(tag => this.#matchString(tag, this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue));
+      return element.tags.some(tag => valueMatcher(tag));
     } else if (mode === `${type}-attribute` || mode === "attribute") {
       if (!this.#searchKeyQuery) return false;
       for (const [k, v] of Object.entries(element.attributes)) {
-        const keyMatch = this.#matchString(k, this.#searchKeyQuery, this.#searchExactKey, this.#searchCaseSensitiveKey, this.#searchRegexKey);
+        const keyMatch = keyMatcher(k);
         if (keyMatch) {
           if (!this.#searchQuery) return true;
-          if (v !== null && typeof v !== 'object' && this.#matchString(String(v), this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue)) return true;
+          if (v !== null && typeof v !== 'object' && valueMatcher(String(v))) return true;
         }
       }
       return false;
@@ -352,6 +362,9 @@ export class GraphView {
       return;
     }
 
+    const valueMatcher = this.#compileMatcher(this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue);
+    const keyMatcher = this.#compileMatcher(this.#searchKeyQuery, this.#searchExactKey, this.#searchCaseSensitiveKey, this.#searchRegexKey);
+
     const matchedNodes = new Set<string>();
     const matchedEdges = new Set<string>();
     this.#searchResults = [];
@@ -361,7 +374,7 @@ export class GraphView {
 
     if (searchNodes) {
       for (const node of this.#graph.nodes.values()) {
-        if (this.#matchElement(node, this.#searchMode, "node")) {
+        if (this.#matchElement(node, this.#searchMode, "node", valueMatcher, keyMatcher)) {
           matchedNodes.add(node.id);
           this.#searchResults.push({ type: "node", id: node.id });
         }
@@ -370,7 +383,7 @@ export class GraphView {
 
     if (searchEdges) {
       for (const edge of this.#graph.edges.values()) {
-        if (this.#matchElement(edge, this.#searchMode, "edge")) {
+        if (this.#matchElement(edge, this.#searchMode, "edge", valueMatcher, keyMatcher)) {
           matchedEdges.add(edge.id);
           this.#searchResults.push({ type: "edge", id: edge.id });
         }
