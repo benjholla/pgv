@@ -341,6 +341,35 @@ export class GraphView {
     return false;
   }
 
+  #getPreviewCount(): number {
+    if (!this.#graph) return 0;
+
+    const isAttributeMode = ["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode);
+    if (!isAttributeMode && !this.#searchQuery) return 0;
+    if (isAttributeMode && !this.#searchKeyQuery && !this.#searchQuery) return 0;
+
+    const valueMatcher = this.#compileMatcher(this.#searchQuery, this.#searchExactValue, this.#searchCaseSensitiveValue, this.#searchRegexValue);
+    const keyMatcher = this.#compileMatcher(this.#searchKeyQuery, this.#searchExactKey, this.#searchCaseSensitiveKey, this.#searchRegexKey);
+
+    let count = 0;
+    const searchNodes = ["all", "id", "node-id", "node-tag", "node-attribute", "tag", "attribute"].includes(this.#searchMode);
+    const searchEdges = ["all", "id", "edge-id", "edge-tag", "edge-attribute", "tag", "attribute"].includes(this.#searchMode);
+
+    if (searchNodes) {
+      for (const node of this.#graph.nodes.values()) {
+        if (this.#matchElement(node, this.#searchMode, "node", valueMatcher, keyMatcher)) count++;
+      }
+    }
+
+    if (searchEdges) {
+      for (const edge of this.#graph.edges.values()) {
+        if (this.#matchElement(edge, this.#searchMode, "edge", valueMatcher, keyMatcher)) count++;
+      }
+    }
+
+    return count;
+  }
+
   #executeSearch(): void {
     if (!this.#graph) return;
 
@@ -626,7 +655,14 @@ export class GraphView {
 
     select.addEventListener("change", (e) => {
       this.#searchMode = (e.target as HTMLSelectElement).value as any;
-      this.#executeSearch();
+      this.#searchResults = [];
+      this.#searchCycleIndex = -1;
+      // We need to re-render the search panel because the inputs change based on search mode
+      const parent = bar.parentElement;
+      if (parent) {
+        const newBar = this.#renderSearchControls();
+        parent.replaceChild(newBar, bar);
+      }
     });
     bar.appendChild(select);
 
@@ -664,6 +700,9 @@ export class GraphView {
       }
     };
 
+    const info = document.createElement("div");
+    info.className = "pgv-search-results-info";
+
     // Search button (created early so inputs can update its state)
     const searchBtn = document.createElement("button");
     searchBtn.type = "button";
@@ -680,10 +719,19 @@ export class GraphView {
     });
 
     const updateSearchBtnState = () => {
-      if (isAttributeMode) {
-        searchBtn.disabled = !this.#searchKeyQuery && !this.#searchQuery;
+      const isQueryEmpty = isAttributeMode
+        ? (!this.#searchKeyQuery && !this.#searchQuery)
+        : (!this.#searchQuery);
+
+      searchBtn.disabled = isQueryEmpty;
+
+      if (isQueryEmpty) {
+        info.textContent = "";
+      } else if (this.#searchResults.length > 0) {
+        info.textContent = `${this.#searchCycleIndex + 1} of ${this.#searchResults.length}`;
       } else {
-        searchBtn.disabled = !this.#searchQuery;
+        const previewCount = this.#getPreviewCount();
+        info.textContent = `${previewCount} result${previewCount === 1 ? '' : 's'}`;
       }
     };
     updateSearchBtnState();
@@ -712,15 +760,21 @@ export class GraphView {
       keyToggles.className = "pgv-search-toggles";
       keyToggles.appendChild(createToggle("Match Case", this.#searchCaseSensitiveKey, matchCaseIcon, () => {
         this.#searchCaseSensitiveKey = !this.#searchCaseSensitiveKey;
-        this.#executeSearch();
+        this.#searchResults = [];
+        this.#searchCycleIndex = -1;
+        updateSearchBtnState();
       }));
       keyToggles.appendChild(createToggle("Match Whole Word", this.#searchExactKey, matchWholeWordIcon, () => {
         this.#searchExactKey = !this.#searchExactKey;
-        this.#executeSearch();
+        this.#searchResults = [];
+        this.#searchCycleIndex = -1;
+        updateSearchBtnState();
       }));
       keyToggles.appendChild(createToggle("Use Regular Expression", this.#searchRegexKey, matchRegexIcon, () => {
         this.#searchRegexKey = !this.#searchRegexKey;
-        this.#executeSearch();
+        this.#searchResults = [];
+        this.#searchCycleIndex = -1;
+        updateSearchBtnState();
       }));
       keyWrapper.appendChild(keyToggles);
       inputsContainer.appendChild(keyWrapper);
@@ -749,15 +803,21 @@ export class GraphView {
     valueToggles.className = "pgv-search-toggles";
     valueToggles.appendChild(createToggle("Match Case", this.#searchCaseSensitiveValue, matchCaseIcon, () => {
       this.#searchCaseSensitiveValue = !this.#searchCaseSensitiveValue;
-      this.#executeSearch();
+      this.#searchResults = [];
+      this.#searchCycleIndex = -1;
+      updateSearchBtnState();
     }));
     valueToggles.appendChild(createToggle("Match Whole Word", this.#searchExactValue, matchWholeWordIcon, () => {
       this.#searchExactValue = !this.#searchExactValue;
-      this.#executeSearch();
+      this.#searchResults = [];
+      this.#searchCycleIndex = -1;
+      updateSearchBtnState();
     }));
     valueToggles.appendChild(createToggle("Use Regular Expression", this.#searchRegexValue, matchRegexIcon, () => {
       this.#searchRegexValue = !this.#searchRegexValue;
-      this.#executeSearch();
+      this.#searchResults = [];
+      this.#searchCycleIndex = -1;
+      updateSearchBtnState();
     }));
     valueWrapper.appendChild(valueToggles);
     inputsContainer.appendChild(valueWrapper);
@@ -766,14 +826,6 @@ export class GraphView {
 
     const actionsContainer = document.createElement("div");
     actionsContainer.className = "pgv-search-actions";
-
-    const info = document.createElement("div");
-    info.className = "pgv-search-results-info";
-    if (this.#searchResults.length > 0) {
-      info.textContent = `${this.#searchCycleIndex + 1} of ${this.#searchResults.length}`;
-    } else if (this.#searchQuery || (isAttributeMode && this.#searchKeyQuery)) {
-      info.textContent = "0 of 0";
-    }
 
     // Cycle button
     const cycleBtn = document.createElement("button");
