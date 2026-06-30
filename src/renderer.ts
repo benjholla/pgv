@@ -1164,11 +1164,14 @@ export class GraphView {
     const offsetX = padding + (availWidth - layout.width * scale) / 2;
     const offsetY = padding + (availHeight - layout.height * scale) / 2;
 
-    // Draw edges
-    ctx.strokeStyle = "rgba(105, 117, 134, 0.4)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
+    // Get CSS variables for colors
+    const computedStyle = getComputedStyle(this.container);
+    const nodeColor = computedStyle.getPropertyValue("--pgv-minimap-node-color").trim() || "rgba(105, 117, 134, 0.6)";
+    const edgeColor = computedStyle.getPropertyValue("--pgv-minimap-edge-color").trim() || "rgba(105, 117, 134, 0.4)";
+    const selectedColor = computedStyle.getPropertyValue("--pgv-minimap-selected-color").trim() || "#d97706";
 
+    // Draw edges
+    ctx.lineWidth = 1;
     for (const edge of this.#graph.edges.values()) {
       const endpoints = edgeEndpoints(edge, layout);
       if (!endpoints) continue;
@@ -1180,13 +1183,14 @@ export class GraphView {
 
       const curveMidY = sourceY + (targetY - sourceY) / 2;
 
+      ctx.strokeStyle = this.#options.selection?.edges.has(edge.id) ? selectedColor : edgeColor;
+      ctx.beginPath();
       ctx.moveTo(sourceX, sourceY);
       ctx.bezierCurveTo(sourceX, curveMidY, targetX, curveMidY, targetX, targetY);
+      ctx.stroke();
     }
-    ctx.stroke();
 
     // Draw nodes
-    ctx.fillStyle = "rgba(105, 117, 134, 0.6)";
     const nw = layout.nodeSize.width * scale;
     const nh = layout.nodeSize.height * scale;
 
@@ -1197,6 +1201,7 @@ export class GraphView {
       const nx = offsetX + position.x * scale;
       const ny = offsetY + position.y * scale;
 
+      ctx.fillStyle = this.#options.selection?.nodes.has(node.id) ? selectedColor : nodeColor;
       ctx.fillRect(nx, ny, nw, nh);
     }
   }
