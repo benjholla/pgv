@@ -1,9 +1,3 @@
-import { toReadonlyMap } from "./readonly-map";
-
-/**
- * Supported scalar types for graph element attributes.
- * Primitive values ensure safe JSON serialization and prevent accidental mutation.
- */
 export type AttributeValue = string | number | boolean | bigint | null;
 
 /**
@@ -310,8 +304,8 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
   return Object.freeze({
     graphId: input.graphId,
     version: input.version,
-    nodes: toReadonlyMap(nodes),
-    edges: toReadonlyMap(edges),
+    nodes,
+    edges,
   });
 }
 
@@ -482,8 +476,8 @@ export function applyGraphDiff(
   return Object.freeze({
     graphId: snapshot.graphId,
     version: newVersion,
-    nodes: toReadonlyMap(nodes),
-    edges: toReadonlyMap(edges),
+    nodes,
+    edges,
   });
 }
 
