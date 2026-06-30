@@ -1,13 +1,31 @@
 import type { Graph, GraphEdge } from "./model";
 import { toReadonlyMap } from "./readonly-map";
 
+/**
+ * Represents a 2D coordinate point.
+ */
 export interface Point {
+  /**
+   * The X coordinate.
+   */
   readonly x: number;
+  /**
+   * The Y coordinate.
+   */
   readonly y: number;
 }
 
+/**
+ * Represents a 2D bounding box dimension.
+ */
 export interface Size {
+  /**
+   * The width of the bounding box.
+   */
   readonly width: number;
+  /**
+   * The height of the bounding box.
+   */
   readonly height: number;
 }
 
@@ -19,9 +37,24 @@ export interface Size {
  * position elements without coupling logic to geometry.
  */
 export interface LayoutSnapshot {
+  /**
+   * A map of node IDs to their absolute visual coordinates.
+   */
   readonly positions: ReadonlyMap<string, Point>;
+
+  /**
+   * The total width of the graph layout.
+   */
   readonly width: number;
+
+  /**
+   * The total height of the graph layout.
+   */
   readonly height: number;
+
+  /**
+   * The dimensions allocated to each node in the layout.
+   */
   readonly nodeSize: Size;
 }
 
@@ -32,10 +65,29 @@ export interface LayoutSnapshot {
  * or density preferences.
  */
 export interface VerticalLayoutOptions {
+  /**
+   * The width allocated for each node.
+   */
   readonly nodeWidth?: number;
+
+  /**
+   * The height allocated for each node.
+   */
   readonly nodeHeight?: number;
+
+  /**
+   * The vertical spacing between depth layers.
+   */
   readonly layerSpacing?: number;
+
+  /**
+   * The horizontal spacing between adjacent nodes in the same layer.
+   */
   readonly nodeSpacing?: number;
+
+  /**
+   * The minimum margin around the outer boundary of the layout.
+   */
   readonly margin?: number;
 }
 
@@ -140,10 +192,36 @@ export function verticalLayout(
  * @param layout The layout containing the positions of the connected nodes.
  * @returns The geometric endpoints for the edge, or null if the connected nodes are missing from the layout.
  */
+/**
+ * Result of calculating the geometric endpoints for a rendered edge.
+ */
+export interface EdgeEndpointsResult {
+  /**
+   * The start point of the edge.
+   */
+  readonly source: Point;
+  /**
+   * The end point of the edge.
+   */
+  readonly target: Point;
+}
+
+/**
+ * Calculates the exact `(x, y)` connection points for a given edge based on the
+ * layout of its source and target nodes.
+ *
+ * It uses the `nodeSize` from the layout snapshot to snap the endpoints to the
+ * bottom-center of the source node and top-center of the target node, ensuring
+ * edges do not draw over the node bodies in a vertical layout.
+ *
+ * @param edge The edge to calculate endpoints for.
+ * @param layout The layout containing the positions of the connected nodes.
+ * @returns The geometric endpoints for the edge, or null if the connected nodes are missing from the layout.
+ */
 export function edgeEndpoints(
   edge: GraphEdge,
   layout: LayoutSnapshot,
-): { readonly source: Point; readonly target: Point } | null {
+): EdgeEndpointsResult | null {
   const source = layout.positions.get(edge.source);
   const target = layout.positions.get(edge.target);
 
