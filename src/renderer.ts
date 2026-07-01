@@ -1023,8 +1023,8 @@ export class GraphView {
       miscGroup.className = "pgv-misc-group";
 
       const topButtonsContainer = document.createElement("div");
-      topButtonsContainer.style.display = "flex";
-      topButtonsContainer.style.gap = "4px";
+      topButtonsContainer.style.display = "grid";
+      topButtonsContainer.style.gridTemplateColumns = "repeat(2, 32px)";
       topButtonsContainer.style.gap = "4px";
       topButtonsContainer.style.justifyContent = "flex-end";
 
