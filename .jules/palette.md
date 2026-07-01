@@ -12,3 +12,6 @@
 ## 2026-06-30 - Dynamic ARIA Attributes for Custom Controls
 **Learning:** When creating custom interactive components like dropdowns and toggle buttons in pure JavaScript, static ARIA attributes are insufficient. Screen readers require stateful updates (like `aria-expanded` on dropdown triggers and `aria-pressed` on custom toggles) to be synchronized synchronously with the underlying javascript state model and the visual DOM classes.
 **Action:** When creating or modifying custom UI controls, always verify that the relevant stateful ARIA attributes are initialized correctly and updated inside the same event listeners that update the visual DOM state.
+## 2025-03-09 - Ensure dynamic text count updates are read by screen readers
+**Learning:** Screen readers might not automatically announce changes to dynamic result counts (like '1 of 2' when searching graph). Adding `aria-live="polite"` and `aria-atomic="true"` ensures the count updates are announced correctly without aggressively interrupting the user.
+**Action:** When adding or maintaining dynamic status text or counts that update asynchronously, ensure they are wrapped in an `aria-live` region.
