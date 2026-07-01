@@ -272,6 +272,21 @@ describe("model", () => {
       expect(nextSnapshot.edges.size).toBe(baseSnapshot.edges.size);
     });
 
+    it("Idempotence: Removing non-existent elements is a safe no-op", () => {
+      const diff = createGraphDiff({
+        removedNodes: ["missing-node-123"],
+        removedEdges: ["missing-edge-123"]
+      });
+
+      const nextSnapshot = applyGraphDiff(baseSnapshot, diff, 2);
+
+      // Same structural contents (version should update, but elements remain the same)
+      const baseJson = graphSnapshotToJson(baseSnapshot);
+      const nextJson = graphSnapshotToJson(nextSnapshot);
+
+      expect({ ...nextJson, version: 1 }).toEqual(baseJson);
+    });
+
     it("Round-trip/Inverse: Adding elements then removing them yields the original graph", () => {
       // Step 1: Add new elements
       const addDiff = createGraphDiff({
