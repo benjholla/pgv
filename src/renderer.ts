@@ -154,6 +154,7 @@ export class GraphView {
   #history: Array<{ diff: GraphDiff; version: string | number }> = [];
   #historyIndex: number = -1;
 
+  #searchOpen: boolean = false;
   #searchMode: "all" | "id" | "node-id" | "edge-id" | "node-tag" | "node-attribute" | "edge-tag" | "edge-attribute" | "tag" | "attribute" = "all";
   #searchQuery: string = "";
   #searchKeyQuery: string = "";
@@ -578,12 +579,19 @@ export class GraphView {
       // Append controls *before* viewport to ensure natural tabbing sequence
       // enters controls first, and graph elements last.
 
+      const bottomContainer = document.createElement("div");
+      bottomContainer.className = "pgv-bottom-container";
+
       if (this.#options.useSearch) {
-        root.appendChild(this.#renderBottomLeftControls());
+        bottomContainer.appendChild(this.#renderBottomLeftControls());
       }
 
-      if (this.#options.usePanZoom || this.#options.useThemeToggle) {
-        root.appendChild(this.#renderControls());
+      if (this.#options.usePanZoom || this.#options.useThemeToggle || this.#options.useSearch) {
+        bottomContainer.appendChild(this.#renderControls());
+      }
+
+      if (bottomContainer.children.length > 0) {
+        root.appendChild(bottomContainer);
       }
 
       if (this.#options.maxHistory && this.#options.maxHistory > 0) {
@@ -623,7 +631,7 @@ export class GraphView {
     const container = document.createElement("div");
     container.className = "pgv-bottom-left-container";
 
-    if (this.#options.useSearch) {
+    if (this.#options.useSearch && this.#searchOpen) {
       container.appendChild(this.#renderSearchControls());
     }
 
@@ -857,6 +865,25 @@ export class GraphView {
     actionsContainer.appendChild(searchBtn);
     actionsContainer.appendChild(cycleBtn);
 
+    // Add a close button
+    const closeBtn = document.createElement("button");
+    closeBtn.type = "button";
+    closeBtn.title = "Close Search";
+    closeBtn.setAttribute("aria-label", "Close Search");
+    closeBtn.style.marginLeft = "auto";
+    closeBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"></line>
+        <line x1="6" y1="6" x2="18" y2="18"></line>
+      </svg>
+    `;
+    closeBtn.addEventListener("click", () => {
+      this.#searchOpen = false;
+      this.#render();
+    });
+
+    actionsContainer.appendChild(closeBtn);
+
     bar.appendChild(actionsContainer);
 
     return bar;
@@ -937,6 +964,7 @@ export class GraphView {
       map: "M9 20v-14l-4 2v14l4 -2zM15 4v14l4 -2v-14l-4 2zM9 20l6 -2v-14l-6 2z",
       download: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
       chevronDown: "M6 9l6 6 6-6",
+      search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
     };
 
     const buttonsContainer = document.createElement("div");
@@ -973,7 +1001,7 @@ export class GraphView {
       buttonsContainer.append(zoomGroup, panGroup);
     }
 
-    if (this.#options.useThemeToggle || this.#options.usePanZoom) {
+    if (this.#options.useThemeToggle || this.#options.usePanZoom || this.#options.useSearch) {
       const miscGroup = document.createElement("div");
       miscGroup.className = "pgv-misc-group";
 
@@ -1000,6 +1028,17 @@ export class GraphView {
           label: "Toggle Minimap",
         }));
       }
+      if (this.#options.useSearch) {
+        topButtonsContainer.appendChild(this.#createControlButton({
+          icon: icons.search,
+          action: () => {
+            this.#searchOpen = !this.#searchOpen;
+            this.#render();
+          },
+          label: "Toggle Search",
+        }));
+      }
+
 
       miscGroup.appendChild(topButtonsContainer);
 
@@ -1624,6 +1663,25 @@ export class GraphView {
     });
 
     element.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === "f") {
+        event.preventDefault();
+        if (this.#options.useSearch) {
+          this.#searchOpen = true;
+          this.#render();
+
+          requestAnimationFrame(() => {
+            if (this.#searchKeyInputRef && this.#searchMode.includes('attribute')) {
+              this.#searchKeyInputRef.focus();
+              this.#searchKeyInputRef.setSelectionRange(0, this.#searchKeyInputRef.value.length);
+            } else if (this.#searchInputRef) {
+              this.#searchInputRef.focus();
+              this.#searchInputRef.setSelectionRange(0, this.#searchInputRef.value.length);
+            }
+          });
+        }
+        return;
+      }
+
       if (event.key === "Enter" || event.key === " ") {
         const target = event.target as HTMLElement;
         const isGraphElement = target.closest(".pgv-graph-node") || target.closest(".pgv-graph-edge");
