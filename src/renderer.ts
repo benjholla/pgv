@@ -715,6 +715,8 @@ export class GraphView {
 
     const info = document.createElement("div");
     info.className = "pgv-search-results-info";
+    info.setAttribute("aria-live", "polite");
+    info.setAttribute("aria-atomic", "true");
 
     // Search button (created early so inputs can update its state)
     const searchBtn = document.createElement("button");
