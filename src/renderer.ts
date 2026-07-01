@@ -131,6 +131,7 @@ import { type GraphDiff, applyGraphDiff, graphSnapshotToJson } from "./model";
  * **Important**: Be sure to call `destroy()` when removing the view to prevent memory leaks.
  */
 export class GraphView {
+  #clearSelectionBtn: HTMLButtonElement | null = null;
   /**
    * The root DOM element containing the graph visualization.
    */
@@ -954,6 +955,7 @@ export class GraphView {
     controls.className = "pgv-controls";
 
     const icons = {
+      eraser: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M8 12h8",
       plus: "M12 5v14m-7-7h14",
       minus: "M5 12h14",
       up: "M12 19V5m-7 7 7-7 7 7",
@@ -1011,6 +1013,7 @@ export class GraphView {
       const topButtonsContainer = document.createElement("div");
       topButtonsContainer.style.display = "grid";
       topButtonsContainer.style.gridTemplateColumns = "repeat(2, 32px)";
+      topButtonsContainer.style.gridAutoFlow = "row";
       topButtonsContainer.style.gap = "4px";
       topButtonsContainer.style.justifyContent = "flex-end";
 
@@ -1032,6 +1035,19 @@ export class GraphView {
           label: "Toggle Minimap",
         }));
       }
+
+
+      this.#clearSelectionBtn = this.#createControlButton({
+        icon: icons.eraser,
+        action: () => {
+          this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
+        },
+        label: "Clear Selection",
+      });
+
+      topButtonsContainer.appendChild(this.#clearSelectionBtn);
+
+
       if (this.#options.useSearch) {
         topButtonsContainer.appendChild(this.#createControlButton({
           icon: icons.search,
@@ -1208,6 +1224,7 @@ export class GraphView {
     button.appendChild(svg);
 
     button.addEventListener("click", (e) => {
+      if (button.disabled) return;
       e.preventDefault();
       e.stopPropagation();
       btn.action();
