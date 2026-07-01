@@ -1,0 +1,9 @@
+{
+  "entryPoints": ["src/index.ts"],
+  "out": "docs",
+  "validation": {
+    "notDocumented": true,
+    "invalidLink": true,
+    "notExported": true
+  }
+}
