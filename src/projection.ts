@@ -8,9 +8,3 @@ import type { GraphSnapshot } from "./model";
  * into a simpler visual representation without altering the original data.
  */
 export type GraphProjection = (graph: GraphSnapshot) => GraphSnapshot;
-
-/**
- * A default projection that returns the graph unchanged.
- * Useful as a baseline or fallback when no projection logic is needed.
- */
-export const identityProjection: GraphProjection = (graph) => graph;

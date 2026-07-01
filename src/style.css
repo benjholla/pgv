@@ -165,15 +165,11 @@
   -webkit-backdrop-filter: blur(8px);
   border: 1px solid var(--pgv-controls-border);
   border-radius: 12px;
-  bottom: 16px;
-  /* Floating */
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 8px;
-  position: absolute;
-  right: 16px;
-  z-index: 10;
+  flex-shrink: 0;
 }
 
 .pgv-controls-buttons {
@@ -587,14 +583,10 @@
 
 /* Top left containers and Search UI */
 .pgv-bottom-left-container {
-  position: absolute;
-  bottom: 16px;
-  left: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  z-index: 10;
-  pointer-events: none;
+  flex-grow: 1;
 }
 
 .pgv-bottom-left-container > * {
@@ -612,6 +604,8 @@
   padding: 4px;
   gap: 8px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .pgv-search-bar select,
@@ -623,6 +617,16 @@
   padding: 4px 8px;
   font-size: 12px;
   outline: none;
+  box-sizing: border-box;
+}
+
+.pgv-search-bar input {
+  width: 100%;
+}
+
+.pgv-search-bar select {
+  width: auto;
+  flex-shrink: 0;
 }
 
 .pgv-search-bar select:focus,
@@ -633,6 +637,7 @@
 .pgv-search-inputs {
   display: flex;
   gap: 4px;
+  flex-grow: 1;
 }
 
 .pgv-search-input-wrapper {
@@ -640,6 +645,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
+  flex-grow: 1;
 }
 
 .pgv-search-toggles {
@@ -708,4 +714,22 @@
 .pgv-search-actions button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+
+/* New bottom container for search and controls to avoid overlapping */
+.pgv-bottom-container {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 16px;
+  pointer-events: none;
+  z-index: 10;
+}
+.pgv-bottom-container > * {
+  pointer-events: auto;
 }

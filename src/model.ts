@@ -313,17 +313,6 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
   });
 }
 
-/**
- * Creates an immutable `GraphSnapshot` from a JSON payload.
- * Alias for `createGraphSnapshot`.
- *
- * @param input The JSON payload representing the graph.
- * @returns A frozen, validated `GraphSnapshot`.
- * @throws {GraphModelError} If validation fails.
- */
-export function graphSnapshotFromJson(input: GraphSnapshotJson): GraphSnapshot {
-  return createGraphSnapshot(input);
-}
 
 /**
  * Serializes a `GraphSnapshot` into a JSON-compatible object.
@@ -385,16 +374,6 @@ export function createGraphDiff(input: GraphDiffJson): GraphDiff {
 }
 
 /**
- * Creates an immutable `GraphDiff` from a JSON payload.
- * Alias for `createGraphDiff`.
- *
- * @param input The JSON payload representing the diff.
- * @returns An immutable `GraphDiff`.
- * @throws {GraphModelError} If validation fails.
- */
-export function graphDiffFromJson(input: GraphDiffJson): GraphDiff {
-  return createGraphDiff(input);
-}
 
 /**
  * Serializes a `GraphDiff` into a JSON-compatible object.
@@ -568,7 +547,18 @@ function sanitizeString(value: string): string {
   if (typeof value !== "string") return value;
 
   // Basic XSS/script sanitization
+  // First decode HTML entities, as browsers process them before URL encoding
   let clean = decodeHtmlEntities(value);
+
+  // Then decode URL encoding, handling malformed sequences gracefully
+  clean = clean.replace(/%([0-9A-F]{2})/gi, (match) => {
+    try {
+      return decodeURIComponent(match);
+    } catch {
+      return match;
+    }
+  });
+
   clean = clean.replace(/[\s\x00-\x1F]+/g, "").toLowerCase();
 
   // Block common javascript URIs and inline scripts
@@ -576,8 +566,13 @@ function sanitizeString(value: string): string {
     return "#blocked-uri";
   }
 
-  // Strip <script> tags
-  let sanitized = value.replace(/<\/?script\b[^>]*>/gi, "");
+  // Strip <script> tags (iterative to prevent nested bypasses like <scr<script>ipt>)
+  let sanitized = value;
+  let previous;
+  do {
+    previous = sanitized;
+    sanitized = sanitized.replace(/<\/?script\b[^>]*>/gi, "");
+  } while (sanitized !== previous);
 
   // Strip inline event handlers (on*)
   sanitized = sanitized.replace(/\bon[a-z]+\s*=/gi, "data-blocked=");
