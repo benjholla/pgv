@@ -31,14 +31,14 @@ npm install @pgv/graph-core
 
 ```ts
 import {
-  graphSnapshotFromJson,
+  createGraphSnapshot,
   renderGraph,
   verticalLayout,
   type GraphSnapshotJson,
 } from "@pgv/graph-core";
 import "@pgv/graph-core/style.css";
 
-const graph = graphSnapshotFromJson(json as GraphSnapshotJson);
+const graph = createGraphSnapshot(json as GraphSnapshotJson);
 const layout = verticalLayout(graph);
 
 renderGraph(document.querySelector("#graph")!, graph, {

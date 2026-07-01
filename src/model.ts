@@ -313,17 +313,6 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
   });
 }
 
-/**
- * Creates an immutable `GraphSnapshot` from a JSON payload.
- * Alias for `createGraphSnapshot`.
- *
- * @param input The JSON payload representing the graph.
- * @returns A frozen, validated `GraphSnapshot`.
- * @throws {GraphModelError} If validation fails.
- */
-export function graphSnapshotFromJson(input: GraphSnapshotJson): GraphSnapshot {
-  return createGraphSnapshot(input);
-}
 
 /**
  * Serializes a `GraphSnapshot` into a JSON-compatible object.
@@ -379,16 +368,6 @@ export function createGraphDiff(input: GraphDiffJson): GraphDiff {
 }
 
 /**
- * Creates an immutable `GraphDiff` from a JSON payload.
- * Alias for `createGraphDiff`.
- *
- * @param input The JSON payload representing the diff.
- * @returns An immutable `GraphDiff`.
- * @throws {GraphModelError} If validation fails.
- */
-export function graphDiffFromJson(input: GraphDiffJson): GraphDiff {
-  return createGraphDiff(input);
-}
 
 /**
  * Serializes a `GraphDiff` into a JSON-compatible object.

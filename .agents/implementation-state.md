@@ -13,7 +13,6 @@ Important files:
 - `src/readonly-map.ts` - runtime read-only map view used by graph and layout
   snapshots.
 - `src/layout.ts` - frontend-owned vertical layout and edge endpoint helpers.
-- `src/projection.ts` - projection interface plus `identityProjection`.
 - `src/renderer.ts` - `GraphView`, `renderGraph`, tag-to-class conversion, HTML
   node rendering, SVG edge rendering.
 - `src/style.css` - base graph visualization styles.
@@ -29,7 +28,7 @@ Vite static demo:
 examples/vite-static
 ```
 
-It fetches `public/sample-cfg.json`, converts it with `graphSnapshotFromJson`,
+It fetches `public/sample-cfg.json`, converts it with `createGraphSnapshot`,
 computes `verticalLayout`, and calls `renderGraph`.
 
 Spring Boot producer:
