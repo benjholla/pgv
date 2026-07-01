@@ -145,9 +145,13 @@ describe("model", () => {
             vbUri: "vbscript:msgbox(1)",
             dataUri: "data:text/html,<script>alert(1)</script>",
             scriptTag: "<script>alert(1)</script>",
+            nestedScriptTag: "<scr<script>ipt>alert(1)</script>",
             inlineEvent: "onclick=alert(1)",
             cssExpr: "expression(alert(1))",
             entityBypass: "&#x6A;avascript:alert(1)",
+            urlEncodedBypass: "j%61vascript:alert(1)",
+            entityUrlEncodedBypass: "j&#x25;61vascript:alert(1)",
+            malformedUrlEncodedBypass: "j%61vascript:alert(1)//%FF",
             whitespaceBypass: "j\ta\nv\ra\ts\nc\rr\ti\np\rt\t:alert(1)",
             mixedCaseDataUri: "DaTa:TexT/HTmL;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="
           }
@@ -163,9 +167,13 @@ describe("model", () => {
       expect(attrs.vbUri).toBe("#blocked-uri");
       expect(attrs.dataUri).toBe("#blocked-uri");
       expect(attrs.scriptTag).toBe("alert(1)");
+      expect(attrs.nestedScriptTag).toBe("alert(1)");
       expect(attrs.inlineEvent).toBe("data-blocked=alert(1)");
       expect(attrs.cssExpr).toBe("blocked-expr(alert(1))");
       expect(attrs.entityBypass).toBe("#blocked-uri");
+      expect(attrs.urlEncodedBypass).toBe("#blocked-uri");
+      expect(attrs.entityUrlEncodedBypass).toBe("#blocked-uri");
+      expect(attrs.malformedUrlEncodedBypass).toBe("#blocked-uri");
       expect(attrs.whitespaceBypass).toBe("#blocked-uri");
       expect(attrs.mixedCaseDataUri).toBe("#blocked-uri");
     });
