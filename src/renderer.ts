@@ -227,7 +227,6 @@ export class GraphView {
       this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions);
     }
     this.#render();
-    this.#updateClearSelectionBtnState();
   }
 
   /**
@@ -534,21 +533,6 @@ export class GraphView {
     this.#downloadAbortController?.abort();
     this.#downloadAbortController = null;
     this.container.replaceChildren();
-  }
-
-
-  #updateClearSelectionBtnState(): void {
-    if (!this.#clearSelectionBtn) return;
-    const hasSelection = this.#options.selection && (this.#options.selection.nodes.size > 0 || this.#options.selection.edges.size > 0);
-    if (!hasSelection) {
-      this.#clearSelectionBtn.disabled = true;
-      this.#clearSelectionBtn.setAttribute("disabled", "true");
-      this.#clearSelectionBtn.classList.add("disabled");
-    } else {
-      this.#clearSelectionBtn.disabled = false;
-      this.#clearSelectionBtn.removeAttribute("disabled");
-      this.#clearSelectionBtn.classList.remove("disabled");
-    }
   }
 
   #render(): void {
@@ -1051,20 +1035,13 @@ export class GraphView {
       }
 
 
-      const hasSelection = this.#options.selection && (this.#options.selection.nodes.size > 0 || this.#options.selection.edges.size > 0);
       this.#clearSelectionBtn = this.#createControlButton({
         icon: icons.eraser,
         action: () => {
-          if (this.#clearSelectionBtn && !this.#clearSelectionBtn.disabled) {
-            this.#clearSelectionBtn.disabled = true;
-            this.#clearSelectionBtn.classList.add("disabled");
-            this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
-          }
+          this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
         },
         label: "Clear Selection",
       });
-
-      this.#updateClearSelectionBtnState();
 
       topButtonsContainer.appendChild(this.#clearSelectionBtn);
 
