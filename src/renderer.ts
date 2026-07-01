@@ -227,6 +227,7 @@ export class GraphView {
       this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions);
     }
     this.#render();
+    this.#updateClearSelectionBtnState();
   }
 
   /**
@@ -553,7 +554,6 @@ export class GraphView {
     if (!this.#graph || !this.#layout) {
       return;
     }
-    this.#updateClearSelectionBtnState();
 
     const graph = this.#graph;
     const layout = this.#layout;
@@ -967,7 +967,7 @@ export class GraphView {
     controls.className = "pgv-controls";
 
     const icons = {
-      eraser: "M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4M13.5 6.5l4 4M16 16H20",
+      eraser: "M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-6.364-3.889A8 8 0 0 0 17.636 6.364l-12 12zm1.414-1.414l12-12A8 8 0 0 0 6.364 6.364l-12 12z",
       plus: "M12 5v14m-7-7h14",
       minus: "M5 12h14",
       up: "M12 19V5m-7 7 7-7 7 7",
@@ -1025,6 +1025,7 @@ export class GraphView {
       const topButtonsContainer = document.createElement("div");
       topButtonsContainer.style.display = "grid";
       topButtonsContainer.style.gridTemplateColumns = "repeat(2, 32px)";
+      topButtonsContainer.style.gridAutoFlow = "row";
       topButtonsContainer.style.gap = "4px";
       topButtonsContainer.style.justifyContent = "flex-end";
 
@@ -1052,7 +1053,11 @@ export class GraphView {
       this.#clearSelectionBtn = this.#createControlButton({
         icon: icons.eraser,
         action: () => {
-          this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
+          if (this.#clearSelectionBtn && !this.#clearSelectionBtn.disabled) {
+            this.#clearSelectionBtn.disabled = true;
+            this.#clearSelectionBtn.classList.add("disabled");
+            this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
+          }
         },
         label: "Clear Selection",
       });
