@@ -541,7 +541,18 @@ function sanitizeString(value: string): string {
   if (typeof value !== "string") return value;
 
   // Basic XSS/script sanitization
+  // First decode HTML entities, as browsers process them before URL encoding
   let clean = decodeHtmlEntities(value);
+
+  // Then decode URL encoding, handling malformed sequences gracefully
+  clean = clean.replace(/%([0-9A-F]{2})/gi, (match) => {
+    try {
+      return decodeURIComponent(match);
+    } catch {
+      return match;
+    }
+  });
+
   clean = clean.replace(/[\s\x00-\x1F]+/g, "").toLowerCase();
 
   // Block common javascript URIs and inline scripts
@@ -549,8 +560,13 @@ function sanitizeString(value: string): string {
     return "#blocked-uri";
   }
 
-  // Strip <script> tags
-  let sanitized = value.replace(/<\/?script\b[^>]*>/gi, "");
+  // Strip <script> tags (iterative to prevent nested bypasses like <scr<script>ipt>)
+  let sanitized = value;
+  let previous;
+  do {
+    previous = sanitized;
+    sanitized = sanitized.replace(/<\/?script\b[^>]*>/gi, "");
+  } while (sanitized !== previous);
 
   // Strip inline event handlers (on*)
   sanitized = sanitized.replace(/\bon[a-z]+\s*=/gi, "data-blocked=");

@@ -2,3 +2,8 @@
 **Vulnerability:** The `sanitizeString` function in `src/model.ts` was vulnerable to XSS bypasses. An attacker could encode restricted URIs (like `javascript:`) using HTML entities (e.g., `&#x6A;avascript:`) or inject whitespace/control characters (e.g., `jav\tascript:`) to evade the simple substring match check.
 **Learning:** Custom XSS sanitization that relies purely on string inclusion checks is fragile. Browsers are highly permissive when parsing URIs in attributes, ignoring whitespace and automatically decoding entities.
 **Prevention:** To safely block dangerous URIs, strings must be explicitly normalized *before* checking for blocked schemes. This includes decoding HTML entities (`&#dec;`, `&#xhex;`) and aggressively stripping all whitespace and control characters (`[\s\x00-\x1F]`).
+
+## 2024-05-28 - [XSS Filter Evasion via URL Encoding and Nested Tags]
+**Vulnerability:** The internal `sanitizeString` function in `src/model.ts` was vulnerable to XSS filter evasion using URL encoded payloads (e.g., `j%61vascript:alert(1)`) and nested `<script>` tags (e.g., `<scr<script>ipt>alert(1)</script>`).
+**Learning:** Security controls that rely on simple string replacement and keyword blocklists can be bypassed if the input is not fully normalized first (e.g., handling URL encoding), or if the removal of forbidden patterns creates new forbidden patterns recursively (nested tags).
+**Prevention:** Always fully decode inputs (URL decoding, HTML entity decoding) before applying security checks. Use iterative or state-machine based removal to prevent nested pattern bypasses.
