@@ -1743,14 +1743,15 @@ function renderEdges(
 
     const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    const classNames = [
-      "graph-edge",
-      "pgv-graph-edge",
-      ...edge.tags.map(tagToClassName),
-    ];
+
+    // Optimized string builder: avoids array allocations and .map() inside the hot loop.
+    let className = "graph-edge pgv-graph-edge";
+    for (let i = 0; i < edge.tags.length; i++) {
+      className += " " + tagToClassName(edge.tags[i]);
+    }
 
     if (options.selection?.edges.has(edge.id)) {
-      classNames.push("pgv-selected");
+      className += " pgv-selected";
     }
     const curveMidY = endpoints.source.y + (endpoints.target.y - endpoints.source.y) / 2;
     const pathData = [
@@ -1760,7 +1761,7 @@ function renderEdges(
       `${endpoints.target.x} ${endpoints.target.y}`,
     ].join(" ");
 
-    group.classList.add(...classNames);
+    group.setAttribute("class", className);
     group.dataset.edgeId = edge.id;
     group.setAttribute("tabindex", "0");
     path.setAttribute("d", pathData);
@@ -1801,17 +1802,17 @@ function renderNodes(
 
     const element = document.createElement("div");
 
-    const classNames = [
-      "graph-node",
-      "pgv-graph-node",
-      ...node.tags.map(tagToClassName),
-    ];
-
-    if (options.selection?.nodes.has(node.id)) {
-      classNames.push("pgv-selected");
+    // Optimized string builder: avoids array allocations and .map() inside the hot loop.
+    let className = "graph-node pgv-graph-node";
+    for (let i = 0; i < node.tags.length; i++) {
+      className += " " + tagToClassName(node.tags[i]);
     }
 
-    element.className = joinClassNames(...classNames);
+    if (options.selection?.nodes.has(node.id)) {
+      className += " pgv-selected";
+    }
+
+    element.className = className;
     element.dataset.nodeId = node.id;
     element.setAttribute("tabindex", "0");
     element.style.transform = `translate(${position.x}px, ${position.y}px)`;
