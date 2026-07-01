@@ -1,3 +1,7 @@
+/**
+ * Represents a primitive value that can be assigned to an attribute on a graph element.
+ * Supported types include strings, numbers, booleans, bigints, and null.
+ */
 export type AttributeValue = string | number | boolean | bigint | null;
 
 /**
