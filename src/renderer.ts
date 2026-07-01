@@ -676,7 +676,6 @@ export class GraphView {
         parent.replaceChild(newBar, bar);
       }
     });
-    // We will append the select after the inputs container
 
 
     const inputsContainer = document.createElement("div");
@@ -837,8 +836,8 @@ export class GraphView {
     valueWrapper.appendChild(valueToggles);
     inputsContainer.appendChild(valueWrapper);
 
-    bar.appendChild(inputsContainer);
     bar.appendChild(select);
+    bar.appendChild(inputsContainer);
 
     const actionsContainer = document.createElement("div");
     actionsContainer.className = "pgv-search-actions";
@@ -1666,25 +1665,6 @@ export class GraphView {
     });
 
     element.addEventListener("keydown", (event) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === "f") {
-        event.preventDefault();
-        if (this.#options.useSearch) {
-          this.#searchOpen = true;
-          this.#render();
-
-          requestAnimationFrame(() => {
-            if (this.#searchKeyInputRef && this.#searchMode.includes('attribute')) {
-              this.#searchKeyInputRef.focus();
-              this.#searchKeyInputRef.setSelectionRange(0, this.#searchKeyInputRef.value.length);
-            } else if (this.#searchInputRef) {
-              this.#searchInputRef.focus();
-              this.#searchInputRef.setSelectionRange(0, this.#searchInputRef.value.length);
-            }
-          });
-        }
-        return;
-      }
-
       if (event.key === "Enter" || event.key === " ") {
         const target = event.target as HTMLElement;
         const isGraphElement = target.closest(".pgv-graph-node") || target.closest(".pgv-graph-edge");
