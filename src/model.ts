@@ -335,12 +335,18 @@ export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson 
   return {
     graphId: snapshot.graphId,
     version: snapshot.version,
-    nodes: Array.from(snapshot.nodes.values(), (node) => ({
-      id: node.id,
-      tags: node.tags,
-      attributes: node.attributes,
-      ...(node.parent === undefined ? {} : { parent: node.parent }),
-    })),
+    nodes: Array.from(snapshot.nodes.values(), (node) => {
+      // We use a mutable type here to avoid spread operator allocations, then it gets implicitly cast.
+      const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>>; parent?: string } = {
+        id: node.id,
+        tags: node.tags,
+        attributes: node.attributes,
+      };
+      if (node.parent !== undefined) {
+        n.parent = node.parent;
+      }
+      return n as GraphNodeJson;
+    }),
     edges: Array.from(snapshot.edges.values(), (edge) => ({
       id: edge.id,
       source: edge.source,
