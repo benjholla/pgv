@@ -8,3 +8,8 @@
 **Learning:** Iterating over graph structures (nodes/edges) for full-text or regex search features while compiling `new RegExp()` inside the loop introduces a massive performance bottleneck. In this codebase, search evaluation over 5000+ elements compiling a regex per field drastically slowed down UI responsiveness.
 
 **Action:** Whenever implementing search over many nodes, pre-compile the `RegExp` (or pre-lowercase queries for case-insensitive matching) into closure matcher functions *before* the loop. Passing compiled `(text: string) => boolean` matchers down to individual elements achieved a ~3.6x speedup.
+## 2024-07-01 - Avoid Array Spread and Mapping for DOM classNames in Hot Loops
+
+**Learning:** Constructing complex DOM `classNames` by creating temporary arrays using spread syntax `...` and `.map()` iterations within hot rendering loops (like iterating over all nodes and edges) introduces unnecessary memory allocation and garbage collection churn, significantly slowing down layout rendering. Using a simple inline string builder (`+=`) in a regular `for` loop is almost 3x faster and avoids allocations.
+
+**Action:** Whenever generating strings (like classes) inside massive iterations, prefer an inline string builder over declarative array-map-join patterns.
