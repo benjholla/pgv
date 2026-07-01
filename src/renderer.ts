@@ -542,9 +542,11 @@ export class GraphView {
     const hasSelection = this.#options.selection && (this.#options.selection.nodes.size > 0 || this.#options.selection.edges.size > 0);
     if (!hasSelection) {
       this.#clearSelectionBtn.disabled = true;
+      this.#clearSelectionBtn.setAttribute("disabled", "true");
       this.#clearSelectionBtn.classList.add("disabled");
     } else {
       this.#clearSelectionBtn.disabled = false;
+      this.#clearSelectionBtn.removeAttribute("disabled");
       this.#clearSelectionBtn.classList.remove("disabled");
     }
   }
@@ -967,7 +969,7 @@ export class GraphView {
     controls.className = "pgv-controls";
 
     const icons = {
-      eraser: "M12 22C6.477 22 2 17.523 2 12S6.477 2 12 2s10 4.477 10 10-4.477 10-10 10zm-6.364-3.889A8 8 0 0 0 17.636 6.364l-12 12zm1.414-1.414l12-12A8 8 0 0 0 6.364 6.364l-12 12z",
+      eraser: "M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z M8 12h8",
       plus: "M12 5v14m-7-7h14",
       minus: "M5 12h14",
       up: "M12 19V5m-7 7 7-7 7 7",
@@ -1243,6 +1245,7 @@ export class GraphView {
     button.appendChild(svg);
 
     button.addEventListener("click", (e) => {
+      if (button.disabled) return;
       e.preventDefault();
       e.stopPropagation();
       btn.action();
