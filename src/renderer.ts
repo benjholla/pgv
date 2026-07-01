@@ -131,6 +131,7 @@ import { type GraphDiff, applyGraphDiff, graphSnapshotToJson } from "./model";
  * **Important**: Be sure to call `destroy()` when removing the view to prevent memory leaks.
  */
 export class GraphView {
+  #clearSelectionBtn: HTMLButtonElement | null = null;
   /**
    * The root DOM element containing the graph visualization.
    */
@@ -534,11 +535,25 @@ export class GraphView {
     this.container.replaceChildren();
   }
 
+
+  #updateClearSelectionBtnState(): void {
+    if (!this.#clearSelectionBtn) return;
+    const hasSelection = this.#options.selection && (this.#options.selection.nodes.size > 0 || this.#options.selection.edges.size > 0);
+    if (!hasSelection) {
+      this.#clearSelectionBtn.disabled = true;
+      this.#clearSelectionBtn.classList.add("disabled");
+    } else {
+      this.#clearSelectionBtn.disabled = false;
+      this.#clearSelectionBtn.classList.remove("disabled");
+    }
+  }
+
   #render(): void {
     const activePlaceholder = document.activeElement && this.container.contains(document.activeElement) && document.activeElement.tagName === "INPUT" ? (document.activeElement as any).placeholder : null;
     if (!this.#graph || !this.#layout) {
       return;
     }
+    this.#updateClearSelectionBtnState();
 
     const graph = this.#graph;
     const layout = this.#layout;
@@ -952,6 +967,7 @@ export class GraphView {
     controls.className = "pgv-controls";
 
     const icons = {
+      eraser: "M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4M13.5 6.5l4 4M16 16H20",
       plus: "M12 5v14m-7-7h14",
       minus: "M5 12h14",
       up: "M12 19V5m-7 7 7-7 7 7",
@@ -1007,8 +1023,8 @@ export class GraphView {
       miscGroup.className = "pgv-misc-group";
 
       const topButtonsContainer = document.createElement("div");
-      topButtonsContainer.style.display = "grid";
-      topButtonsContainer.style.gridTemplateColumns = "repeat(2, 32px)";
+      topButtonsContainer.style.display = "flex";
+      topButtonsContainer.style.gap = "4px";
       topButtonsContainer.style.gap = "4px";
       topButtonsContainer.style.justifyContent = "flex-end";
 
@@ -1030,6 +1046,22 @@ export class GraphView {
           label: "Toggle Minimap",
         }));
       }
+
+
+      const hasSelection = this.#options.selection && (this.#options.selection.nodes.size > 0 || this.#options.selection.edges.size > 0);
+      this.#clearSelectionBtn = this.#createControlButton({
+        icon: icons.eraser,
+        action: () => {
+          this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
+        },
+        label: "Clear Selection",
+      });
+
+      this.#updateClearSelectionBtnState();
+
+      topButtonsContainer.appendChild(this.#clearSelectionBtn);
+
+
       if (this.#options.useSearch) {
         topButtonsContainer.appendChild(this.#createControlButton({
           icon: icons.search,
