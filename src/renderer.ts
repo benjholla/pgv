@@ -1225,14 +1225,8 @@ export class GraphView {
   }
 
   #reset(): void {
-    if (!this.#layout) {
-      this.#viewportState = { x: 0, y: 0, scale: 1 };
-      this.#applyViewport();
-      return;
-    }
-
     const viewport = this.container.querySelector<HTMLElement>(`.${PGV_VIEWPORT_CLASS}`);
-    if (!viewport) {
+    if (!this.#layout || !viewport) {
       this.#viewportState = { x: 0, y: 0, scale: 1 };
       this.#applyViewport();
       return;
