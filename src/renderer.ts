@@ -646,7 +646,7 @@ export class GraphView {
     const select = document.createElement("select");
     select.setAttribute("aria-label", "Search mode");
     const modes = [
-      { value: "all", label: "Any" },
+      { value: "all", label: "Everywhere" },
       { value: "node-id", label: "Node Id" },
       { value: "node-tag", label: "Node Tag" },
       { value: "node-attribute", label: "Node Attribute" },
@@ -676,7 +676,8 @@ export class GraphView {
         parent.replaceChild(newBar, bar);
       }
     });
-    bar.appendChild(select);
+    // We will append the select after the inputs container
+
 
     const inputsContainer = document.createElement("div");
     inputsContainer.className = "pgv-search-inputs";
@@ -837,6 +838,7 @@ export class GraphView {
     inputsContainer.appendChild(valueWrapper);
 
     bar.appendChild(inputsContainer);
+    bar.appendChild(select);
 
     const actionsContainer = document.createElement("div");
     actionsContainer.className = "pgv-search-actions";
