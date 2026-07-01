@@ -56,6 +56,22 @@ describe("layout", () => {
       expect(layout.nodeSize).toEqual({ width: 220, height: 88 });
     });
 
+    it("Boundary: handles extremely wide graphs without call stack limits", () => {
+      const nodeCount = 100_000;
+      // Using an implicit loop array initialization
+      const nodes = Array.from({ length: nodeCount }, (_, i) => ({ id: `n${i}` }));
+
+      const graph = createGraphSnapshot({
+        graphId: "test-wide",
+        version: 1,
+        nodes,
+        edges: []
+      });
+
+      const layout = verticalLayout(graph);
+      expect(layout.positions.size).toBe(nodeCount);
+    });
+
     it("lays out a single node", () => {
       const graph = createGraphSnapshot({
         graphId: "test",
