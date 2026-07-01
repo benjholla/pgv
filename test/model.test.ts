@@ -1,16 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  createGraphSnapshot,
-  graphSnapshotToJson,
-  graphSnapshotFromJson,
-  createGraphDiff,
-  applyGraphDiff,
-  graphDiffToJson,
-  graphDiffFromJson,
-  GraphModelError,
-  GraphSnapshotJson,
-  GraphDiffJson
-} from "../src/model";
+import { createGraphSnapshot, createGraphDiff, graphSnapshotToJson, applyGraphDiff, graphDiffToJson, GraphModelError, GraphSnapshotJson, GraphDiffJson } from "../src/model";
 
 describe("model", () => {
   describe("createGraphSnapshot", () => {
@@ -324,7 +313,7 @@ describe("model", () => {
         ]
       };
 
-      const snapshot = graphSnapshotFromJson(originalJson);
+      const snapshot = createGraphSnapshot(originalJson);
       const jsonOut = graphSnapshotToJson(snapshot);
 
       expect(jsonOut).toEqual(originalJson);
@@ -338,7 +327,7 @@ describe("model", () => {
         removedEdges: ["e1"]
       };
 
-      const diff = graphDiffFromJson(diffJson);
+      const diff = createGraphDiff(diffJson);
       const diffOut = graphDiffToJson(diff);
 
       expect(diffOut).toEqual(diffJson);

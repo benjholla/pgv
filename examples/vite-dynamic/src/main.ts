@@ -1,5 +1,5 @@
 import {
-  graphSnapshotFromJson,
+  createGraphSnapshot,
   renderGraph,
   verticalLayout,
   type GraphSnapshot,
@@ -48,7 +48,7 @@ async function loadGraph(): Promise<void> {
   }
 
   const json = (await response.json()) as GraphSnapshotJson;
-  currentGraph = graphSnapshotFromJson(json);
+  currentGraph = createGraphSnapshot(json);
 
   updateGraph();
 }
