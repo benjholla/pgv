@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createGraphSnapshot, createGraphDiff, graphSnapshotToJson, applyGraphDiff, graphDiffToJson, GraphModelError, GraphSnapshotJson, GraphDiffJson } from "../src/model";
+import { createGraphSnapshot, createGraphDiff, graphSnapshotToJson, applyGraphDiff, graphDiffToJson, GraphModelError, GraphSnapshotJson, GraphDiffJson, sanitizeString } from "../src/model";
 
 describe("model", () => {
   describe("createGraphSnapshot", () => {
@@ -115,6 +115,32 @@ describe("model", () => {
       expect(() => createGraphSnapshot({
         graphId: "test", version: 1, nodes: [{ id: "n1", tags: ["   "] }], edges: []
       })).toThrow(/non-empty string/);
+    });
+
+    it("throws on non-string values for IDs or tags", () => {
+      expect(() => createGraphSnapshot({
+        graphId: 123 as any, version: 1, nodes: [], edges: []
+      })).toThrow(/non-empty string/);
+
+      expect(() => createGraphSnapshot({
+        graphId: null as any, version: 1, nodes: [], edges: []
+      })).toThrow(/non-empty string/);
+
+      expect(() => createGraphSnapshot({
+        graphId: "test", version: 1, nodes: [{ id: 456 as any }], edges: []
+      })).toThrow(/non-empty string/);
+
+      expect(() => createGraphSnapshot({
+        graphId: "test", version: 1, nodes: [{ id: "n1", tags: [true as any] }], edges: []
+      })).toThrow(/non-empty string/);
+    });
+
+    it("throws TypeError if sanitizeString is passed a non-string directly", () => {
+      // We exported sanitizeString specifically to test this internal defensive invariant
+      expect(() => sanitizeString(123 as any)).toThrow(TypeError);
+      expect(() => sanitizeString(null as any)).toThrow(TypeError);
+      expect(() => sanitizeString(undefined as any)).toThrow(TypeError);
+      expect(() => sanitizeString({} as any)).toThrow(TypeError);
     });
 
     it("throws on unsafe content in graphId", () => {
