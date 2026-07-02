@@ -107,9 +107,23 @@ describe("model", () => {
       })).toThrow(/non-empty string/);
     });
 
+    it("throws on blank or whitespace-only strings for IDs or tags", () => {
+      expect(() => createGraphSnapshot({
+        graphId: "   \t\n  ", version: 1, nodes: [], edges: []
+      })).toThrow(/non-empty string/);
+
+      expect(() => createGraphSnapshot({
+        graphId: "test", version: 1, nodes: [{ id: "n1", tags: ["   "] }], edges: []
+      })).toThrow(/non-empty string/);
+    });
+
     it("throws on unsafe content in graphId", () => {
       expect(() => createGraphSnapshot({
         graphId: "javascript:alert(1)", version: 1, nodes: [], edges: []
+      })).toThrow(/contains unsafe content/);
+
+      expect(() => createGraphSnapshot({
+        graphId: "<scr<script>ipt>alert(1)</script>", version: 1, nodes: [], edges: []
       })).toThrow(/contains unsafe content/);
     });
 
@@ -138,6 +152,8 @@ describe("model", () => {
             inlineEvent: "onclick=alert(1)",
             cssExpr: "expression(alert(1))",
             entityBypass: "&#x6A;avascript:alert(1)",
+            entityDecBypass: "&#106;avascript:alert(1)",
+            entityWithoutSemicolon: "&#x6A\navascript:alert(1)",
             urlEncodedBypass: "j%61vascript:alert(1)",
             entityUrlEncodedBypass: "j&#x25;61vascript:alert(1)",
             malformedUrlEncodedBypass: "j%61vascript:alert(1)//%FF",
@@ -160,6 +176,8 @@ describe("model", () => {
       expect(attrs.inlineEvent).toBe("data-blocked=alert(1)");
       expect(attrs.cssExpr).toBe("blocked-expr(alert(1))");
       expect(attrs.entityBypass).toBe("#blocked-uri");
+      expect(attrs.entityDecBypass).toBe("#blocked-uri");
+      expect(attrs.entityWithoutSemicolon).toBe("#blocked-uri");
       expect(attrs.urlEncodedBypass).toBe("#blocked-uri");
       expect(attrs.entityUrlEncodedBypass).toBe("#blocked-uri");
       expect(attrs.malformedUrlEncodedBypass).toBe("#blocked-uri");
@@ -333,6 +351,20 @@ describe("model", () => {
         addedEdges: [{ id: "e2", source: "n1", target: "n3", tags: [], attributes: {} }],
         removedNodes: ["n2"],
         removedEdges: ["e1"]
+      };
+
+      const diff = createGraphDiff(diffJson);
+      const diffOut = graphDiffToJson(diff);
+
+      expect(diffOut).toEqual(diffJson);
+    });
+
+    it("round-trips GraphDiffJson for nodes with parent field", () => {
+      const diffJson: GraphDiffJson = {
+        addedNodes: [{ id: "n3", parent: "n1", tags: ["C"], attributes: {} }],
+        addedEdges: [],
+        removedNodes: [],
+        removedEdges: []
       };
 
       const diff = createGraphDiff(diffJson);

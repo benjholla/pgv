@@ -36,4 +36,13 @@ describe('tagToClassName', () => {
     expect(tagToClassName('!@#$')).toBe('tag-untagged');
     expect(tagToClassName('---')).toBe('tag-untagged');
   });
+
+  it('evicts cache when exceeding 10,000 unique tags', () => {
+    for (let i = 0; i <= 10000; i++) {
+      tagToClassName(`cache-test-${i}`);
+    }
+    // Generating the 10,001st unique tag should trigger eviction.
+    const result = tagToClassName('cache-test-overflow');
+    expect(result).toBe('tag-cache-test-overflow');
+  });
 });
