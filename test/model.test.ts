@@ -454,5 +454,55 @@ describe("model", () => {
       const nextSnapshot = applyGraphDiff(baseSnapshot, diff, 2);
       expect(nextSnapshot.edges.get("e2")?.target).toBe("n3");
     });
+
+    it("throws when diff contains duplicate nodes directly", () => {
+      // Cannot use createGraphDiff directly because it throws, so we simulate the raw object
+      const diff: GraphDiffJson = {
+        addedNodes: [{ id: "n3" }, { id: "n3" }],
+        removedNodes: [],
+        removedEdges: []
+      };
+      // We must cast because applyGraphDiff expects the frozen GraphDiff interface
+      expect(() => applyGraphDiff(baseSnapshot, diff as any, 2)).toThrow(/duplicate node id/);
+    });
+
+    it("throws when diff contains duplicate edges directly", () => {
+      const diff: GraphDiffJson = {
+        addedEdges: [
+          { id: "e2", source: "n1", target: "n2" },
+          { id: "e2", source: "n1", target: "n2" }
+        ],
+        addedNodes: [],
+        removedNodes: [],
+        removedEdges: []
+      };
+      expect(() => applyGraphDiff(baseSnapshot, diff as any, 2)).toThrow(/duplicate edge id/);
+    });
+
+    it("throws when removing a node leaves an orphaned edge source", () => {
+      // Use a custom snapshot without parent dependencies to isolate the source edge error
+      const customBase = createGraphSnapshot({
+        graphId: "test-diff-source",
+        version: 1,
+        nodes: [{ id: "n1" }, { id: "n3" }],
+        edges: [{ id: "e2", source: "n1", target: "n3" }]
+      });
+      // e2 source n1 is removed, but e2 itself is not explicitly removed.
+      const diff = createGraphDiff({ removedNodes: ["n1"] });
+      expect(() => applyGraphDiff(customBase, diff, 2)).toThrow(/references missing source/);
+    });
+
+    it("throws when removing a node leaves an orphaned edge target", () => {
+      // Use a custom snapshot without parent dependencies to isolate the target edge error
+      const customBase = createGraphSnapshot({
+        graphId: "test-diff-target",
+        version: 1,
+        nodes: [{ id: "n1" }, { id: "n3" }],
+        edges: [{ id: "e2", source: "n1", target: "n3" }]
+      });
+      // n1->n3 edge exists. We remove n3, but not e2. e2's target is now missing.
+      const diff = createGraphDiff({ removedNodes: ["n3"] });
+      expect(() => applyGraphDiff(customBase, diff, 2)).toThrow(/references missing target/);
+    });
   });
 });
