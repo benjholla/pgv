@@ -547,17 +547,26 @@ function sanitizeString(value: string): string {
   if (typeof value !== "string") return value;
 
   // Basic XSS/script sanitization
-  // First decode HTML entities, as browsers process them before URL encoding
-  let clean = decodeHtmlEntities(value);
+  let clean = value;
 
-  // Then decode URL encoding, handling malformed sequences gracefully
-  clean = clean.replace(/%([0-9A-F]{2})/gi, (match) => {
-    try {
-      return decodeURIComponent(match);
-    } catch {
-      return match;
-    }
-  });
+  // Repeatedly decode HTML entities and URL encoding until no changes are made.
+  // This handles bypasses like double URL encoding or mixed entity/URL encoding.
+  let previousClean;
+  do {
+    previousClean = clean;
+
+    // First decode HTML entities, as browsers process them before URL encoding
+    clean = decodeHtmlEntities(clean);
+
+    // Then decode URL encoding, handling malformed sequences gracefully
+    clean = clean.replace(/%([0-9A-F]{2})/gi, (match) => {
+      try {
+        return decodeURIComponent(match);
+      } catch {
+        return match;
+      }
+    });
+  } while (clean !== previousClean);
 
   clean = clean.replace(/[\s\x00-\x1F]+/g, "").toLowerCase();
 
