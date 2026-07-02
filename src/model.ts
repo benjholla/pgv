@@ -543,8 +543,10 @@ function decodeHtmlEntities(text: string): string {
   });
 }
 
-function sanitizeString(value: string): string {
-  if (typeof value !== "string") return value;
+export function sanitizeString(value: string): string {
+  if (typeof value !== "string") {
+    throw new TypeError(`Expected string but received ${typeof value}`);
+  }
 
   // Basic XSS/script sanitization
   let clean = value;
