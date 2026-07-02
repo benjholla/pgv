@@ -318,24 +318,35 @@ export class GraphView {
   ): boolean {
     if (mode === "all") {
       if (valueMatcher(element.id)) return true;
-      if (element.tags.some(tag => valueMatcher(tag))) return true;
-      for (const [k, v] of Object.entries(element.attributes)) {
-        if (valueMatcher(k)) return true;
-        if (v !== null && typeof v !== 'object') {
-          if (valueMatcher(String(v))) return true;
+      for (let i = 0; i < element.tags.length; i++) {
+        if (valueMatcher(element.tags[i])) return true;
+      }
+      for (const k in element.attributes) {
+        if (Object.prototype.hasOwnProperty.call(element.attributes, k)) {
+          if (valueMatcher(k)) return true;
+          const v = element.attributes[k];
+          if (v !== null && typeof v !== 'object') {
+            if (valueMatcher(String(v))) return true;
+          }
         }
       }
       return false;
     } else if (mode === "id" || mode === `${type}-id`) {
       return valueMatcher(element.id);
     } else if (mode === `${type}-tag` || mode === "tag") {
-      return element.tags.some(tag => valueMatcher(tag));
+      for (let i = 0; i < element.tags.length; i++) {
+        if (valueMatcher(element.tags[i])) return true;
+      }
+      return false;
     } else if (mode === `${type}-attribute` || mode === "attribute") {
-      for (const [k, v] of Object.entries(element.attributes)) {
-        const keyMatch = !this.#searchKeyQuery || keyMatcher(k);
-        if (keyMatch) {
-          if (!this.#searchQuery) return true;
-          if (v !== null && typeof v !== 'object' && valueMatcher(String(v))) return true;
+      for (const k in element.attributes) {
+        if (Object.prototype.hasOwnProperty.call(element.attributes, k)) {
+          const v = element.attributes[k];
+          const keyMatch = !this.#searchKeyQuery || keyMatcher(k);
+          if (keyMatch) {
+            if (!this.#searchQuery) return true;
+            if (v !== null && typeof v !== 'object' && valueMatcher(String(v))) return true;
+          }
         }
       }
       return false;
@@ -1889,9 +1900,13 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
   const content = document.createElement("div");
   const title = document.createElement("div");
   const id = document.createElement("div");
-  const attributes = Object.entries(node.attributes).filter(
-    ([key]) => key !== "label" && key !== "name",
-  );
+
+  const attributes: [string, unknown][] = [];
+  for (const key in node.attributes) {
+    if (Object.prototype.hasOwnProperty.call(node.attributes, key) && key !== "label" && key !== "name") {
+      attributes.push([key, node.attributes[key]]);
+    }
+  }
 
   content.className = "pgv-node-content";
   title.className = "pgv-node-title";
