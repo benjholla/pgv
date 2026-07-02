@@ -34,6 +34,7 @@
     "preview:dynamic": "vite preview --config examples/vite-dynamic/vite.config.ts --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "bench": "vitest bench",
     "docs": "typedoc src/index.ts --out docs"
   },
   "keywords": [

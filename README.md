@@ -27,6 +27,10 @@ JSON Data -> Graph Snapshot -> Projection -> Layout -> View Rendering
 npm install @pgv/graph-core
 ```
 
+### Contributing
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, development environment setup, and the process for submitting pull requests to us.
+
 ### Basic Usage
 
 ```ts
