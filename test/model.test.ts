@@ -140,6 +140,7 @@ describe("model", () => {
             entityBypass: "&#x6A;avascript:alert(1)",
             urlEncodedBypass: "j%61vascript:alert(1)",
             entityUrlEncodedBypass: "j&#x25;61vascript:alert(1)",
+            doubleUrlEncodedBypass: "j%2561vascript:alert(1)",
             malformedUrlEncodedBypass: "j%61vascript:alert(1)//%FF",
             whitespaceBypass: "j\ta\nv\ra\ts\nc\rr\ti\np\rt\t:alert(1)",
             mixedCaseDataUri: "DaTa:TexT/HTmL;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="
@@ -162,6 +163,7 @@ describe("model", () => {
       expect(attrs.entityBypass).toBe("#blocked-uri");
       expect(attrs.urlEncodedBypass).toBe("#blocked-uri");
       expect(attrs.entityUrlEncodedBypass).toBe("#blocked-uri");
+      expect(attrs.doubleUrlEncodedBypass).toBe("#blocked-uri");
       expect(attrs.malformedUrlEncodedBypass).toBe("#blocked-uri");
       expect(attrs.whitespaceBypass).toBe("#blocked-uri");
       expect(attrs.mixedCaseDataUri).toBe("#blocked-uri");

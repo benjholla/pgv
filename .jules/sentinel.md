@@ -7,3 +7,7 @@
 **Vulnerability:** The internal `sanitizeString` function in `src/model.ts` was vulnerable to XSS filter evasion using URL encoded payloads (e.g., `j%61vascript:alert(1)`) and nested `<script>` tags (e.g., `<scr<script>ipt>alert(1)</script>`).
 **Learning:** Security controls that rely on simple string replacement and keyword blocklists can be bypassed if the input is not fully normalized first (e.g., handling URL encoding), or if the removal of forbidden patterns creates new forbidden patterns recursively (nested tags).
 **Prevention:** Always fully decode inputs (URL decoding, HTML entity decoding) before applying security checks. Use iterative or state-machine based removal to prevent nested pattern bypasses.
+## 2025-02-18 - [Fix] Iterative XSS payload sanitization
+**Vulnerability:** Double URL encoding (`j%2561vascript:`) bypasses the `sanitizeString` XSS check.
+**Learning:** Browsers process URL decoding multiple times during parsing. Sequential URL/HTML entity decoding without iterative verification allows attackers to stack encoding methods to circumvent basic filters.
+**Prevention:** Sanitization mechanisms that decode payloads must utilize a `do...while` loop to iteratively decode inputs until the string stabilizes, ensuring no hidden encoded sequences remain before applying security checks.
