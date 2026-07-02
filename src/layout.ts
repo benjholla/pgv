@@ -128,8 +128,8 @@ export function verticalLayout(
       continue;
     }
 
-    outgoing.get(edge.source)?.push(edge.target);
-    incomingCounts.set(edge.target, (incomingCounts.get(edge.target) ?? 0) + 1);
+    outgoing.get(edge.source)!.push(edge.target);
+    incomingCounts.set(edge.target, incomingCounts.get(edge.target)! + 1);
   }
 
   // Sort outgoing edges to guarantee deterministic traversal
@@ -252,7 +252,7 @@ function assignVerticalDepths(
   incomingCounts: ReadonlyMap<string, number>,
 ): ReadonlyMap<string, number> {
   const depths = new Map<string, number>();
-  const roots = nodeIds.filter((id) => (incomingCounts.get(id) ?? 0) === 0);
+  const roots = nodeIds.filter((id) => incomingCounts.get(id) === 0);
   const starts = roots.length > 0 ? roots : nodeIds.slice(0, 1);
 
   let currentMaxDepth = -1;
@@ -268,9 +268,7 @@ function assignVerticalDepths(
     if (!depths.has(id)) {
       const nextDepth = currentMaxDepth + 1;
       const maxDepthReached = visitComponent(id, nextDepth, outgoing, depths);
-      if (maxDepthReached > currentMaxDepth) {
-        currentMaxDepth = maxDepthReached;
-      }
+      currentMaxDepth = maxDepthReached;
     }
   }
 
@@ -286,21 +284,17 @@ function visitComponent(
   const queue: string[] = [startId];
   let maxDepthReached = startDepth;
 
-  if (!depths.has(startId)) {
-    depths.set(startId, startDepth);
-  } else {
-    maxDepthReached = depths.get(startId)!;
-  }
+  depths.set(startId, startDepth);
 
   for (let index = 0; index < queue.length; index += 1) {
     const sourceId = queue[index];
-    const sourceDepth = depths.get(sourceId) ?? startDepth;
+    const sourceDepth = depths.get(sourceId)!;
 
     if (sourceDepth > maxDepthReached) {
       maxDepthReached = sourceDepth;
     }
 
-    for (const targetId of outgoing.get(sourceId) ?? []) {
+    for (const targetId of outgoing.get(sourceId)!) {
       if (depths.has(targetId)) {
         continue;
       }
@@ -324,7 +318,7 @@ function groupByDepth(
   const layers = new Map<number, string[]>();
 
   for (const id of nodeIds) {
-    const depth = depths.get(id) ?? 0;
+    const depth = depths.get(id)!;
     const layer = layers.get(depth) ?? [];
 
     layer.push(id);
