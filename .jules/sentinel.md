@@ -11,3 +11,8 @@
 **Vulnerability:** Double URL encoding (`j%2561vascript:`) bypasses the `sanitizeString` XSS check.
 **Learning:** Browsers process URL decoding multiple times during parsing. Sequential URL/HTML entity decoding without iterative verification allows attackers to stack encoding methods to circumvent basic filters.
 **Prevention:** Sanitization mechanisms that decode payloads must utilize a `do...while` loop to iteratively decode inputs until the string stabilizes, ensuring no hidden encoded sequences remain before applying security checks.
+
+## 2025-02-18 - XSS Filter Evasion via Named HTML Entities
+**Vulnerability:** The internal `sanitizeString` function decoded numeric HTML entities (`&#x3A;`) but failed to decode named HTML entities (like `&colon;`, `&tab;`, `&newline;`). This allowed attackers to use payloads like `javascript&colon;alert(1)` to bypass the URI scheme blocklist. When inserted into the DOM (e.g., an `href` attribute), browsers automatically decode these named entities, resulting in script execution.
+**Learning:** Browsers implicitly decode named HTML entities inside attribute values during DOM rendering. Custom sanitization that inspects URIs for dangerous schemes must account for both numeric and named entity obfuscation.
+**Prevention:** To effectively prevent XSS filter evasion, `decodeHtmlEntities` must explicitly target and replace critical named entities (such as `&colon;`, `&tab;`, `&newline;` case-insensitively) in addition to numeric encoding *before* validation checks are applied.
