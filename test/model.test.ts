@@ -2,6 +2,42 @@ import { describe, it, expect } from "vitest";
 import { createGraphSnapshot, createGraphDiff, graphSnapshotToJson, applyGraphDiff, graphDiffToJson, GraphModelError, GraphSnapshotJson, GraphDiffJson, sanitizeString } from "../src/model";
 
 describe("model", () => {
+  describe("Domain Properties of Graph Model", () => {
+    it("Multi-graph Property: allows multiple directed edges between the exact same pair of nodes", () => {
+      const json: GraphSnapshotJson = {
+        graphId: "test-multigraph",
+        version: 1,
+        nodes: [{ id: "A" }, { id: "B" }],
+        edges: [
+          { id: "e1", source: "A", target: "B", tags: ["first"] },
+          { id: "e2", source: "A", target: "B", tags: ["second"] }
+        ]
+      };
+      const snapshot = createGraphSnapshot(json);
+      expect(snapshot.edges.size).toBe(2);
+      expect(snapshot.edges.get("e1")?.source).toBe("A");
+      expect(snapshot.edges.get("e1")?.target).toBe("B");
+      expect(snapshot.edges.get("e2")?.source).toBe("A");
+      expect(snapshot.edges.get("e2")?.target).toBe("B");
+    });
+
+    it("Self-loop Property: allows edges where source === target", () => {
+      const json: GraphSnapshotJson = {
+        graphId: "test-self-loop",
+        version: 1,
+        nodes: [{ id: "A" }],
+        edges: [
+          { id: "e1", source: "A", target: "A" }
+        ]
+      };
+      const snapshot = createGraphSnapshot(json);
+      expect(snapshot.edges.size).toBe(1);
+      const edge = snapshot.edges.get("e1");
+      expect(edge?.source).toBe("A");
+      expect(edge?.target).toBe("A");
+    });
+  });
+
   describe("createGraphSnapshot", () => {
     it("creates an empty snapshot successfully", () => {
       const json: GraphSnapshotJson = {
