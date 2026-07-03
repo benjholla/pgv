@@ -3,7 +3,7 @@
 ## What is this?
 Frontend-only graph visualization primitives for immutable attributed program-analysis graphs.
 
-This repository is the `graph-core` package described in the design notes. It owns the graph model, projection pipeline entry point, frontend layout, and HTML/SVG renderer. Host integrations such as Vue, VSCode, and Jupyter should stay thin and reuse this package.
+This repository is the `graph-core` package described in the design notes. It owns the graph model, frontend layout, and HTML/SVG renderer. Host integrations such as Vue, VSCode, and Jupyter should stay thin and reuse this package.
 
 ## Why does it exist?
 This project is designed to bridge the gap between complex external program-analysis systems and frontend visualization. By representing graphs as immutable snapshots and explicitly decoupling layout from logic, `@pgv/graph-core` guarantees stable, predictable rendering while making features like incremental rendering, historical diffs, and context projections dramatically simpler to build. It intentionally delegates heavy graph analysis to backends, acting strictly as a high-performance presentation layer.
@@ -102,7 +102,6 @@ npm run dev:dynamic &
 src/
   model.ts        Immutable graph and JSON transport types
   layout.ts       Frontend-owned vertical layout
-  projection.ts   Projection interface and identity projection
   renderer.ts     HTML nodes + SVG edges renderer
   style.css       Base graph visualization theme
 
