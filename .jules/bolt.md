@@ -17,3 +17,6 @@
 ## 2024-07-02 - Avoid Object.entries on Hot Paths
 **Learning:** In hot rendering and search loops, using `Object.entries()` creates unnecessary array allocations and garbage collection churn, which slows down the operation significantly compared to simple `for..in` loops.
 **Action:** Replace `Object.entries` with `for..in` (with `hasOwnProperty` check) when iterating over object properties in performance-critical paths like `#matchElement` and `defaultNodeContent` in `renderer.ts`.
+## 2024-07-03 - Avoid Multiple Object.entries Iterations in Data Transformation Loops
+**Learning:** Performing multiple `Object.entries()` loops on the same object inside hot paths (e.g. `freezeAttributes` generating graph snapshots) creates massive overhead by repeatedly allocating arrays for keys and values.
+**Action:** Replace multiple `Object.entries` passes with a single `for..in` loop (using `hasOwnProperty` check) to both validate and transform the object data in one pass, significantly reducing garbage collection and execution time.
