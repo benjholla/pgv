@@ -43,4 +43,10 @@ describe("layout performance", () => {
   bench("verticalLayout (mostly disconnected ~1k nodes)", () => {
     verticalLayout(disconnectedSnapshot);
   });
+
+  const wideData = generateDeepGraph(1, 10000); // 1 root, 10k branches
+  const wideSnapshot = createGraphSnapshot(wideData);
+  bench("verticalLayout (wide graph ~10k nodes)", () => {
+    verticalLayout(wideSnapshot);
+  });
 });

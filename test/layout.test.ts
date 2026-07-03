@@ -4,6 +4,84 @@ import { createGraphSnapshot, type GraphSnapshot } from "../src/model";
 
 describe("layout", () => {
   describe("verticalLayout", () => {
+    describe("Geometric and Topological Properties", () => {
+      it("Translation Invariance: Uniformly shifting margin shifts all coordinates by exact amount", () => {
+        const graph = createGraphSnapshot({
+          graphId: "test-trans",
+          version: 1,
+          nodes: [{ id: "A" }, { id: "B" }],
+          edges: [{ id: "e1", source: "A", target: "B" }]
+        });
+
+        const lay1 = verticalLayout(graph, { margin: 10 });
+        const lay2 = verticalLayout(graph, { margin: 110 });
+
+        const posA1 = lay1.positions.get("A")!;
+        const posB1 = lay1.positions.get("B")!;
+
+        const posA2 = lay2.positions.get("A")!;
+        const posB2 = lay2.positions.get("B")!;
+
+        expect(posA2.x - posA1.x).toBe(100);
+        expect(posA2.y - posA1.y).toBe(100);
+        expect(posB2.x - posB1.x).toBe(100);
+        expect(posB2.y - posB1.y).toBe(100);
+      });
+
+      it("Scale Monotonicity: Increasing spacing configurations strictly monotonically increases bounding box", () => {
+        const graph = createGraphSnapshot({
+          graphId: "test-scale",
+          version: 1,
+          nodes: [{ id: "A" }, { id: "B" }, { id: "C" }],
+          edges: [{ id: "e1", source: "A", target: "B" }, { id: "e2", source: "A", target: "C" }]
+        });
+
+        const laySmall = verticalLayout(graph, { nodeSpacing: 100, layerSpacing: 100 });
+        const layLarge = verticalLayout(graph, { nodeSpacing: 200, layerSpacing: 200 });
+
+        expect(layLarge.width).toBeGreaterThan(laySmall.width);
+        expect(layLarge.height).toBeGreaterThan(laySmall.height);
+      });
+
+      it("Conservation of Nodes: Layout explicitly assigns exactly one point per node, with no orphans", () => {
+        const graph = createGraphSnapshot({
+          graphId: "test-conserv",
+          version: 1,
+          nodes: [{ id: "A" }, { id: "B" }, { id: "C" }],
+          edges: [{ id: "e1", source: "A", target: "B" }]
+        });
+
+        const layout = verticalLayout(graph);
+        expect(layout.positions.size).toBe(3);
+        expect(Array.from(layout.positions.keys()).sort()).toEqual(["A", "B", "C"]);
+      });
+
+      it("Topological Ordering (DAG): Target nodes strictly fall vertically below source nodes in acyclic structures", () => {
+        const graph = createGraphSnapshot({
+          graphId: "test-topo",
+          version: 1,
+          nodes: [{ id: "A" }, { id: "B" }, { id: "C" }, { id: "D" }],
+          edges: [
+            { id: "e1", source: "A", target: "B" },
+            { id: "e2", source: "A", target: "C" },
+            { id: "e3", source: "B", target: "D" },
+            { id: "e4", source: "C", target: "D" }
+          ]
+        });
+
+        const layout = verticalLayout(graph);
+        const posA = layout.positions.get("A")!;
+        const posB = layout.positions.get("B")!;
+        const posC = layout.positions.get("C")!;
+        const posD = layout.positions.get("D")!;
+
+        expect(posB.y).toBeGreaterThan(posA.y);
+        expect(posC.y).toBeGreaterThan(posA.y);
+        expect(posD.y).toBeGreaterThan(posB.y);
+        expect(posD.y).toBeGreaterThan(posC.y);
+      });
+    });
+
     describe("Property and Edge Case Tests", () => {
       it("Determinism: layouts are identical regardless of input iteration order", () => {
         // Construct identical graphs but insert nodes/edges in different orders
