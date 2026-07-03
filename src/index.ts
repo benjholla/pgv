@@ -22,6 +22,8 @@ export {
   createGraphDiff,
   graphDiffToJson,
   applyGraphDiff,
+  decodeHtmlEntities,
+  sanitizeString,
 } from "./model";
 export type {
   LayoutSnapshot,

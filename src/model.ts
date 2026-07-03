@@ -535,7 +535,14 @@ function freezeAttributes(
 }
 
 
-function decodeHtmlEntities(text: string): string {
+/**
+ * Decodes HTML entities (both decimal and hexadecimal) in a given string
+ * into their corresponding characters.
+ *
+ * @param text The string containing HTML entities to decode.
+ * @returns The decoded string.
+ */
+export function decodeHtmlEntities(text: string): string {
   return text.replace(/&#(\d+);?/g, (match, dec) => {
     return String.fromCharCode(parseInt(dec, 10));
   }).replace(/&#x([0-9a-f]+);?/gi, (match, hex) => {
@@ -543,6 +550,19 @@ function decodeHtmlEntities(text: string): string {
   });
 }
 
+/**
+ * Safely sanitizes a string to prevent Cross-Site Scripting (XSS) attacks.
+ *
+ * This function handles complex bypass attempts (like double URL encoding or
+ * mixed entity/URL encoding) by repeatedly decoding HTML and URL entities
+ * until the string stabilizes. It strips out disallowed tags (e.g., `<script>`),
+ * removes control characters, and validates that no restricted URI schemes
+ * are present.
+ *
+ * @param value The string to sanitize.
+ * @returns The sanitized string safe for rendering.
+ * @throws {TypeError} If the input value is not a string.
+ */
 export function sanitizeString(value: string): string {
   if (typeof value !== "string") {
     throw new TypeError(`Expected string but received ${typeof value}`);
