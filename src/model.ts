@@ -543,11 +543,16 @@ function freezeAttributes(
  * @returns The decoded string.
  */
 export function decodeHtmlEntities(text: string): string {
-  return text.replace(/&#(\d+);?/g, (match, dec) => {
-    return String.fromCharCode(parseInt(dec, 10));
-  }).replace(/&#x([0-9a-f]+);?/gi, (match, hex) => {
-    return String.fromCharCode(parseInt(hex, 16));
-  });
+  return text
+    .replace(/&colon;/gi, ':')
+    .replace(/&tab;/gi, '\t')
+    .replace(/&newline;/gi, '\n')
+    .replace(/&#(\d+);?/g, (match, dec) => {
+      return String.fromCharCode(parseInt(dec, 10));
+    })
+    .replace(/&#x([0-9a-f]+);?/gi, (match, hex) => {
+      return String.fromCharCode(parseInt(hex, 16));
+    });
 }
 
 /**
