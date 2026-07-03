@@ -511,26 +511,29 @@ function freezeTags(tags: readonly string[] = []): readonly string[] {
 function freezeAttributes(
   attributes: Readonly<Record<string, AttributeValue>> = {},
 ): AttributeMap {
-  for (const [key, value] of Object.entries(attributes)) {
-    assertNonEmptyString(key, "attribute key");
+  const sanitizedAttributes: Record<string, AttributeValue> = {};
 
-    if (
-      value !== null &&
-      typeof value !== "string" &&
-      typeof value !== "number" &&
-      typeof value !== "boolean" &&
-      typeof value !== "bigint"
-    ) {
-      throw new GraphModelError(
-        `Attribute "${key}" has unsupported value type "${typeof value}".`,
-      );
+  for (const key in attributes) {
+    if (Object.prototype.hasOwnProperty.call(attributes, key)) {
+      assertNonEmptyString(key, "attribute key");
+
+      const value = attributes[key];
+      if (
+        value !== null &&
+        typeof value !== "string" &&
+        typeof value !== "number" &&
+        typeof value !== "boolean" &&
+        typeof value !== "bigint"
+      ) {
+        throw new GraphModelError(
+          `Attribute "${key}" has unsupported value type "${typeof value}".`,
+        );
+      }
+
+      sanitizedAttributes[key] = typeof value === "string" ? sanitizeString(value) : value;
     }
   }
 
-  const sanitizedAttributes: Record<string, AttributeValue> = {};
-  for (const [key, value] of Object.entries(attributes)) {
-    sanitizedAttributes[key] = typeof value === "string" ? sanitizeString(value) : value;
-  }
   return Object.freeze(sanitizedAttributes);
 }
 
