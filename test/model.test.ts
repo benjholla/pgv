@@ -436,6 +436,23 @@ describe("model", () => {
 
       expect(diffOut).toEqual(diffJson);
     });
+
+    it("Limitation: GraphSnapshot stores bigint, but native JSON.stringify throws a TypeError", () => {
+      const jsonWithBigInt: GraphSnapshotJson = {
+        graphId: "test-bigint",
+        version: 1,
+        nodes: [{ id: "n1", tags: [], attributes: { val: 42n as unknown as any } }],
+        edges: []
+      };
+
+      const snapshot = createGraphSnapshot(jsonWithBigInt);
+      expect(snapshot.nodes.get("n1")?.attributes.val).toBe(42n);
+
+      const snapshotJson = graphSnapshotToJson(snapshot);
+
+      // JSON.stringify natively throws TypeError on bigint if no replacer is provided
+      expect(() => JSON.stringify(snapshotJson)).toThrow(TypeError);
+    });
   });
 
   describe("applyGraphDiff", () => {
