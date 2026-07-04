@@ -4,8 +4,6 @@ export type {
   Graph,
   GraphEdge,
   GraphEdgeJson,
-  GraphElement,
-  GraphElementJson,
   GraphNode,
   GraphNodeJson,
   GraphSnapshot,
