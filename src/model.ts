@@ -468,8 +468,6 @@ export function createGraphDiff(input: GraphDiffJson): GraphDiff {
 }
 
 /**
-
-/**
  * Serializes a `GraphDiff` into a JSON-compatible object.
  *
  * @param diff The diff to serialize.

@@ -1,3 +1,7 @@
+/**
+ * Frontend-only graph visualization primitives for immutable attributed program-analysis graphs.
+ * @module @pgv/graph-core
+ */
 export type {
   AttributeMap,
   AttributeValue,
