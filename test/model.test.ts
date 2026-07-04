@@ -389,6 +389,32 @@ describe("model", () => {
     });
   });
 
+  describe("createGraphDiff properties", () => {
+    it("throws when addedNodes contains duplicate IDs", () => {
+      expect(() => createGraphDiff({
+        addedNodes: [{ id: "n1" }, { id: "n1" }]
+      })).toThrow(/duplicate node id/i);
+    });
+
+    it("throws when addedEdges contains duplicate IDs", () => {
+      expect(() => createGraphDiff({
+        addedEdges: [{ id: "e1", source: "a", target: "b" }, { id: "e1", source: "c", target: "d" }]
+      })).toThrow(/duplicate edge id/i);
+    });
+
+    it("throws when removedNodes contains duplicate IDs", () => {
+      expect(() => createGraphDiff({
+        removedNodes: ["n1", "n1"]
+      })).toThrow(/duplicate node id/i);
+    });
+
+    it("throws when removedEdges contains duplicate IDs", () => {
+      expect(() => createGraphDiff({
+        removedEdges: ["e1", "e1"]
+      })).toThrow(/duplicate edge id/i);
+    });
+  });
+
   describe("serialization and deserialization properties", () => {
     it("round-trips GraphSnapshotJson to GraphSnapshot and back", () => {
       const originalJson: GraphSnapshotJson = {
@@ -534,18 +560,18 @@ describe("model", () => {
       expect(nextSnapshot.edges.get("e2")?.target).toBe("n3");
     });
 
-    it("throws when diff contains duplicate nodes directly", () => {
-      // Cannot use createGraphDiff directly because it throws, so we simulate the raw object
+    it("throws when diff contains duplicate nodes directly in applyGraphDiff (safety fallback check)", () => {
+      // Simulate raw GraphDiff bypassing createGraphDiff to test applyGraphDiff's internal safety
       const diff: GraphDiffJson = {
         addedNodes: [{ id: "n3" }, { id: "n3" }],
         removedNodes: [],
         removedEdges: []
       };
-      // We must cast because applyGraphDiff expects the frozen GraphDiff interface
       expect(() => applyGraphDiff(baseSnapshot, diff as any, 2)).toThrow(/duplicate node id/);
     });
 
-    it("throws when diff contains duplicate edges directly", () => {
+    it("throws when diff contains duplicate edges directly in applyGraphDiff (safety fallback check)", () => {
+      // Simulate raw GraphDiff bypassing createGraphDiff to test applyGraphDiff's internal safety
       const diff: GraphDiffJson = {
         addedEdges: [
           { id: "e2", source: "n1", target: "n2" },

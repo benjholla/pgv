@@ -355,13 +355,40 @@ export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson 
  */
 export function createGraphDiff(input: GraphDiffJson): GraphDiff {
   const addedNodes = (input.addedNodes || []).map(normalizeNode);
+  const addedNodesIds = new Set<string>();
+  for (const node of addedNodes) {
+    if (addedNodesIds.has(node.id)) {
+      throw new GraphModelError(`Duplicate node id "${node.id}".`);
+    }
+    addedNodesIds.add(node.id);
+  }
+
   const addedEdges = (input.addedEdges || []).map(normalizeEdge);
-  const removedNodes = (input.removedNodes || []).map(id => {
+  const addedEdgesIds = new Set<string>();
+  for (const edge of addedEdges) {
+    if (addedEdgesIds.has(edge.id)) {
+      throw new GraphModelError(`Duplicate edge id "${edge.id}".`);
+    }
+    addedEdgesIds.add(edge.id);
+  }
+
+  const removedNodesIds = new Set<string>();
+  const removedNodes = (input.removedNodes || []).map((id) => {
     assertNonEmptyString(id, "removedNode id");
+    if (removedNodesIds.has(id)) {
+      throw new GraphModelError(`Duplicate node id "${id}".`);
+    }
+    removedNodesIds.add(id);
     return id;
   });
-  const removedEdges = (input.removedEdges || []).map(id => {
+
+  const removedEdgesIds = new Set<string>();
+  const removedEdges = (input.removedEdges || []).map((id) => {
     assertNonEmptyString(id, "removedEdge id");
+    if (removedEdgesIds.has(id)) {
+      throw new GraphModelError(`Duplicate edge id "${id}".`);
+    }
+    removedEdgesIds.add(id);
     return id;
   });
 
