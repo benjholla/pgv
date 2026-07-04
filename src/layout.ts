@@ -186,18 +186,6 @@ export function verticalLayout(
 }
 
 /**
- * Calculates the exact `(x, y)` connection points for a given edge based on the
- * layout of its source and target nodes.
- *
- * It uses the `nodeSize` from the layout snapshot to snap the endpoints to the
- * bottom-center of the source node and top-center of the target node, ensuring
- * edges do not draw over the node bodies in a vertical layout.
- *
- * @param edge The edge to calculate endpoints for.
- * @param layout The layout containing the positions of the connected nodes.
- * @returns The geometric endpoints for the edge, or null if the connected nodes are missing from the layout.
- */
-/**
  * Result of calculating the geometric endpoints for a rendered edge.
  */
 export interface EdgeEndpointsResult {
@@ -221,7 +209,7 @@ export interface EdgeEndpointsResult {
  *
  * @param edge The edge to calculate endpoints for.
  * @param layout The layout containing the positions of the connected nodes.
- * @returns The geometric endpoints for the edge, or null if the connected nodes are missing from the layout.
+ * @returns The geometric endpoints for the edge, or `null` if the connected nodes are missing from the layout.
  */
 export function edgeEndpoints(
   edge: GraphEdge,
