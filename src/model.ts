@@ -10,14 +10,17 @@ export type AttributeValue = string | number | boolean | bigint | null;
 export type AttributeMap = Readonly<Record<string, AttributeValue>>;
 
 /**
- * Represents the base properties of any element in a graph (nodes or edges).
- * Provides a unique identity, semantic tags, and a map of domain-specific attributes.
+ * Represents a single node within a graph.
  *
- * This interface exists to share common structural properties between nodes and edges.
+ * Nodes are the primary entities in a graph. The `parent` property allows nodes
+ * to represent hierarchical containment (compound graphs).
+ *
+ * **Invariants**:
+ * - If `parent` is defined, it must refer to a valid node ID existing in the same graph.
  */
-export interface GraphElement {
+export interface GraphNode {
   /**
-   * The globally unique identifier for this element within the graph.
+   * The globally unique identifier for this node within the graph.
    * Producer-assigned IDs are sacred and determine identity.
    */
   readonly id: string;
@@ -29,21 +32,10 @@ export interface GraphElement {
   readonly tags: readonly string[];
 
   /**
-   * Domain-specific metadata attached to this element.
+   * Domain-specific metadata attached to this node.
    */
   readonly attributes: AttributeMap;
-}
 
-/**
- * Represents a single node within a graph.
- *
- * Nodes are the primary entities in a graph. The `parent` property allows nodes
- * to represent hierarchical containment (compound graphs).
- *
- * **Invariants**:
- * - If `parent` is defined, it must refer to a valid node ID existing in the same graph.
- */
-export interface GraphNode extends GraphElement {
   /**
    * The optional ID of a parent node, used for representing hierarchical containment
    * in compound graphs.
@@ -60,7 +52,24 @@ export interface GraphNode extends GraphElement {
  * - `source` must refer to a valid node ID in the same graph.
  * - `target` must refer to a valid node ID in the same graph.
  */
-export interface GraphEdge extends GraphElement {
+export interface GraphEdge {
+  /**
+   * The globally unique identifier for this edge within the graph.
+   * Producer-assigned IDs are sacred and determine identity.
+   */
+  readonly id: string;
+
+  /**
+   * An immutable list of semantic tags (e.g., "back-edge", "true-branch").
+   * Tags are converted into CSS classes during rendering for styling.
+   */
+  readonly tags: readonly string[];
+
+  /**
+   * Domain-specific metadata attached to this edge.
+   */
+  readonly attributes: AttributeMap;
+
   /**
    * The ID of the node where this edge originates.
    */
@@ -112,16 +121,16 @@ export interface GraphSnapshot extends Graph {
 }
 
 /**
- * A JSON-serializable representation of a graph element's base properties.
+ * A JSON-serializable representation of a graph node.
  */
-export interface GraphElementJson {
+export interface GraphNodeJson {
   /**
-   * The unique identifier for this element.
+   * The unique identifier for this node.
    */
   readonly id: string;
 
   /**
-   * Optional semantic tags for the element.
+   * Optional semantic tags for the node.
    */
   readonly tags?: readonly string[];
 
@@ -129,12 +138,7 @@ export interface GraphElementJson {
    * Optional domain-specific metadata.
    */
   readonly attributes?: Readonly<Record<string, AttributeValue>>;
-}
 
-/**
- * A JSON-serializable representation of a graph node.
- */
-export interface GraphNodeJson extends GraphElementJson {
   /**
    * The optional ID of the parent node.
    */
@@ -144,7 +148,22 @@ export interface GraphNodeJson extends GraphElementJson {
 /**
  * A JSON-serializable representation of a directed graph edge.
  */
-export interface GraphEdgeJson extends GraphElementJson {
+export interface GraphEdgeJson {
+  /**
+   * The unique identifier for this edge.
+   */
+  readonly id: string;
+
+  /**
+   * Optional semantic tags for the edge.
+   */
+  readonly tags?: readonly string[];
+
+  /**
+   * Optional domain-specific metadata.
+   */
+  readonly attributes?: Readonly<Record<string, AttributeValue>>;
+
   /**
    * The ID of the node where this edge originates.
    */
