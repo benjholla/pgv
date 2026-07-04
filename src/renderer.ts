@@ -724,6 +724,11 @@ export class GraphView {
         } else {
           this.#executeSearch();
         }
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        this.#searchOpen = false;
+        this.#render();
       }
     };
 
@@ -899,6 +904,16 @@ export class GraphView {
     closeBtn.addEventListener("click", () => {
       this.#searchOpen = false;
       this.#render();
+    });
+
+    // allow Escape to close the search bar even when focus is inside the search inputs
+    bar.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation(); // prevent it from bubbling to the root
+        this.#searchOpen = false;
+        this.#render();
+      }
     });
 
     actionsContainer.appendChild(closeBtn);
@@ -1693,7 +1708,22 @@ export class GraphView {
     });
 
     element.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f") {
+        if (this.#options.useSearch) {
+          event.preventDefault();
+          this.#searchOpen = true; // Always open search panel on Ctrl+F, standard behavior
+          this.#render();
+          if (this.#searchInputRef) {
+            this.#searchInputRef.focus();
+          }
+        }
+      } else if (event.key === "Escape") {
+        if (this.#searchOpen) {
+          event.preventDefault();
+          this.#searchOpen = false;
+          this.#render();
+        }
+      } else if (event.key === "Enter" || event.key === " ") {
         const target = event.target as HTMLElement;
         const isGraphElement = target.closest(".pgv-graph-node") || target.closest(".pgv-graph-edge");
 
