@@ -21,3 +21,6 @@
 ## 2026-07-04 - Avoid intercepting global search shortcuts
 **Learning:** Implementing custom keyboard shortcuts like `Ctrl+F` inside an embedded component can conflict with standard browser or editor features, creating a frustrating experience. A user searching the broader page shouldn't get trapped by an embedded graph's internal search handler.
 **Action:** When creating embedded or reusable UI components, avoid aggressively binding to global shortcuts like `Ctrl+F` or `Escape` on the main container unless the component operates in a true fullscreen/app-like mode. Rely on on-screen toggles or scoped shortcuts instead.
+## 2024-07-04 - Keyboard Accessible Dropdowns
+**Learning:** Custom `div`-based dropdown menus require manual implementation of ARIA roles (`menu`, `menuitem`), `tabindex`, and keyboard event listeners (`keydown` for Enter/Space) to be fully accessible.
+**Action:** Always ensure custom interactive elements have proper roles and keyboard support.

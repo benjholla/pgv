@@ -1124,6 +1124,7 @@ export class GraphView {
 
       const dropdownMenu = document.createElement("div");
       dropdownMenu.className = "pgv-download-dropdown-menu";
+      dropdownMenu.setAttribute("role", "menu");
       if (this.#downloadDropdownOpen) {
         dropdownMenu.classList.add("open");
       }
@@ -1139,10 +1140,18 @@ export class GraphView {
       formats.forEach((format) => {
         const option = document.createElement("div");
         option.className = "pgv-dropdown-option";
+        option.setAttribute("role", "menuitem");
+        option.setAttribute("tabindex", "0");
         if (format === this.#downloadFormat) {
           option.classList.add("selected");
         }
         option.textContent = formatLabels[format];
+        option.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            option.click();
+          }
+        });
         option.addEventListener("click", () => {
           this.#downloadFormat = format;
           this.#downloadDropdownOpen = false;
