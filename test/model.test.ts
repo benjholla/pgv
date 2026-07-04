@@ -100,6 +100,22 @@ describe("model", () => {
       expect(() => createGraphSnapshot(json)).toThrow(/references missing parent/);
     });
 
+    it("handles schema object without containment property correctly", () => {
+      const json: GraphSnapshotJson = {
+        graphId: "test-schema-no-containment",
+        version: 1,
+        schema: {} as any,
+        nodes: [],
+        edges: []
+      };
+
+      const snapshot = createGraphSnapshot(json);
+      expect(snapshot.schema).toEqual({});
+
+      const outJson = graphSnapshotToJson(snapshot);
+      expect(outJson.schema).toEqual({});
+    });
+
     it("throws on missing source or target node reference", () => {
       expect(() => createGraphSnapshot({
         graphId: "test",
@@ -510,6 +526,40 @@ describe("model", () => {
 
       // JSON.stringify natively throws TypeError on bigint if no replacer is provided
       expect(() => JSON.stringify(snapshotJson)).toThrow(TypeError);
+    });
+
+    it("throws when an attribute has an unsupported value type", () => {
+      const attrs = Object.create({ inherited: 1 });
+      attrs.invalid = {} as any;
+      attrs.valid = "ok";
+
+      expect(() => createGraphSnapshot({
+        graphId: "test-attributes-object",
+        version: 1,
+        nodes: [{ id: "n1", tags: [], attributes: attrs }],
+        edges: []
+      })).toThrow(/unsupported value type/i);
+
+      expect(() => createGraphSnapshot({
+        graphId: "test-attributes-array",
+        version: 1,
+        nodes: [{ id: "n1", tags: [], attributes: { invalid: [] as any } }],
+        edges: []
+      })).toThrow(/unsupported value type/i);
+    });
+
+    it("ignores inherited attributes during sanitization", () => {
+      const attrs = Object.create({ inherited: 1 });
+      attrs.valid = "ok";
+
+      const snap = createGraphSnapshot({
+        graphId: "test-attributes-inherited",
+        version: 1,
+        nodes: [{ id: "n1", tags: [], attributes: attrs }],
+        edges: []
+      });
+      expect(snap.nodes.get("n1")?.attributes.inherited).toBeUndefined();
+      expect(snap.nodes.get("n1")?.attributes.valid).toBe("ok");
     });
   });
 
