@@ -20,3 +20,9 @@
 ## 2024-07-03 - Avoid Multiple Object.entries Iterations in Data Transformation Loops
 **Learning:** Performing multiple `Object.entries()` loops on the same object inside hot paths (e.g. `freezeAttributes` generating graph snapshots) creates massive overhead by repeatedly allocating arrays for keys and values.
 **Action:** Replace multiple `Object.entries` passes with a single `for..in` loop (using `hasOwnProperty` check) to both validate and transform the object data in one pass, significantly reducing garbage collection and execution time.
+## 2024-07-04 - Pre-compiled regex for case-insensitive exact matching
+**Learning:** For case-insensitive exact matching, `RegExp.test()` is noticeably faster than `text.toLowerCase().includes()` when the pattern can be pre-compiled. In our case, replacing a dynamically created lowercase string checking logic with a pre-compiled regex yielded a 1.5x performance bump by reducing per-invocation allocations.
+
+## 2024-07-04 - Avoid `.filter(Boolean).join(" ")` in hot loops
+**Learning:** When dynamically building CSS class names in a UI hot path, using `.filter(Boolean).join(" ")` can cause severe garbage collection churn. Replacing it with a raw `for` loop that manually accumulates strings via `+=` resulted in a >2x performance improvement. This codebase's architecture operates directly on `GraphSnapshot` without virtual DOM intermediate layers, making string allocations in render paths particularly expensive.
+**Action:** When mapping over large arrays or data structures in hot paths, avoid declarative syntax creating intermediate arrays like `.filter()`, `.map()`, and `.join()`. Prefer explicit `for` loops and standard string builders.

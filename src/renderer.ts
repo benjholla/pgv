@@ -301,11 +301,12 @@ export class GraphView {
       return (text: string) => text ? regex.test(text) : false;
     }
 
-    const q = caseSensitive ? query : query.toLowerCase();
     if (caseSensitive) {
-      return (text: string) => text ? text.includes(q) : false;
+      return (text: string) => text ? text.includes(query) : false;
     } else {
-      return (text: string) => text ? text.toLowerCase().includes(q) : false;
+      const escapedQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escapedQ, 'i');
+      return (text: string) => text ? regex.test(text) : false;
     }
   }
 
@@ -1974,5 +1975,16 @@ function attributeToText(value: AttributeValue): string {
 }
 
 function joinClassNames(...classNames: Array<string | undefined>): string {
-  return classNames.filter(Boolean).join(" ");
+  let result = "";
+  for (let i = 0; i < classNames.length; i++) {
+    const className = classNames[i];
+    if (className) {
+      if (result) {
+        result += " " + className;
+      } else {
+        result = className;
+      }
+    }
+  }
+  return result;
 }
