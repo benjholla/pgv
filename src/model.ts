@@ -78,6 +78,20 @@ export interface GraphEdge extends GraphElement {
  * This interface serves as the foundational mathematical representation of the graph,
  * disconnected from any specific versioning or rendering state.
  */
+export interface GraphSchema {
+  /**
+   * Tags that should be treated as containment relationships.
+   */
+  readonly containment?: readonly string[];
+}
+
+export interface GraphSchemaJson {
+  /**
+   * Tags that should be treated as containment relationships.
+   */
+  readonly containment?: readonly string[];
+}
+
 export interface Graph {
   /**
    * A read-only map of all nodes in the graph, keyed by their unique IDs.
@@ -88,6 +102,11 @@ export interface Graph {
    * A read-only map of all edges in the graph, keyed by their unique IDs.
    */
   readonly edges: ReadonlyMap<string, GraphEdge>;
+
+  /**
+   * Schema defining visualization semantics for the graph.
+   */
+  readonly schema?: GraphSchema;
 }
 
 /**
@@ -179,6 +198,11 @@ export interface GraphSnapshotJson {
    * The list of edges in this snapshot.
    */
   readonly edges: readonly GraphEdgeJson[];
+
+  /**
+   * Schema defining visualization semantics for the graph.
+   */
+  readonly schema?: GraphSchemaJson;
 }
 
 /**
@@ -212,6 +236,16 @@ export interface GraphDiff {
    * The list of edge IDs to remove from the graph.
    */
   readonly removedEdges: readonly string[];
+
+  /**
+   * Contains tags added to the containment schema.
+   */
+  readonly addedContainment: readonly string[];
+
+  /**
+   * Contains tags removed from the containment schema.
+   */
+  readonly removedContainment: readonly string[];
 }
 
 /**
@@ -237,6 +271,16 @@ export interface GraphDiffJson {
    * The list of edge IDs to remove.
    */
   readonly removedEdges?: readonly string[];
+
+  /**
+   * Contains tags added to the containment schema.
+   */
+  readonly addedContainment?: readonly string[];
+
+  /**
+   * Contains tags removed from the containment schema.
+   */
+  readonly removedContainment?: readonly string[];
 }
 
 /**
@@ -310,6 +354,7 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
     version: input.version,
     nodes,
     edges,
+    ...(input.schema && { schema: input.schema.containment ? { containment: Object.freeze([...input.schema.containment]) } : {} }),
   });
 }
 
@@ -324,6 +369,7 @@ export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson 
   return {
     graphId: snapshot.graphId,
     version: snapshot.version,
+    ...(snapshot.schema && { schema: { ...(snapshot.schema.containment && { containment: [...snapshot.schema.containment] }) } }),
     nodes: Array.from(snapshot.nodes.values(), (node) => {
       // We use a mutable type here to avoid spread operator allocations, then it gets implicitly cast.
       const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>>; parent?: string } = {
@@ -397,6 +443,8 @@ export function createGraphDiff(input: GraphDiffJson): GraphDiff {
     addedEdges: Object.freeze(addedEdges),
     removedNodes: Object.freeze(removedNodes),
     removedEdges: Object.freeze(removedEdges),
+    addedContainment: Object.freeze((input.addedContainment || []).map(t => { assertNonEmptyString(t, "addedContainment tag"); return t; })),
+    removedContainment: Object.freeze((input.removedContainment || []).map(t => { assertNonEmptyString(t, "removedContainment tag"); return t; })),
   });
 }
 
@@ -425,6 +473,8 @@ export function graphDiffToJson(diff: GraphDiff): GraphDiffJson {
     })),
     removedNodes: [...diff.removedNodes],
     removedEdges: [...diff.removedEdges],
+    ...(diff.addedContainment.length > 0 && { addedContainment: [...diff.addedContainment] }),
+    ...(diff.removedContainment.length > 0 && { removedContainment: [...diff.removedContainment] }),
   };
 }
 
@@ -447,6 +497,18 @@ export function applyGraphDiff(
 ): GraphSnapshot {
   const nodes = new Map<string, GraphNode>(snapshot.nodes);
   const edges = new Map<string, GraphEdge>(snapshot.edges);
+
+  let newSchema: GraphSchema | undefined = snapshot.schema;
+  if (diff.addedContainment.length > 0 || diff.removedContainment.length > 0) {
+    const currentContainment = new Set(snapshot.schema?.containment || []);
+    for (const tag of diff.removedContainment) {
+      currentContainment.delete(tag);
+    }
+    for (const tag of diff.addedContainment) {
+      currentContainment.add(tag);
+    }
+    newSchema = { ...newSchema, containment: Object.freeze(Array.from(currentContainment)) };
+  }
 
   for (const id of diff.removedEdges) {
     edges.delete(id);
@@ -494,6 +556,7 @@ export function applyGraphDiff(
     version: newVersion,
     nodes,
     edges,
+    ...(newSchema && { schema: newSchema }),
   });
 }
 
