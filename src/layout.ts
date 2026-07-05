@@ -159,12 +159,12 @@ export function verticalLayout(
     const startX = config.margin + (maxLayerWidth - layerWidth) / 2;
     const y = config.margin + depth * config.layerSpacing;
 
-    ids.forEach((id, index) => {
-      positions.set(id, {
-        x: startX + index * config.nodeSpacing,
+    for (let i = 0; i < ids.length; i++) {
+      positions.set(ids[i], {
+        x: startX + i * config.nodeSpacing,
         y,
       });
-    });
+    }
   }
 
   const layerCount = Math.max(1, layers.size);
