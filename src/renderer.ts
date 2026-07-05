@@ -670,13 +670,14 @@ export class GraphView {
       { value: "tag", label: "Element Tag" },
       { value: "attribute", label: "Element Attribute" }
     ];
-    modes.forEach(mode => {
+    for (let i = 0; i < modes.length; i++) {
+      const mode = modes[i];
       const option = document.createElement("option");
       option.value = mode.value;
       option.textContent = mode.label;
       if (mode.value === this.#searchMode) option.selected = true;
       select.appendChild(option);
-    });
+    }
 
     select.addEventListener("change", (e) => {
       this.#searchMode = (e.target as HTMLSelectElement).value as any;
@@ -1137,7 +1138,8 @@ export class GraphView {
       };
 
       const formats = ["svg", "png", "jpeg", "json"] as const;
-      formats.forEach((format) => {
+      for (let i = 0; i < formats.length; i++) {
+        const format = formats[i];
         const option = document.createElement("div");
         option.className = "pgv-dropdown-option";
         option.setAttribute("role", "menuitem");
@@ -1158,16 +1160,18 @@ export class GraphView {
           dropdownBtn.setAttribute("aria-expanded", "false");
           dropdownMenu.classList.remove("open");
           updateFormatLabel();
-          dropdownMenu.querySelectorAll(".pgv-dropdown-option").forEach(opt => {
+          const opts = dropdownMenu.querySelectorAll(".pgv-dropdown-option");
+          for (let i = 0; i < opts.length; i++) {
+            const opt = opts[i];
             if (opt.textContent === formatLabels[format]) {
               opt.classList.add("selected");
             } else {
               opt.classList.remove("selected");
             }
-          });
+          }
         });
         dropdownMenu.appendChild(option);
-      });
+      }
       downloadGroup.appendChild(dropdownMenu);
 
       dropdownBtn.addEventListener("click", (e) => {
@@ -1536,7 +1540,8 @@ export class GraphView {
       el.setAttribute("style", (el.getAttribute("style") || "") + ";" + styleStr);
     };
 
-    edgePaths.forEach((path) => {
+    for (let i = 0; i < edgePaths.length; i++) {
+      const path = edgePaths[i];
       const isSelected = path.parentElement?.classList.contains("pgv-selected");
       // Read specific path styles
       const pathStyle = window.getComputedStyle(path);
@@ -1549,9 +1554,10 @@ export class GraphView {
       const finalStrokeWidth = isSelected ? "3px" : (computedStrokeWidth || "2px");
 
       applyInlineStyle(path, `fill: transparent; stroke: ${finalStroke}; stroke-linecap: ${computedStrokeLinecap || "round"}; stroke-width: ${finalStrokeWidth};`);
-    });
+    }
 
-    edgeMarkers.forEach((path) => {
+    for (let i = 0; i < edgeMarkers.length; i++) {
+      const path = edgeMarkers[i];
       const isSelected = path.closest(".pgv-graph-edge")?.classList.contains("pgv-selected");
 
       const pathStyle = window.getComputedStyle(path);
@@ -1560,9 +1566,10 @@ export class GraphView {
       const finalFill = isSelected ? selectedColor : (computedFill !== "none" && computedFill ? computedFill : edgeColor);
 
       applyInlineStyle(path, `fill: ${finalFill}; stroke: none;`);
-    });
+    }
 
-    edgeLabels.forEach((text) => {
+    for (let i = 0; i < edgeLabels.length; i++) {
+      const text = edgeLabels[i];
       const textStyle = window.getComputedStyle(text);
       const computedFill = textStyle.getPropertyValue("fill");
       const computedStroke = textStyle.getPropertyValue("stroke");
@@ -1571,7 +1578,7 @@ export class GraphView {
       const finalStroke = computedStroke !== "none" && computedStroke ? computedStroke : labelBg;
 
       applyInlineStyle(text, `fill: ${finalFill}; stroke: ${finalStroke}; paint-order: stroke; stroke-width: 4px; font-size: 12px; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-anchor: middle; stroke-linejoin: round; pointer-events: none;`);
-    });
+    }
 
     try {
       let dataUrl: string;
@@ -1597,13 +1604,13 @@ export class GraphView {
       console.error("Failed to download graph image:", error);
     } finally {
       // Restore original styles
-      originalStyles.forEach((style, el) => {
+      for (const [el, style] of originalStyles) {
         if (style === null) {
           el.removeAttribute("style");
         } else {
           el.setAttribute("style", style);
         }
-      });
+      }
     }
   }
 
