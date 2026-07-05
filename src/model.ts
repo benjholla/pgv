@@ -703,6 +703,10 @@ export function sanitizeString(value: string): string {
     throw new TypeError(`Expected string but received ${typeof value}`);
   }
 
+  if (value.length > 100_000) {
+    throw new GraphModelError("String exceeds maximum allowed length to prevent denial of service.");
+  }
+
   // Basic XSS/script sanitization
   let clean = value;
 
