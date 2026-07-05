@@ -1,4 +1,4 @@
-import type { Graph, GraphEdge } from "./model";
+import type { GraphSnapshot, GraphEdge } from "./model";
 
 /**
  * Represents a 2D coordinate point.
@@ -109,7 +109,7 @@ const DEFAULT_VERTICAL_LAYOUT: Required<VerticalLayoutOptions> = {
  * @returns A computed `LayoutSnapshot` containing absolute coordinates for all nodes.
  */
 export function verticalLayout(
-  graph: Graph,
+  graph: GraphSnapshot,
   options: VerticalLayoutOptions = {},
 ): LayoutSnapshot {
   const config = { ...DEFAULT_VERTICAL_LAYOUT, ...options };

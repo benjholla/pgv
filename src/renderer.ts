@@ -1368,27 +1368,30 @@ export class GraphView {
       this.#applyViewport();
     };
 
-    const handlePointerDown = (e: MouseEvent) => {
-      if (e.button !== 0) return;
+    const handlePointerDown = (e: PointerEvent) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
       isDraggingMinimap = true;
+      minimap.setPointerCapture(e.pointerId);
       mapToViewport(e.clientX, e.clientY);
       e.stopPropagation(); // prevent pan Zoom events
     };
 
-    const handlePointerMove = (e: MouseEvent) => {
+    const handlePointerMove = (e: PointerEvent) => {
       if (!isDraggingMinimap) return;
       mapToViewport(e.clientX, e.clientY);
       e.stopPropagation();
     };
 
-    const handlePointerUp = () => {
+    const handlePointerUp = (e: PointerEvent) => {
       isDraggingMinimap = false;
+      minimap.releasePointerCapture(e.pointerId);
     };
 
-    minimap.addEventListener("mousedown", handlePointerDown, { signal: this.#minimapAbortController.signal });
-    // Bind to window to allow dragging outside the minimap area while tracking
-    window.addEventListener("mousemove", handlePointerMove, { signal: this.#minimapAbortController.signal });
-    window.addEventListener("mouseup", handlePointerUp, { signal: this.#minimapAbortController.signal });
+    minimap.addEventListener("pointerdown", handlePointerDown, { signal: this.#minimapAbortController.signal });
+    // Using pointermove/pointerup on the minimap, and relying on setPointerCapture to keep tracking
+    minimap.addEventListener("pointermove", handlePointerMove, { signal: this.#minimapAbortController.signal });
+    minimap.addEventListener("pointerup", handlePointerUp, { signal: this.#minimapAbortController.signal });
+    minimap.addEventListener("pointercancel", handlePointerUp, { signal: this.#minimapAbortController.signal });
   }
 
   #drawMinimap(canvas: HTMLCanvasElement): void {
@@ -1649,32 +1652,61 @@ export class GraphView {
   }
 
   #setupPanZoomEvents(viewport: HTMLElement, signal: AbortSignal): void {
-    let isDragging = false;
-    let lastX = 0;
-    let lastY = 0;
+    const activePointers = new Map<number, PointerEvent>();
+    let lastPanDistance = 0;
 
-    viewport.addEventListener("mousedown", (e) => {
-      if (e.button !== 0) return;
+    viewport.addEventListener("pointerdown", (e) => {
+      if (e.pointerType === "mouse" && e.button !== 0) return;
       if ((e.target as HTMLElement).closest(".pgv-graph-node, .pgv-graph-edge")) {
         return;
       }
-      isDragging = true;
-      lastX = e.clientX;
-      lastY = e.clientY;
+      viewport.setPointerCapture(e.pointerId);
+      activePointers.set(e.pointerId, e);
+
+      if (activePointers.size === 2) {
+        const pointers = Array.from(activePointers.values());
+        const dx = pointers[0].clientX - pointers[1].clientX;
+        const dy = pointers[0].clientY - pointers[1].clientY;
+        lastPanDistance = Math.hypot(dx, dy);
+      }
     }, { signal });
 
-    window.addEventListener("mousemove", (e) => {
-      if (!isDragging) return;
-      const dx = e.clientX - lastX;
-      const dy = e.clientY - lastY;
-      lastX = e.clientX;
-      lastY = e.clientY;
-      this.#pan(dx, dy);
+    viewport.addEventListener("pointermove", (e) => {
+      if (!activePointers.has(e.pointerId)) return;
+
+      const lastPointer = activePointers.get(e.pointerId)!;
+      activePointers.set(e.pointerId, e);
+
+      if (activePointers.size === 1) {
+        const dx = e.clientX - lastPointer.clientX;
+        const dy = e.clientY - lastPointer.clientY;
+        this.#pan(dx, dy);
+      } else if (activePointers.size === 2) {
+        const pointers = Array.from(activePointers.values());
+        const dx = pointers[0].clientX - pointers[1].clientX;
+        const dy = pointers[0].clientY - pointers[1].clientY;
+        const distance = Math.hypot(dx, dy);
+
+        // Calculate a reasonable delta for zooming based on pinch distance
+        if (lastPanDistance > 0) {
+           const zoomSpeed = 0.005; // adjust for sensitivity
+           const delta = (distance - lastPanDistance) * zoomSpeed;
+           this.#zoom(delta);
+        }
+        lastPanDistance = distance;
+      }
     }, { signal });
 
-    window.addEventListener("mouseup", () => {
-      isDragging = false;
-    }, { signal });
+    const handlePointerUp = (e: PointerEvent) => {
+      activePointers.delete(e.pointerId);
+      if (activePointers.size < 2) {
+        lastPanDistance = 0;
+      }
+      viewport.releasePointerCapture(e.pointerId);
+    };
+
+    viewport.addEventListener("pointerup", handlePointerUp, { signal });
+    viewport.addEventListener("pointercancel", handlePointerUp, { signal });
 
     viewport.addEventListener("wheel", (e) => {
       e.preventDefault();
