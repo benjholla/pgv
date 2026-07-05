@@ -8,4 +8,9 @@ describe("sanitizeString XSS named entities bypass", () => {
     expect(sanitizeString("javascript&NewLine;&colon;alert(1)")).toBe("#blocked-uri");
     expect(sanitizeString("JaVaScRiPt&CoLoN;alert(1)")).toBe("#blocked-uri");
   });
+
+  it("blocks javascript URIs when obfuscated using mutation XSS (tag stripping)", () => {
+    expect(sanitizeString("javascr<script>ipt:alert(1)")).toBe("#blocked-uri");
+    expect(sanitizeString("java<script>script&colon;alert(1)")).toBe("#blocked-uri");
+  });
 });
