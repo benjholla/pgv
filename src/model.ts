@@ -2,7 +2,24 @@
  * Represents a primitive value that can be assigned to an attribute on a graph element.
  * Supported types include strings, booleans, and specific object wrappers for integers, floats, and bytes.
  */
-export type AttributeValue = string | boolean | { integer: number } | { float: number } | { bytes: string };
+export type AttributeValue =
+  | string
+  | boolean
+  /** Represents a signed integer to avoid JavaScript floating-point ambiguity. */
+  | {
+      /** The signed integer value. */
+      integer: number;
+    }
+  /** Represents a floating-point number. */
+  | {
+      /** The floating-point value. */
+      float: number;
+    }
+  /** Represents a base64 encoded byte array. */
+  | {
+      /** The base64 encoded byte string. */
+      bytes: string;
+    };
 
 /**
  * An immutable key-value map representing domain-specific data attached to a graph element.
@@ -94,6 +111,9 @@ export interface GraphSchema {
   readonly containment?: readonly string[];
 }
 
+/**
+ * JSON serialization representation of a graph schema.
+ */
 export interface GraphSchemaJson {
   /**
    * Tags that should be treated as containment relationships.
