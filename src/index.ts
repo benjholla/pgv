@@ -5,7 +5,6 @@
 export type {
   AttributeMap,
   AttributeValue,
-  Graph,
   GraphEdge,
   GraphEdgeJson,
   GraphNode,

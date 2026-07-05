@@ -101,7 +101,16 @@ export interface GraphSchemaJson {
   readonly containment?: readonly string[];
 }
 
-export interface Graph {
+/**
+ * Represents a specific, immutable point-in-time version of a graph.
+ *
+ * Since graphs are immutable in this library, any changes to a graph result
+ * in a new `GraphSnapshot` with an updated `version`.
+ *
+ * **Usage**: Use this type when interacting with the renderer or layout engines,
+ * as it ensures the data cannot be mutated out-from-under the view state.
+ */
+export interface GraphSnapshot {
   /**
    * A read-only map of all nodes in the graph, keyed by their unique IDs.
    */
@@ -116,18 +125,7 @@ export interface Graph {
    * Schema defining visualization semantics for the graph.
    */
   readonly schema?: GraphSchema;
-}
 
-/**
- * Represents a specific, immutable point-in-time version of a graph.
- *
- * Since graphs are immutable in this library, any changes to a graph result
- * in a new `GraphSnapshot` with an updated `version`.
- *
- * **Usage**: Use this type when interacting with the renderer or layout engines,
- * as it ensures the data cannot be mutated out-from-under the view state.
- */
-export interface GraphSnapshot extends Graph {
   /**
    * The unique identifier for the entire logical graph series.
    */
