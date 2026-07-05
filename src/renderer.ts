@@ -1917,14 +1917,14 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
 
   const attributes: [string, AttributeValue][] = [];
   for (const key in node.attributes) {
-    if (Object.prototype.hasOwnProperty.call(node.attributes, key) && key !== "label" && key !== "name") {
+    if (Object.prototype.hasOwnProperty.call(node.attributes, key)) {
       attributes.push([key, node.attributes[key]]);
     }
   }
 
   content.className = "pgv-node-content";
   title.className = "pgv-node-title";
-  title.textContent = attributeToText(node.attributes.label ?? node.attributes.name ?? node.id);
+  title.textContent = node.id;
   id.className = "pgv-node-id";
   id.textContent = node.id;
 
@@ -1951,9 +1951,7 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
 }
 
 function defaultEdgeLabel(edge: GraphEdge): string | null {
-  const label = edge.attributes.label ?? edge.attributes.condition;
-
-  return label === undefined ? null : attributeToText(label);
+  return null;
 }
 
 function createArrowMarker(markerId: string): SVGDefsElement {
@@ -1976,10 +1974,11 @@ function createArrowMarker(markerId: string): SVGDefsElement {
 }
 
 function attributeToText(value: AttributeValue): string {
-  if (typeof value === "bigint") {
-    return value.toString();
+  if (typeof value === "object" && value !== null) {
+    if ("integer" in value) return String(value.integer);
+    if ("float" in value) return String(value.float);
+    if ("bytes" in value) return `[bytes: ${value.bytes}]`;
   }
-
   return String(value);
 }
 

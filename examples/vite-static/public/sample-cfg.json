@@ -15,7 +15,7 @@
       "tags": [],
       "attributes": {
         "label": "Initialize i = 0",
-        "line": 3
+        "line": { "integer": 3 }
       }
     },
     {
@@ -23,7 +23,7 @@
       "tags": ["decision", "loop"],
       "attributes": {
         "label": "i < n?",
-        "line": 4
+        "line": { "integer": 4 }
       }
     },
     {
@@ -31,7 +31,7 @@
       "tags": [],
       "attributes": {
         "label": "sum += values[i]",
-        "line": 5
+        "line": { "integer": 5 }
       }
     },
     {
@@ -39,7 +39,7 @@
       "tags": ["loop"],
       "attributes": {
         "label": "i++",
-        "line": 6
+        "line": { "integer": 6 }
       }
     },
     {
@@ -47,7 +47,7 @@
       "tags": ["exit"],
       "attributes": {
         "label": "Return sum",
-        "line": 8
+        "line": { "integer": 8 }
       }
     }
   ],

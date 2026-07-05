@@ -1,8 +1,8 @@
 /**
  * Represents a primitive value that can be assigned to an attribute on a graph element.
- * Supported types include strings, numbers, booleans, bigints, and null.
+ * Supported types include strings, booleans, and specific object wrappers for integers, floats, and bytes.
  */
-export type AttributeValue = string | number | boolean | bigint | null;
+export type AttributeValue = string | boolean | { integer: number } | { float: number } | { bytes: string };
 
 /**
  * An immutable key-value map representing domain-specific data attached to a graph element.
@@ -625,19 +625,39 @@ function freezeAttributes(
       assertNonEmptyString(key, "attribute key");
 
       const value = attributes[key];
-      if (
-        value !== null &&
-        typeof value !== "string" &&
-        typeof value !== "number" &&
-        typeof value !== "boolean" &&
-        typeof value !== "bigint"
-      ) {
+
+      let isValid = false;
+      if (typeof value === "string" || typeof value === "boolean") {
+        isValid = true;
+      } else if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+        const keys = Object.keys(value);
+        if (keys.length === 1) {
+          const innerKey = keys[0];
+          if (innerKey === "integer" && typeof (value as any).integer === "number") isValid = true;
+          else if (innerKey === "float" && typeof (value as any).float === "number") isValid = true;
+          else if (innerKey === "bytes" && typeof (value as any).bytes === "string") isValid = true;
+        }
+      }
+
+      if (!isValid) {
         throw new GraphModelError(
-          `Attribute "${key}" has unsupported value type "${typeof value}".`,
+          `Attribute "${key}" has unsupported value type.`,
         );
       }
 
-      sanitizedAttributes[key] = typeof value === "string" ? sanitizeString(value) : value;
+      if (typeof value === "string") {
+        sanitizedAttributes[key] = sanitizeString(value);
+      } else if (typeof value === "object" && value !== null) {
+        if ("bytes" in value) {
+          sanitizedAttributes[key] = Object.freeze({ bytes: sanitizeString((value as any).bytes) });
+        } else if ("integer" in value) {
+          sanitizedAttributes[key] = Object.freeze({ integer: (value as any).integer });
+        } else if ("float" in value) {
+          sanitizedAttributes[key] = Object.freeze({ float: (value as any).float });
+        }
+      } else {
+        sanitizedAttributes[key] = value;
+      }
     }
   }
 
