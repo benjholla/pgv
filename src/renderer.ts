@@ -1976,10 +1976,11 @@ function createArrowMarker(markerId: string): SVGDefsElement {
 }
 
 function attributeToText(value: AttributeValue): string {
-  if (typeof value === "bigint") {
-    return value.toString();
+  if (typeof value === "object" && value !== null) {
+    if ("integer" in value) return String(value.integer);
+    if ("float" in value) return String(value.float);
+    if ("bytes" in value) return `[bytes: ${value.bytes}]`;
   }
-
   return String(value);
 }
 

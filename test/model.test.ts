@@ -58,7 +58,7 @@ describe("model", () => {
         graphId: "test-2",
         version: "v1",
         nodes: [
-          { id: "n1", tags: ["A"], attributes: { val: 1 } },
+          { id: "n1", tags: ["A"], attributes: { val: { integer: 1 } } },
           { id: "n2", parent: "n1", attributes: { active: true } }
         ],
         edges: [
@@ -71,7 +71,7 @@ describe("model", () => {
 
       const n1 = snapshot.nodes.get("n1");
       expect(n1?.tags).toEqual(["A"]);
-      expect(n1?.attributes).toEqual({ val: 1 });
+      expect(n1?.attributes).toEqual({ val: { integer: 1 } });
 
       const e1 = snapshot.edges.get("e1");
       expect(e1?.source).toBe("n1");
@@ -330,7 +330,7 @@ describe("model", () => {
       graphId: "test-algebraic",
       version: 1,
       nodes: [
-        { id: "n1", tags: ["A"], attributes: { val: 1 } },
+        { id: "n1", tags: ["A"], attributes: { val: { integer: 1 } } },
         { id: "n2", parent: "n1", tags: [], attributes: {} }
       ],
       edges: [
@@ -453,7 +453,7 @@ describe("model", () => {
         graphId: "test-roundtrip",
         version: 42,
         nodes: [
-          { id: "n1", tags: ["A"], attributes: { a: 1, b: "string", c: true, d: null } },
+          { id: "n1", tags: ["A"], attributes: { a: { integer: 1 }, b: "string", c: true } },
           { id: "n2", parent: "n1", tags: [], attributes: {} }
         ],
         edges: [
@@ -495,21 +495,25 @@ describe("model", () => {
       expect(diffOut).toEqual(diffJson);
     });
 
-    it("Limitation: GraphSnapshot stores bigint, but native JSON.stringify throws a TypeError", () => {
-      const jsonWithBigInt: GraphSnapshotJson = {
-        graphId: "test-bigint",
+    it("correctly validates and parses float, integer, and bytes", () => {
+      const validJson: GraphSnapshotJson = {
+        graphId: "test-types",
         version: 1,
-        nodes: [{ id: "n1", tags: [], attributes: { val: 42n as unknown as any } }],
+        nodes: [{
+          id: "n1", tags: [], attributes: {
+            i: { integer: 42 },
+            f: { float: 3.14 },
+            b: { bytes: "base64" }
+          }
+        }],
         edges: []
       };
 
-      const snapshot = createGraphSnapshot(jsonWithBigInt);
-      expect(snapshot.nodes.get("n1")?.attributes.val).toBe(42n);
-
-      const snapshotJson = graphSnapshotToJson(snapshot);
-
-      // JSON.stringify natively throws TypeError on bigint if no replacer is provided
-      expect(() => JSON.stringify(snapshotJson)).toThrow(TypeError);
+      const snapshot = createGraphSnapshot(validJson);
+      const attrs = snapshot.nodes.get("n1")!.attributes;
+      expect(attrs.i).toEqual({ integer: 42 });
+      expect(attrs.f).toEqual({ float: 3.14 });
+      expect(attrs.b).toEqual({ bytes: "base64" });
     });
   });
 
