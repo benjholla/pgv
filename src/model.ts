@@ -707,8 +707,22 @@ export function sanitizeString(value: string): string {
     throw new GraphModelError("String exceeds maximum allowed length to prevent denial of service.");
   }
 
-  // Basic XSS/script sanitization
-  let clean = value;
+  // Strip <script> tags (iterative to prevent nested bypasses like <scr<script>ipt>)
+  let sanitized = value;
+  let previous;
+  do {
+    previous = sanitized;
+    sanitized = sanitized.replace(/<\/?script\b[^>]*>/gi, "");
+  } while (sanitized !== previous);
+
+  // Strip inline event handlers (on*)
+  sanitized = sanitized.replace(/\bon[a-z]+\s*=/gi, "data-blocked=");
+
+  // Strip CSS expressions
+  sanitized = sanitized.replace(/expression\s*\(/gi, "blocked-expr(");
+
+  // Basic XSS/script sanitization on the stripped payload
+  let clean = sanitized;
 
   // Repeatedly decode HTML entities and URL encoding until no changes are made.
   // This handles bypasses like double URL encoding or mixed entity/URL encoding.
@@ -735,20 +749,6 @@ export function sanitizeString(value: string): string {
   if (clean.includes("javascript:") || clean.includes("vbscript:") || clean.includes("data:text/html")) {
     return "#blocked-uri";
   }
-
-  // Strip <script> tags (iterative to prevent nested bypasses like <scr<script>ipt>)
-  let sanitized = value;
-  let previous;
-  do {
-    previous = sanitized;
-    sanitized = sanitized.replace(/<\/?script\b[^>]*>/gi, "");
-  } while (sanitized !== previous);
-
-  // Strip inline event handlers (on*)
-  sanitized = sanitized.replace(/\bon[a-z]+\s*=/gi, "data-blocked=");
-
-  // Strip CSS expressions
-  sanitized = sanitized.replace(/expression\s*\(/gi, "blocked-expr(");
 
   return sanitized;
 }
