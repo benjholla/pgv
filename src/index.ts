@@ -10,6 +10,8 @@ export type {
   GraphEdgeJson,
   GraphNode,
   GraphNodeJson,
+  GraphSchema,
+  GraphSchemaJson,
   GraphSnapshot,
   GraphSnapshotJson,
 } from "./model";
