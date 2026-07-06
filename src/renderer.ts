@@ -1673,9 +1673,11 @@ export class GraphView {
       activePointers.set(e.pointerId, e);
 
       if (activePointers.size === 2) {
-        const pointers = Array.from(activePointers.values());
-        const dx = pointers[0].clientX - pointers[1].clientX;
-        const dy = pointers[0].clientY - pointers[1].clientY;
+        const iter = activePointers.values();
+        const p1 = iter.next().value!;
+        const p2 = iter.next().value!;
+        const dx = p1.clientX - p2.clientX;
+        const dy = p1.clientY - p2.clientY;
         lastPanDistance = Math.hypot(dx, dy);
       }
     }, { signal });
@@ -1691,9 +1693,11 @@ export class GraphView {
         const dy = e.clientY - lastPointer.clientY;
         this.#pan(dx, dy);
       } else if (activePointers.size === 2) {
-        const pointers = Array.from(activePointers.values());
-        const dx = pointers[0].clientX - pointers[1].clientX;
-        const dy = pointers[0].clientY - pointers[1].clientY;
+        const iter = activePointers.values();
+        const p1 = iter.next().value!;
+        const p2 = iter.next().value!;
+        const dx = p1.clientX - p2.clientX;
+        const dy = p1.clientY - p2.clientY;
         const distance = Math.hypot(dx, dy);
 
         // Calculate a reasonable delta for zooming based on pinch distance
