@@ -589,6 +589,23 @@ describe("model", () => {
     });
   });
 
+    it("preserves the schema when applying a diff", () => {
+      const baseWithSchema = createGraphSnapshot({
+        graphId: "test-schema",
+        version: 1,
+        schema: { containment: ["tag-a"] },
+        nodes: [],
+        edges: []
+      });
+
+      const diff = createGraphDiff({
+        addedNodes: [{ id: "n1" }]
+      });
+
+      const nextSnapshot = applyGraphDiff(baseWithSchema, diff, 2);
+      expect(nextSnapshot.schema).toEqual({ containment: ["tag-a"] });
+    });
+
   describe("applyGraphDiff", () => {
     const baseSnapshot = createGraphSnapshot({
       graphId: "test-diff",
