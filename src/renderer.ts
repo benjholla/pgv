@@ -1263,8 +1263,34 @@ export class GraphView {
     return button;
   }
 
-  #zoom(delta: number): void {
-    this.#viewportState.scale = Math.max(0.1, this.#viewportState.scale + delta);
+  #zoom(delta: number, cx?: number, cy?: number): void {
+    const viewport = this.container.querySelector<HTMLElement>(`.${PGV_VIEWPORT_CLASS}`);
+    if (!this.#layout || !viewport) {
+      this.#viewportState.scale = Math.max(0.1, this.#viewportState.scale + delta);
+      this.#applyViewport();
+      return;
+    }
+
+    const rect = viewport.getBoundingClientRect();
+    const zoomCenterX = cx ?? (rect.width / 2);
+    const zoomCenterY = cy ?? (rect.height / 2);
+
+    const oldScale = this.#viewportState.scale;
+    const newScale = Math.max(0.1, oldScale + delta);
+
+    const logicalX = (zoomCenterX - this.#viewportState.x) / oldScale;
+    const logicalY = (zoomCenterY - this.#viewportState.y) / oldScale;
+
+    const clampedLogicalX = Math.max(0, Math.min(logicalX, this.#layout.width));
+    const clampedLogicalY = Math.max(0, Math.min(logicalY, this.#layout.height));
+
+    const physicalX = clampedLogicalX * oldScale + this.#viewportState.x;
+    const physicalY = clampedLogicalY * oldScale + this.#viewportState.y;
+
+    this.#viewportState.scale = newScale;
+    this.#viewportState.x = physicalX - clampedLogicalX * newScale;
+    this.#viewportState.y = physicalY - clampedLogicalY * newScale;
+
     this.#applyViewport();
   }
 
@@ -1704,7 +1730,10 @@ export class GraphView {
         if (lastPanDistance > 0) {
            const zoomSpeed = 0.005; // adjust for sensitivity
            const delta = (distance - lastPanDistance) * zoomSpeed;
-           this.#zoom(delta);
+           const rect = viewport.getBoundingClientRect();
+           const cx = (p1.clientX + p2.clientX) / 2 - rect.left;
+           const cy = (p1.clientY + p2.clientY) / 2 - rect.top;
+           this.#zoom(delta, cx, cy);
         }
         lastPanDistance = distance;
       }
@@ -1724,7 +1753,10 @@ export class GraphView {
     viewport.addEventListener("wheel", (e) => {
       e.preventDefault();
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
-      this.#zoom(delta);
+      const rect = viewport.getBoundingClientRect();
+      const cx = e.clientX - rect.left;
+      const cy = e.clientY - rect.top;
+      this.#zoom(delta, cx, cy);
     }, { passive: false, signal });
   }
 
