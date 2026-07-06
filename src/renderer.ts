@@ -1780,7 +1780,8 @@ export class GraphView {
 /**
  * A convenience function to instantiate and mount a `GraphView` into a given container.
  *
- * @deprecated Instantiate `GraphView` directly instead (`new GraphView(container, options)`).
+ * This is the recommended entry point for integrating the graph visualization
+ * into a host application.
  *
  * @param container The DOM element to attach the graph view to.
  * @param graph The initial snapshot to render.
