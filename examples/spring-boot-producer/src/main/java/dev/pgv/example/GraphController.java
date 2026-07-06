@@ -12,6 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/graphs")
 @CrossOrigin(origins = {"http://localhost:5173", "http://127.0.0.1:5173"})
 public class GraphController {
+    @GetMapping("/cfg-main/schema")
+    public GraphSchema cfgMainSchema() {
+        return new GraphSchema(List.of("contains"));
+    }
+
     @GetMapping("/cfg-main")
     public GraphSnapshot cfgMain() {
         return new GraphSnapshot(
@@ -83,6 +88,11 @@ public class GraphController {
         String target,
         List<String> tags,
         Map<String, Object> attributes
+    ) {
+    }
+
+    record GraphSchema(
+        List<String> containment
     ) {
     }
 }
