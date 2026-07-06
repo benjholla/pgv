@@ -1,5 +1,5 @@
 import { edgeEndpoints, verticalLayout, type LayoutSnapshot, type VerticalLayoutOptions } from "./layout";
-import type { AttributeValue, GraphEdge, GraphNode, GraphSnapshot } from "./model";
+import type { AttributeValue, GraphEdge, GraphNode, GraphSchema, GraphSnapshot } from "./model";
 import { toSvg, toPng, toJpeg } from "html-to-image";
 
 let markerIdSequence = 0;
@@ -137,6 +137,7 @@ export class GraphView {
    */
   readonly container: HTMLElement;
 
+  readonly #schema: GraphSchema;
   #options: GraphViewOptions;
   #graph: GraphSnapshot | null = null;
   #layout: LayoutSnapshot | null = null;
@@ -171,8 +172,9 @@ export class GraphView {
   #searchKeyInputRef: HTMLInputElement | null = null;
   #updateSearchUI: (() => void) | null = null;
 
-  constructor(container: HTMLElement, options: GraphViewOptions = {}) {
+  constructor(container: HTMLElement, schema: GraphSchema, options: GraphViewOptions = {}) {
     this.container = container;
+    this.#schema = schema;
     this.#options = options;
     this.#currentTheme = options.theme ?? "auto";
   }
@@ -1784,16 +1786,18 @@ export class GraphView {
  * into a host application.
  *
  * @param container The DOM element to attach the graph view to.
+ * @param schema The fixed visual semantics schema for this graph view.
  * @param graph The initial snapshot to render.
  * @param options Configuration for layout, interactions, and features.
  * @returns An active `GraphView` controller instance.
  */
 export function renderGraph(
   container: HTMLElement,
+  schema: GraphSchema,
   graph: GraphSnapshot,
   options: GraphViewOptions = {},
 ): GraphView {
-  const view = new GraphView(container, options);
+  const view = new GraphView(container, schema, options);
   view.setGraph(graph);
   return view;
 }
