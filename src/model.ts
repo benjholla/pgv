@@ -142,11 +142,6 @@ export interface GraphSnapshot {
   readonly edges: ReadonlyMap<string, GraphEdge>;
 
   /**
-   * Schema defining visualization semantics for the graph.
-   */
-  readonly schema?: GraphSchema;
-
-  /**
    * The unique identifier for the entire logical graph series.
    */
   readonly graphId: string;
@@ -235,11 +230,6 @@ export interface GraphSnapshotJson {
    * The list of edges in this snapshot.
    */
   readonly edges: readonly GraphEdgeJson[];
-
-  /**
-   * Schema defining visualization semantics for the graph.
-   */
-  readonly schema?: GraphSchemaJson;
 }
 
 /**
@@ -373,7 +363,6 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
     version: input.version,
     nodes,
     edges,
-    ...(input.schema && { schema: input.schema.containment ? { containment: Object.freeze([...input.schema.containment]) } : {} }),
   });
 }
 
@@ -388,7 +377,6 @@ export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson 
   return {
     graphId: snapshot.graphId,
     version: snapshot.version,
-    ...(snapshot.schema && { schema: { ...(snapshot.schema.containment && { containment: [...snapshot.schema.containment] }) } }),
     nodes: Array.from(snapshot.nodes.values(), (node) => {
       // We use a mutable type here to avoid spread operator allocations, then it gets implicitly cast.
       const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>>; parent?: string } = {
@@ -511,8 +499,6 @@ export function applyGraphDiff(
   const nodes = new Map<string, GraphNode>(snapshot.nodes);
   const edges = new Map<string, GraphEdge>(snapshot.edges);
 
-  const newSchema: GraphSchema | undefined = snapshot.schema;
-
   for (const id of diff.removedEdges) {
     edges.delete(id);
   }
@@ -559,7 +545,6 @@ export function applyGraphDiff(
     version: newVersion,
     nodes,
     edges,
-    ...(newSchema && { schema: newSchema }),
   });
 }
 

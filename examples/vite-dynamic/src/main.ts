@@ -98,7 +98,7 @@ function updateGraph(): void {
   };
 
   if (!graphView) {
-    graphView = renderGraph(graphElement, currentGraph, options);
+    graphView = renderGraph(graphElement, {}, currentGraph, options);
   } else {
     graphView.updateOptions(options);
   }

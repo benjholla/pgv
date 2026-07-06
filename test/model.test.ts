@@ -100,22 +100,6 @@ describe("model", () => {
       expect(() => createGraphSnapshot(json)).toThrow(/references missing parent/);
     });
 
-    it("handles schema object without containment property correctly", () => {
-      const json: GraphSnapshotJson = {
-        graphId: "test-schema-no-containment",
-        version: 1,
-        schema: {} as any,
-        nodes: [],
-        edges: []
-      };
-
-      const snapshot = createGraphSnapshot(json);
-      expect(snapshot.schema).toEqual({});
-
-      const outJson = graphSnapshotToJson(snapshot);
-      expect(outJson.schema).toEqual({});
-    });
-
     it("throws on missing source or target node reference", () => {
       expect(() => createGraphSnapshot({
         graphId: "test",
@@ -456,21 +440,6 @@ describe("model", () => {
   });
 
   describe("serialization and deserialization properties", () => {
-
-    it("round-trips GraphSnapshotJson to GraphSnapshot and back with schema", () => {
-      const originalJson: GraphSnapshotJson = {
-        graphId: "test-roundtrip-schema",
-        version: 42,
-        schema: { containment: ["tag-a", "tag-b"] },
-        nodes: [],
-        edges: []
-      };
-
-      const snapshot = createGraphSnapshot(originalJson);
-      const jsonOut = graphSnapshotToJson(snapshot);
-
-      expect(jsonOut).toEqual(originalJson);
-    });
 
     it("round-trips GraphDiffJson to GraphDiff and back with containment tags", () => {
       const diffJson: GraphDiffJson = {
