@@ -24,7 +24,7 @@ JSON Data -> Graph Snapshot -> Projection -> Layout -> View Rendering
 ### Install
 
 ```bash
-npm install @pgv/graph-core
+pnpm install @pgv/graph-core
 ```
 
 ### Contributing
@@ -53,41 +53,16 @@ renderGraph(document.querySelector("#graph")!, graph, {
 });
 ```
 
-## Documentation
+## Development & Examples
 
-To generate the full HTML API documentation (using TypeDoc), run:
+| Command | Description |
+| :--- | :--- |
+| `pnpm run docs` | Generate the full HTML API documentation (using TypeDoc) in `docs/` |
+| `pnpm run dev:static` | Run the static Vite frontend demo |
+| `pnpm run dev:backend &` | Run the Spring Boot graph producer example (or use `mvn -f examples/spring-boot-producer/pom.xml spring-boot:run`) |
+| `pnpm run dev:dynamic &` | Run the Dynamic Vite demo (requires backend to be running) |
 
-```bash
-npm install
-npm run docs
-```
-
-The output will be placed in the `docs/` directory. Open `docs/index.html` in your browser.
-
-## Examples
-
-Run the static Vite example:
-```bash
-npm run dev:static
-```
-
-Run the Spring Boot graph producer example:
-```bash
-npm run dev:backend &
-```
-
-Then fetch from:
-`http://localhost:8080/api/graphs/cfg-main`
-
-The equivalent direct Maven command is:
-```bash
-mvn -f examples/spring-boot-producer/pom.xml spring-boot:run
-```
-
-To run the Dynamic Vite example, ensure the Spring Boot graph producer is running, then run:
-```bash
-npm run dev:dynamic &
-```
+After starting the backend, fetch from: `http://localhost:8080/api/graphs/cfg-main`
 
 ## Features
 
