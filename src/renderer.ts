@@ -1028,11 +1028,7 @@ export class GraphView {
       miscGroup.className = "pgv-misc-group";
 
       const topButtonsContainer = document.createElement("div");
-      topButtonsContainer.style.display = "grid";
-      topButtonsContainer.style.gridTemplateColumns = "repeat(2, 32px)";
-      topButtonsContainer.style.gridAutoFlow = "row";
-      topButtonsContainer.style.gap = "4px";
-      topButtonsContainer.style.justifyContent = "flex-end";
+      topButtonsContainer.className = "pgv-misc-top-buttons";
 
       if (this.#options.useThemeToggle) {
         const themeIcon = this.#currentTheme === "light" ? icons.sun : this.#currentTheme === "dark" ? icons.moon : icons.auto;
