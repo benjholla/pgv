@@ -375,11 +375,35 @@ describe("model", () => {
 
       const nextSnapshot = applyGraphDiff(baseSnapshot, diff, 2);
 
+      // Ensure the base snapshot was not mutated
+      expect(baseSnapshot.nodes.has("missing-node-123")).toBe(false);
+      expect(baseSnapshot.edges.has("missing-edge-123")).toBe(false);
+
       // Same structural contents (version should update, but elements remain the same)
       const baseJson = graphSnapshotToJson(baseSnapshot);
       const nextJson = graphSnapshotToJson(nextSnapshot);
 
       expect({ ...nextJson, version: 1 }).toEqual(baseJson);
+    });
+
+    it("Immutability: applyGraphDiff does not mutate the original snapshot", () => {
+      const diff = createGraphDiff({
+        addedNodes: [{ id: "n3", tags: ["C"], attributes: {} }],
+        addedEdges: [{ id: "e2", source: "n1", target: "n3", tags: [], attributes: {} }]
+      });
+
+      const nextSnapshot = applyGraphDiff(baseSnapshot, diff, 2);
+
+      // Ensure the new snapshot has the additions
+      expect(nextSnapshot.nodes.has("n3")).toBe(true);
+      expect(nextSnapshot.edges.has("e2")).toBe(true);
+
+      // Ensure the original snapshot remains unchanged
+      expect(baseSnapshot.nodes.has("n3")).toBe(false);
+      expect(baseSnapshot.edges.has("e2")).toBe(false);
+      expect(baseSnapshot.version).toBe(1);
+      expect(baseSnapshot.nodes.size).toBe(2);
+      expect(baseSnapshot.edges.size).toBe(1);
     });
 
     it("Round-trip/Inverse: Adding elements then removing them yields the original graph", () => {
