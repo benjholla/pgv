@@ -26,3 +26,6 @@
 ## 2024-07-04 - Avoid `.filter(Boolean).join(" ")` in hot loops
 **Learning:** When dynamically building CSS class names in a UI hot path, using `.filter(Boolean).join(" ")` can cause severe garbage collection churn. Replacing it with a raw `for` loop that manually accumulates strings via `+=` resulted in a >2x performance improvement. This codebase's architecture operates directly on `GraphSnapshot` without virtual DOM intermediate layers, making string allocations in render paths particularly expensive.
 **Action:** When mapping over large arrays or data structures in hot paths, avoid declarative syntax creating intermediate arrays like `.filter()`, `.map()`, and `.join()`. Prefer explicit `for` loops and standard string builders.
+## 2026-07-06 - Array.from in Event Listeners
+**Learning:** Using `Array.from()` on Maps in high-frequency event listeners (like pointermove at 60Hz+) causes significant array allocation overhead and garbage collection pressure, leading to micro-stutters during interactions like panning/zooming.
+**Action:** Use manual iterator traversal (`.values().next().value`) or `for..of` loops for small, fixed-size Map extractions in hot paths instead of converting the entire Map to an array.
