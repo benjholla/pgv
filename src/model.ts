@@ -274,15 +274,6 @@ export interface GraphDiff {
    */
   readonly removedEdges: readonly string[];
 
-  /**
-   * Contains tags added to the containment schema.
-   */
-  readonly addedContainment: readonly string[];
-
-  /**
-   * Contains tags removed from the containment schema.
-   */
-  readonly removedContainment: readonly string[];
 }
 
 /**
@@ -309,15 +300,6 @@ export interface GraphDiffJson {
    */
   readonly removedEdges?: readonly string[];
 
-  /**
-   * Contains tags added to the containment schema.
-   */
-  readonly addedContainment?: readonly string[];
-
-  /**
-   * Contains tags removed from the containment schema.
-   */
-  readonly removedContainment?: readonly string[];
 }
 
 /**
@@ -480,8 +462,6 @@ export function createGraphDiff(input: GraphDiffJson): GraphDiff {
     addedEdges: Object.freeze(addedEdges),
     removedNodes: Object.freeze(removedNodes),
     removedEdges: Object.freeze(removedEdges),
-    addedContainment: Object.freeze((input.addedContainment || []).map(t => { assertNonEmptyString(t, "addedContainment tag"); return t; })),
-    removedContainment: Object.freeze((input.removedContainment || []).map(t => { assertNonEmptyString(t, "removedContainment tag"); return t; })),
   });
 }
 
@@ -508,8 +488,6 @@ export function graphDiffToJson(diff: GraphDiff): GraphDiffJson {
     })),
     removedNodes: [...diff.removedNodes],
     removedEdges: [...diff.removedEdges],
-    ...(diff.addedContainment.length > 0 && { addedContainment: [...diff.addedContainment] }),
-    ...(diff.removedContainment.length > 0 && { removedContainment: [...diff.removedContainment] }),
   };
 }
 
@@ -533,17 +511,7 @@ export function applyGraphDiff(
   const nodes = new Map<string, GraphNode>(snapshot.nodes);
   const edges = new Map<string, GraphEdge>(snapshot.edges);
 
-  let newSchema: GraphSchema | undefined = snapshot.schema;
-  if (diff.addedContainment.length > 0 || diff.removedContainment.length > 0) {
-    const currentContainment = new Set(snapshot.schema?.containment || []);
-    for (const tag of diff.removedContainment) {
-      currentContainment.delete(tag);
-    }
-    for (const tag of diff.addedContainment) {
-      currentContainment.add(tag);
-    }
-    newSchema = { ...newSchema, containment: Object.freeze(Array.from(currentContainment)) };
-  }
+  const newSchema: GraphSchema | undefined = snapshot.schema;
 
   for (const id of diff.removedEdges) {
     edges.delete(id);

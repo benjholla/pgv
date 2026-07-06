@@ -454,8 +454,6 @@ describe("model", () => {
         addedEdges: [],
         removedNodes: [],
         removedEdges: [],
-        addedContainment: ["tag-a"],
-        removedContainment: ["tag-b"]
       };
 
       const diff = createGraphDiff(diffJson);
@@ -652,8 +650,6 @@ describe("model", () => {
         addedNodes: [{ id: "n3" }, { id: "n3" }],
         removedNodes: [],
         removedEdges: [],
-        addedContainment: [],
-        removedContainment: []
       };
       expect(() => applyGraphDiff(baseSnapshot, diff as any, 2)).toThrow(/duplicate node id/);
     });
@@ -668,8 +664,6 @@ describe("model", () => {
         addedNodes: [],
         removedNodes: [],
         removedEdges: [],
-        addedContainment: [],
-        removedContainment: []
       };
       expect(() => applyGraphDiff(baseSnapshot, diff as any, 2)).toThrow(/duplicate edge id/);
     });
@@ -685,43 +679,6 @@ describe("model", () => {
       // e2 source n1 is removed, but e2 itself is not explicitly removed.
       const diff = createGraphDiff({ removedNodes: ["n1"] });
       expect(() => applyGraphDiff(customBase, diff, 2)).toThrow(/references missing source/);
-    });
-
-
-    it("applies containment schema additions and removals", () => {
-      const baseWithSchema = createGraphSnapshot({
-        graphId: "test-schema",
-        version: 1,
-        schema: { containment: ["tag-a"] },
-        nodes: [],
-        edges: []
-      });
-
-      const diff = createGraphDiff({
-        addedContainment: ["tag-b"],
-        removedContainment: ["tag-a"]
-      });
-
-      const nextSnapshot = applyGraphDiff(baseWithSchema, diff, 2);
-
-      expect(nextSnapshot.schema?.containment).toEqual(["tag-b"]);
-    });
-
-    it("creates a schema if adding containment to a graph without one", () => {
-      const baseNoSchema = createGraphSnapshot({
-        graphId: "test-schema-new",
-        version: 1,
-        nodes: [],
-        edges: []
-      });
-
-      const diff = createGraphDiff({
-        addedContainment: ["tag-c"]
-      });
-
-      const nextSnapshot = applyGraphDiff(baseNoSchema, diff, 2);
-
-      expect(nextSnapshot.schema?.containment).toEqual(["tag-c"]);
     });
 
     it("throws when removing a node leaves an orphaned edge target", () => {
