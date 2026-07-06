@@ -24,3 +24,6 @@
 ## 2024-07-04 - Keyboard Accessible Dropdowns
 **Learning:** Custom `div`-based dropdown menus require manual implementation of ARIA roles (`menu`, `menuitem`), `tabindex`, and keyboard event listeners (`keydown` for Enter/Space) to be fully accessible.
 **Action:** Always ensure custom interactive elements have proper roles and keyboard support.
+## 2025-02-12 - Disabled states for icon-only action buttons based on selection context
+**Learning:** For application controls like "Clear Selection" which execute against a particular interaction context (e.g., active node/edge selections), ensuring the button accurately reflects a disabled state when the selection context is empty prevents confusing empty interactions. Providing accurate `:disabled` styling (using opacity and cursor changes) gives clear feedback to the user on feature availability, maintaining interaction consistency across micro-UX boundaries.
+**Action:** Always verify if an interactive action requires a minimal non-empty active state (such as selections) to do meaningful work. If so, apply dynamic disabled attribute syncing along with clear visual `button:disabled` CSS rules to communicate feature availability early.

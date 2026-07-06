@@ -271,12 +271,17 @@
   width: 32px;
 }
 
-.pgv-controls button:hover {
+.pgv-controls button:hover:not(:disabled) {
   background: var(--pgv-control-button-hover-bg);
 }
 
-.pgv-controls button:active {
+.pgv-controls button:active:not(:disabled) {
   background: var(--pgv-control-button-active-bg);
+}
+
+.pgv-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .pgv-controls button:focus-visible {

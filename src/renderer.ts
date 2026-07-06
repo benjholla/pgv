@@ -228,6 +228,9 @@ export class GraphView {
     } else if (options.layoutOptions !== undefined && options.layoutOptions !== oldLayoutOptions && this.#graph) {
       this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions);
     }
+    if (this.#clearSelectionBtn) {
+      this.#clearSelectionBtn.disabled = !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0);
+    }
     this.#render();
   }
 
@@ -1063,6 +1066,7 @@ export class GraphView {
         },
         label: "Clear Selection",
       });
+      this.#clearSelectionBtn.disabled = !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0);
 
       topButtonsContainer.appendChild(this.#clearSelectionBtn);
 
