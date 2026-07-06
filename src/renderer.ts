@@ -1780,8 +1780,7 @@ export class GraphView {
 /**
  * A convenience function to instantiate and mount a `GraphView` into a given container.
  *
- * This is the recommended entry point for integrating the graph visualization
- * into a host application.
+ * @deprecated Instantiate `GraphView` directly instead (`new GraphView(container, options)`).
  *
  * @param container The DOM element to attach the graph view to.
  * @param graph The initial snapshot to render.
@@ -1886,7 +1885,7 @@ function renderEdges(
     path.setAttribute("marker-end", `url(#${markerId})`);
     group.appendChild(path);
 
-    const label = options.edgeLabel?.(edge) ?? defaultEdgeLabel(edge);
+    const label = options.edgeLabel?.(edge) ?? null;
 
     if (label) {
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -1987,10 +1986,6 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
   }
 
   return content;
-}
-
-function defaultEdgeLabel(edge: GraphEdge): string | null {
-  return null;
 }
 
 function createArrowMarker(markerId: string): SVGDefsElement {

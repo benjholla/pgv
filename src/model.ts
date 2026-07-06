@@ -368,13 +368,22 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
     edges.set(normalized.id, normalized);
   }
 
-  return Object.freeze({
+  const snapshot: any = {
     graphId: input.graphId,
     version: input.version,
     nodes,
     edges,
-    ...(input.schema && { schema: input.schema.containment ? { containment: Object.freeze([...input.schema.containment]) } : {} }),
-  });
+  };
+
+  if (input.schema) {
+    const schemaObj: any = {};
+    if (input.schema.containment) {
+      schemaObj.containment = Object.freeze([...input.schema.containment]);
+    }
+    snapshot.schema = Object.freeze(schemaObj);
+  }
+
+  return Object.freeze(snapshot);
 }
 
 
@@ -385,10 +394,9 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
  * @returns A plain `GraphSnapshotJson` object.
  */
 export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson {
-  return {
+  const json: any = {
     graphId: snapshot.graphId,
     version: snapshot.version,
-    ...(snapshot.schema && { schema: { ...(snapshot.schema.containment && { containment: [...snapshot.schema.containment] }) } }),
     nodes: Array.from(snapshot.nodes.values(), (node) => {
       // We use a mutable type here to avoid spread operator allocations, then it gets implicitly cast.
       const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>>; parent?: string } = {
@@ -409,6 +417,16 @@ export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson 
       attributes: edge.attributes,
     })),
   };
+
+  if (snapshot.schema) {
+    const schemaObj: any = {};
+    if (snapshot.schema.containment) {
+      schemaObj.containment = [...snapshot.schema.containment];
+    }
+    json.schema = schemaObj;
+  }
+
+  return json as GraphSnapshotJson;
 }
 
 /**
@@ -473,12 +491,17 @@ export function createGraphDiff(input: GraphDiffJson): GraphDiff {
  */
 export function graphDiffToJson(diff: GraphDiff): GraphDiffJson {
   return {
-    addedNodes: diff.addedNodes.map((node) => ({
-      id: node.id,
-      tags: node.tags,
-      attributes: node.attributes,
-      ...(node.parent === undefined ? {} : { parent: node.parent }),
-    })),
+    addedNodes: diff.addedNodes.map((node) => {
+      const n: any = {
+        id: node.id,
+        tags: node.tags,
+        attributes: node.attributes,
+      };
+      if (node.parent !== undefined) {
+        n.parent = node.parent;
+      }
+      return n as GraphNodeJson;
+    }),
     addedEdges: diff.addedEdges.map((edge) => ({
       id: edge.id,
       source: edge.source,
