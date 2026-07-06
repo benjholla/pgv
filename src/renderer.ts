@@ -85,8 +85,6 @@ export interface GraphViewOptions {
   /**
    * If true, enables a multi-mode search panel for filtering nodes and edges.
    */
-  readonly useSearch?: boolean;
-
   /**
    * Callback invoked when the user toggles the theme via the built-in control.
    */
@@ -595,13 +593,8 @@ export class GraphView {
       const bottomContainer = document.createElement("div");
       bottomContainer.className = "pgv-bottom-container";
 
-      if (this.#options.useSearch) {
-        bottomContainer.appendChild(this.#renderBottomLeftControls());
-      }
-
-      if (this.#options.usePanZoom || this.#options.useThemeToggle || this.#options.useSearch) {
-        bottomContainer.appendChild(this.#renderControls());
-      }
+      bottomContainer.appendChild(this.#renderBottomLeftControls());
+      bottomContainer.appendChild(this.#renderControls());
 
       if (bottomContainer.children.length > 0) {
         root.appendChild(bottomContainer);
@@ -644,7 +637,7 @@ export class GraphView {
     const container = document.createElement("div");
     container.className = "pgv-bottom-left-container";
 
-    if (this.#options.useSearch && this.#searchOpen) {
+    if (this.#searchOpen) {
       container.appendChild(this.#renderSearchControls());
     }
 
@@ -1023,8 +1016,7 @@ export class GraphView {
       buttonsContainer.append(zoomGroup, panGroup);
     }
 
-    if (this.#options.useThemeToggle || this.#options.usePanZoom || this.#options.useSearch) {
-      const miscGroup = document.createElement("div");
+    const miscGroup = document.createElement("div");
       miscGroup.className = "pgv-misc-group";
 
       const topButtonsContainer = document.createElement("div");
@@ -1065,16 +1057,14 @@ export class GraphView {
       topButtonsContainer.appendChild(this.#clearSelectionBtn);
 
 
-      if (this.#options.useSearch) {
-        topButtonsContainer.appendChild(this.#createControlButton({
-          icon: icons.search,
-          action: () => {
-            this.#searchOpen = !this.#searchOpen;
-            this.#render();
-          },
-          label: "Toggle Search",
-        }));
-      }
+      topButtonsContainer.appendChild(this.#createControlButton({
+        icon: icons.search,
+        action: () => {
+          this.#searchOpen = !this.#searchOpen;
+          this.#render();
+        },
+        label: "Toggle Search",
+      }));
 
 
       miscGroup.appendChild(topButtonsContainer);
@@ -1199,7 +1189,6 @@ export class GraphView {
       miscGroup.appendChild(downloadGroup);
 
       buttonsContainer.appendChild(miscGroup);
-    }
 
     // Add minimap container if pan/zoom is enabled
     if (this.#options.usePanZoom) {
