@@ -1894,7 +1894,7 @@ function renderEdges(
     path.setAttribute("marker-end", `url(#${markerId})`);
     group.appendChild(path);
 
-    const label = options.edgeLabel?.(edge) ?? defaultEdgeLabel(edge);
+    const label = options.edgeLabel?.(edge) ?? null;
 
     if (label) {
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -1995,10 +1995,6 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
   }
 
   return content;
-}
-
-function defaultEdgeLabel(edge: GraphEdge): string | null {
-  return null;
 }
 
 function createArrowMarker(markerId: string): SVGDefsElement {
