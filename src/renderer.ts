@@ -567,13 +567,12 @@ export class GraphView {
     const layout = this.#layout;
     const root = document.createElement("div");
 
-    root.className = joinClassNames(
-      "pgv-graph-view",
-      this.#options.usePanZoom ? "pgv-pan-zoom" : undefined,
-      this.#currentTheme === "light" ? "pgv-light" : undefined,
-      this.#currentTheme === "dark" ? "pgv-dark" : undefined,
-      this.#options.className,
-    );
+    let className = "pgv-graph-view";
+    if (this.#options.usePanZoom) className += " pgv-pan-zoom";
+    if (this.#currentTheme === "light") className += " pgv-light";
+    if (this.#currentTheme === "dark") className += " pgv-dark";
+    if (this.#options.className) className += " " + this.#options.className;
+    root.className = className;
     root.style.setProperty("--pgv-canvas-width", `${layout.width}px`);
     root.style.setProperty("--pgv-canvas-height", `${layout.height}px`);
     root.style.setProperty("--pgv-node-width", `${layout.nodeSize.width}px`);
@@ -1832,14 +1831,12 @@ export class GraphView {
 /**
  * A convenience function to instantiate and mount a `GraphView` into a given container.
  *
- * This is the recommended entry point for integrating the graph visualization
- * into a host application.
- *
  * @param container The DOM element to attach the graph view to.
  * @param schema The fixed visual semantics schema for this graph view.
  * @param graph The initial snapshot to render.
  * @param options Configuration for layout, interactions, and features.
  * @returns An active `GraphView` controller instance.
+ * @deprecated Use `new GraphView(container, schema, options)` and `view.setGraph(graph)` instead.
  */
 export function renderGraph(
   container: HTMLElement,
@@ -2069,19 +2066,4 @@ function attributeToText(value: AttributeValue): string {
     if ("bytes" in value) return `[bytes: ${value.bytes}]`;
   }
   return String(value);
-}
-
-function joinClassNames(...classNames: Array<string | undefined>): string {
-  let result = "";
-  for (let i = 0; i < classNames.length; i++) {
-    const className = classNames[i];
-    if (className) {
-      if (result) {
-        result += " " + className;
-      } else {
-        result = className;
-      }
-    }
-  }
-  return result;
 }

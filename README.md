@@ -36,7 +36,7 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct
 ```ts
 import {
   createGraphSnapshot,
-  renderGraph,
+  GraphView,
   verticalLayout,
   type GraphSnapshotJson,
 } from "@pgv/graph-core";
@@ -45,12 +45,13 @@ import "@pgv/graph-core/style.css";
 const graph = createGraphSnapshot(json as GraphSnapshotJson);
 const layout = verticalLayout(graph);
 
-renderGraph(document.querySelector("#graph")!, graph, {
+const view = new GraphView(document.querySelector("#graph")!, schema, {
   layout,
   usePanZoom: true,
   useThemeToggle: true,
   theme: "auto", // or "light", "dark"
 });
+view.setGraph(graph);
 ```
 
 ## Development & Examples
