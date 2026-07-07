@@ -78,6 +78,19 @@ describe("model", () => {
       expect(e1?.target).toBe("n2");
     });
 
+    it("preserves the schema property", () => {
+      const json: GraphSnapshotJson = {
+        graphId: "test-schema",
+        version: 1,
+        schema: { containment: ["cluster", "package"] },
+        nodes: [],
+        edges: []
+      };
+      const snapshot = createGraphSnapshot(json);
+      expect(snapshot.schema).toBeDefined();
+      expect(snapshot.schema?.containment).toEqual(["cluster", "package"]);
+    });
+
     it("throws on duplicate node ID", () => {
       const json: GraphSnapshotJson = {
         graphId: "test",
@@ -474,6 +487,21 @@ describe("model", () => {
       expect(jsonOut).toEqual(originalJson);
     });
 
+    it("round-trips GraphSnapshotJson to GraphSnapshot and back with schema", () => {
+      const originalJson: GraphSnapshotJson = {
+        graphId: "test-roundtrip-schema",
+        version: 42,
+        schema: { containment: ["package", "module"] },
+        nodes: [],
+        edges: []
+      };
+
+      const snapshot = createGraphSnapshot(originalJson);
+      const jsonOut = graphSnapshotToJson(snapshot);
+
+      expect(jsonOut).toEqual(originalJson);
+    });
+
     it("round-trips GraphDiffJson to GraphDiff and back", () => {
       const diffJson: GraphDiffJson = {
         addedNodes: [{ id: "n3", tags: ["C"], attributes: {} }],
@@ -563,6 +591,7 @@ describe("model", () => {
     const baseSnapshot = createGraphSnapshot({
       graphId: "test-diff",
       version: 1,
+      schema: { containment: ["folder"] },
       nodes: [
         { id: "n1" },
         { id: "n2", parent: "n1" }
@@ -570,6 +599,17 @@ describe("model", () => {
       edges: [
         { id: "e1", source: "n1", target: "n2" }
       ]
+    });
+
+    it("preserves the schema property when applying a diff", () => {
+      const diff = createGraphDiff({
+        addedNodes: [{ id: "n3" }]
+      });
+
+      const nextSnapshot = applyGraphDiff(baseSnapshot, diff, 2);
+
+      expect(nextSnapshot.schema).toBeDefined();
+      expect(nextSnapshot.schema?.containment).toEqual(["folder"]);
     });
 
     it("applies valid additions and removals", () => {
