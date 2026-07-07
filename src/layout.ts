@@ -239,64 +239,119 @@ function assignVerticalDepths(
   outgoing: ReadonlyMap<string, readonly string[]>,
   incomingCounts: ReadonlyMap<string, number>,
 ): ReadonlyMap<string, number> {
-  const depths = new Map<string, number>();
+  const acyclicOutgoing = new Map<string, string[]>();
+  for (const id of nodeIds) acyclicOutgoing.set(id, []);
+
+  const state = new Map<string, "visiting" | "visited">();
+
+  function dfsBreakCycles(u: string) {
+    state.set(u, "visiting");
+    for (const v of outgoing.get(u)!) {
+      const vState = state.get(v);
+      if (vState === "visiting") {
+        continue;
+      }
+      acyclicOutgoing.get(u)!.push(v);
+      if (vState !== "visited") {
+        dfsBreakCycles(v);
+      }
+    }
+    state.set(u, "visited");
+  }
+
   const roots = nodeIds.filter((id) => incomingCounts.get(id) === 0);
-  const starts = roots.length > 0 ? roots : nodeIds.slice(0, 1);
-
-  let currentMaxDepth = -1;
-
-  for (const id of starts) {
-    const maxDepthReached = visitComponent(id, 0, outgoing, depths);
-    if (maxDepthReached > currentMaxDepth) {
-      currentMaxDepth = maxDepthReached;
+  for (const id of roots) {
+    if (state.get(id) !== "visited") {
+      dfsBreakCycles(id);
+    }
+  }
+  for (const id of nodeIds) {
+    if (state.get(id) !== "visited") {
+      dfsBreakCycles(id);
     }
   }
 
+  const dagIncoming = new Map<string, number>();
+  for (const id of nodeIds) dagIncoming.set(id, 0);
+  for (const neighbors of acyclicOutgoing.values()) {
+    for (const v of neighbors) {
+      dagIncoming.set(v, dagIncoming.get(v)! + 1);
+    }
+  }
+
+  const depths = new Map<string, number>();
+  const queue: string[] = [];
+
+  const trueRoots: string[] = [];
+  const fakeRoots: string[] = [];
+
   for (const id of nodeIds) {
+    if (dagIncoming.get(id) === 0) {
+      if (incomingCounts.get(id) === 0) {
+        trueRoots.push(id);
+      } else {
+        fakeRoots.push(id);
+      }
+    }
+  }
+
+  for (const id of trueRoots) {
+    depths.set(id, 0);
+    queue.push(id);
+  }
+
+  let currentMaxDepth = -1;
+  let qIdx = 0;
+
+  while (qIdx < queue.length) {
+    const u = queue[qIdx++];
+    const d = depths.get(u)!;
+    if (d > currentMaxDepth) currentMaxDepth = d;
+
+    for (const v of acyclicOutgoing.get(u)!) {
+      const newD = d + 1;
+      const currentVD = depths.get(v);
+      if (currentVD === undefined || newD > currentVD) {
+        depths.set(v, newD);
+      }
+
+      const inDeg = dagIncoming.get(v)! - 1;
+      dagIncoming.set(v, inDeg);
+      if (inDeg === 0) {
+        queue.push(v);
+      }
+    }
+  }
+
+  let nextDepth = currentMaxDepth + 1;
+  for (const id of fakeRoots) {
     if (!depths.has(id)) {
-      const nextDepth = currentMaxDepth + 1;
-      const maxDepthReached = visitComponent(id, nextDepth, outgoing, depths);
-      currentMaxDepth = maxDepthReached;
+      depths.set(id, nextDepth);
+      queue.push(id);
+    }
+  }
+
+  while (qIdx < queue.length) {
+    const u = queue[qIdx++];
+    const d = depths.get(u)!;
+    if (d > currentMaxDepth) currentMaxDepth = d;
+
+    for (const v of acyclicOutgoing.get(u)!) {
+      const newD = d + 1;
+      const currentVD = depths.get(v);
+      if (currentVD === undefined || newD > currentVD) {
+        depths.set(v, newD);
+      }
+
+      const inDeg = dagIncoming.get(v)! - 1;
+      dagIncoming.set(v, inDeg);
+      if (inDeg === 0) {
+        queue.push(v);
+      }
     }
   }
 
   return depths;
-}
-
-function visitComponent(
-  startId: string,
-  startDepth: number,
-  outgoing: ReadonlyMap<string, readonly string[]>,
-  depths: Map<string, number>,
-): number {
-  const queue: string[] = [startId];
-  let maxDepthReached = startDepth;
-
-  depths.set(startId, startDepth);
-
-  for (let index = 0; index < queue.length; index += 1) {
-    const sourceId = queue[index];
-    const sourceDepth = depths.get(sourceId)!;
-
-    if (sourceDepth > maxDepthReached) {
-      maxDepthReached = sourceDepth;
-    }
-
-    for (const targetId of outgoing.get(sourceId)!) {
-      if (depths.has(targetId)) {
-        continue;
-      }
-
-      const targetDepth = sourceDepth + 1;
-      depths.set(targetId, targetDepth);
-      if (targetDepth > maxDepthReached) {
-        maxDepthReached = targetDepth;
-      }
-      queue.push(targetId);
-    }
-  }
-
-  return maxDepthReached;
 }
 
 function groupByDepth(
