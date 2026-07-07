@@ -218,6 +218,8 @@ export interface EdgeEndpointsResult {
 export function edgeEndpoints(
   edge: GraphEdge,
   layout: LayoutSnapshot,
+  sourceOffsetPx: number = 0,
+  targetOffsetPx: number = 0,
 ): EdgeEndpointsResult | null {
   const source = layout.positions.get(edge.source);
   const target = layout.positions.get(edge.target);
@@ -227,12 +229,12 @@ export function edgeEndpoints(
   }
 
   const sourcePt = {
-    x: source.x + layout.nodeSize.width / 2,
+    x: source.x + layout.nodeSize.width / 2 + sourceOffsetPx,
     y: source.y + layout.nodeSize.height,
   };
 
   const targetPt = {
-    x: target.x + layout.nodeSize.width / 2,
+    x: target.x + layout.nodeSize.width / 2 + targetOffsetPx,
     y: target.y,
   };
 
@@ -270,9 +272,11 @@ function routeEdgeOrthogonal(
   xSet.add(targetPt.x);
   ySet.add(targetPt.y);
 
-  const verticalOffset = 30;
-  ySet.add(sourcePt.y + verticalOffset);
-  ySet.add(targetPt.y - verticalOffset);
+  const sourceVerticalOffset = 60; // Extra visual weight before joint
+  const targetVerticalOffset = 30;
+
+  ySet.add(sourcePt.y + sourceVerticalOffset);
+  ySet.add(targetPt.y - targetVerticalOffset);
 
   for (const pos of layout.positions.values()) {
     xSet.add(pos.x - margin);
@@ -403,8 +407,8 @@ function routeEdgeOrthogonal(
 
   return Object.freeze([
     sourcePt,
-    { x: sourcePt.x, y: sourcePt.y + verticalOffset },
-    { x: targetPt.x, y: targetPt.y - verticalOffset },
+    { x: sourcePt.x, y: sourcePt.y + sourceVerticalOffset },
+    { x: targetPt.x, y: targetPt.y - targetVerticalOffset },
     targetPt
   ]);
 }
