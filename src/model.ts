@@ -482,12 +482,20 @@ export function createGraphDiff(input: GraphDiffJson): GraphDiff {
  */
 export function graphDiffToJson(diff: GraphDiff): GraphDiffJson {
   return {
-    addedNodes: diff.addedNodes.map((node) => ({
-      id: node.id,
-      tags: node.tags,
-      attributes: node.attributes,
-      ...(node.parent === undefined ? {} : { parent: node.parent }),
-    })),
+    addedNodes: diff.addedNodes.map((node) => {
+      // PERF(Bolt): Replaced object spread syntax (...(condition ? { key: val } : {}))
+      // with explicit assignment to avoid excessive object allocations and GC churn
+      // when processing a large number of nodes.
+      const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>>; parent?: string } = {
+        id: node.id,
+        tags: node.tags,
+        attributes: node.attributes,
+      };
+      if (node.parent !== undefined) {
+        n.parent = node.parent;
+      }
+      return n as GraphNodeJson;
+    }),
     addedEdges: diff.addedEdges.map((edge) => ({
       id: edge.id,
       source: edge.source,
