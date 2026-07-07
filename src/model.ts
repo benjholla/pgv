@@ -150,6 +150,11 @@ export interface GraphSnapshot {
    * An identifier representing this specific point-in-time state.
    */
   readonly version: string | number;
+
+  /**
+   * Optional schema definition for the graph.
+   */
+  readonly schema?: GraphSchema;
 }
 
 /**
@@ -220,6 +225,11 @@ export interface GraphSnapshotJson {
    * An identifier representing this specific point-in-time state.
    */
   readonly version: string | number;
+
+  /**
+   * Optional schema definition for the graph.
+   */
+  readonly schema?: GraphSchemaJson;
 
   /**
    * The list of nodes in this snapshot.
@@ -358,12 +368,17 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
     edges.set(normalized.id, normalized);
   }
 
-  return Object.freeze({
+  const base: any = {
     graphId: input.graphId,
     version: input.version,
     nodes,
     edges,
-  });
+  };
+  if (input.schema) {
+    base.schema = Object.freeze({ ...input.schema });
+  }
+
+  return Object.freeze(base as GraphSnapshot);
 }
 
 
@@ -374,29 +389,35 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
  * @returns A plain `GraphSnapshotJson` object.
  */
 export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson {
-  return {
+  const result: any = {
     graphId: snapshot.graphId,
     version: snapshot.version,
-    nodes: Array.from(snapshot.nodes.values(), (node) => {
-      // We use a mutable type here to avoid spread operator allocations, then it gets implicitly cast.
-      const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>>; parent?: string } = {
-        id: node.id,
-        tags: node.tags,
-        attributes: node.attributes,
-      };
-      if (node.parent !== undefined) {
-        n.parent = node.parent;
-      }
-      return n as GraphNodeJson;
-    }),
-    edges: Array.from(snapshot.edges.values(), (edge) => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      tags: edge.tags,
-      attributes: edge.attributes,
-    })),
   };
+  if (snapshot.schema) {
+    result.schema = { ...snapshot.schema };
+  }
+  result.nodes = Array.from(snapshot.nodes.values(), (node) => {
+    // We use a mutable type here to avoid spread operator allocations, then it gets implicitly cast.
+    const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>>; parent?: string } = {
+      id: node.id,
+      tags: node.tags,
+      attributes: node.attributes,
+    };
+    if (node.parent !== undefined) {
+      n.parent = node.parent;
+    }
+    return n as GraphNodeJson;
+  });
+
+  result.edges = Array.from(snapshot.edges.values(), (edge) => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    tags: edge.tags,
+    attributes: edge.attributes,
+  }));
+
+  return result as GraphSnapshotJson;
 }
 
 /**
@@ -540,12 +561,17 @@ export function applyGraphDiff(
     }
   }
 
-  return Object.freeze({
+  const base: any = {
     graphId: snapshot.graphId,
     version: newVersion,
     nodes,
     edges,
-  });
+  };
+  if (snapshot.schema) {
+    base.schema = Object.freeze({ ...snapshot.schema });
+  }
+
+  return Object.freeze(base as GraphSnapshot);
 }
 
 function normalizeNode(node: GraphNodeJson): GraphNode {
