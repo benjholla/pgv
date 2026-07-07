@@ -1,6 +1,6 @@
 import {
   createGraphSnapshot,
-  renderGraph,
+  GraphView,
   verticalLayout,
   type GraphSnapshot,
   type GraphSnapshotJson,
@@ -106,7 +106,8 @@ function updateGraph(): void {
   };
 
   if (!graphView) {
-    graphView = renderGraph(graphElement, currentSchema, currentGraph, options);
+    graphView = new GraphView(graphElement, currentSchema, options);
+    graphView.setGraph(currentGraph);
   } else {
     graphView.updateOptions(options);
   }
