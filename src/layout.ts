@@ -259,6 +259,12 @@ function assignVerticalDepths(
     state.set(u, "visited");
   }
 
+  const roots = nodeIds.filter((id) => incomingCounts.get(id) === 0);
+  for (const id of roots) {
+    if (state.get(id) !== "visited") {
+      dfsBreakCycles(id);
+    }
+  }
   for (const id of nodeIds) {
     if (state.get(id) !== "visited") {
       dfsBreakCycles(id);
