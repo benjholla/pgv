@@ -110,7 +110,7 @@ describe('GraphView', () => {
     };
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
-    const view = renderGraph(container, snapshot, { layout });
+    const view = renderGraph(container, {} as any, snapshot, { layout });
 
     expect(view).toBeInstanceOf(GraphView);
 
@@ -135,7 +135,7 @@ describe('GraphView', () => {
     };
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
-    const view = renderGraph(container, snapshot, { layout, usePanZoom: true });
+    const view = renderGraph(container, {} as any, snapshot, { layout, usePanZoom: true });
 
     const viewport = container.querySelector('.pgv-viewport') as HTMLElement;
     expect(viewport).not.toBeNull();
@@ -167,7 +167,7 @@ describe('GraphView', () => {
     };
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
-    const view = renderGraph(container, snapshot, { layout, usePanZoom: true });
+    const view = renderGraph(container, {} as any, snapshot, { layout, usePanZoom: true });
 
     const viewport = container.querySelector('.pgv-viewport') as HTMLElement;
     expect(viewport).not.toBeNull();
@@ -193,7 +193,7 @@ describe('GraphView', () => {
     };
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
-    const view = renderGraph(container, snapshot, { layout, usePanZoom: true, useThemeToggle: true });
+    const view = renderGraph(container, {} as any, snapshot, { layout, usePanZoom: true, useThemeToggle: true });
 
     const minimapBtn = container.querySelector('button[aria-label="Toggle Minimap"]') || container.querySelector('button[title="Toggle Minimap"]') as HTMLButtonElement;
     expect(minimapBtn).not.toBeNull();
@@ -235,7 +235,7 @@ describe('GraphView', () => {
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
 
-    const view = renderGraph(container, snapshot, { layout, usePanZoom: true });
+    const view = renderGraph(container, {} as any, snapshot, { layout, usePanZoom: true });
 
     // Wait for the render queue to empty
     await new Promise(resolve => setTimeout(resolve, 50));
@@ -310,7 +310,7 @@ describe('GraphView', () => {
     };
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
-    const view = renderGraph(container, snapshot, { layout, useThemeToggle: true, usePanZoom: true });
+    const view = renderGraph(container, {} as any, snapshot, { layout, useThemeToggle: true, usePanZoom: true });
 
     await new Promise(resolve => setTimeout(resolve, 50));
 
@@ -355,7 +355,7 @@ describe('GraphView', () => {
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
 
-    const view = renderGraph(container, snapshot, { layout, maxHistory: 10 });
+    const view = renderGraph(container, {} as any, snapshot, { layout, maxHistory: 10 });
 
     expect(container.querySelectorAll('.pgv-graph-node').length).toBe(1);
 

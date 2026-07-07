@@ -197,6 +197,10 @@ export interface EdgeEndpointsResult {
    * The end point of the edge.
    */
   readonly target: Point;
+  /**
+   * The routed path for the edge.
+   */
+  readonly path: readonly Point[];
 }
 
 /**
@@ -222,16 +226,187 @@ export function edgeEndpoints(
     return null;
   }
 
-  return {
-    source: {
-      x: source.x + layout.nodeSize.width / 2,
-      y: source.y + layout.nodeSize.height,
-    },
-    target: {
-      x: target.x + layout.nodeSize.width / 2,
-      y: target.y,
-    },
+  const sourcePt = {
+    x: source.x + layout.nodeSize.width / 2,
+    y: source.y + layout.nodeSize.height,
   };
+
+  const targetPt = {
+    x: target.x + layout.nodeSize.width / 2,
+    y: target.y,
+  };
+
+  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout);
+
+  return {
+    source: sourcePt,
+    target: targetPt,
+    path,
+  };
+}
+
+function routeEdgeOrthogonal(
+  sourcePt: Point,
+  targetPt: Point,
+  layout: LayoutSnapshot,
+): readonly Point[] {
+  const margin = 20;
+
+  const obstacles: { x: number; y: number; w: number; h: number }[] = [];
+  for (const pos of layout.positions.values()) {
+    obstacles.push({
+      x: pos.x,
+      y: pos.y,
+      w: layout.nodeSize.width,
+      h: layout.nodeSize.height,
+    });
+  }
+
+  const xSet = new Set<number>();
+  const ySet = new Set<number>();
+
+  xSet.add(sourcePt.x);
+  ySet.add(sourcePt.y);
+  xSet.add(targetPt.x);
+  ySet.add(targetPt.y);
+
+  const verticalOffset = 30;
+  ySet.add(sourcePt.y + verticalOffset);
+  ySet.add(targetPt.y - verticalOffset);
+
+  for (const pos of layout.positions.values()) {
+    xSet.add(pos.x - margin);
+    xSet.add(pos.x + layout.nodeSize.width + margin);
+    ySet.add(pos.y - margin);
+    ySet.add(pos.y + layout.nodeSize.height + margin);
+
+    xSet.add(pos.x + layout.nodeSize.width / 2);
+  }
+
+  xSet.add(-margin);
+  xSet.add(layout.width + margin);
+  ySet.add(-margin);
+  ySet.add(layout.height + margin);
+
+  const xCoords = Array.from(xSet).sort((a, b) => a - b);
+  const yCoords = Array.from(ySet).sort((a, b) => a - b);
+
+  type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number };
+
+  const getIdx = (arr: number[], val: number) => {
+    let minIdx = 0;
+    let minD = Math.abs(arr[0] - val);
+    for (let i = 1; i < arr.length; i++) {
+        const d = Math.abs(arr[i] - val);
+        if (d < minD) {
+            minD = d;
+            minIdx = i;
+        }
+    }
+    return minIdx;
+  };
+
+  const startXIdx = getIdx(xCoords, sourcePt.x);
+  const startYIdx = getIdx(yCoords, sourcePt.y);
+  const endXIdx = getIdx(xCoords, targetPt.x);
+  const endYIdx = getIdx(yCoords, targetPt.y);
+
+  const isSegmentValid = (x1: number, y1: number, x2: number, y2: number) => {
+    const minX = Math.min(x1, x2);
+    const maxX = Math.max(x1, x2);
+    const minY = Math.min(y1, y2);
+    const maxY = Math.max(y1, y2);
+
+    for (let i = 0; i < obstacles.length; i++) {
+      const obs = obstacles[i];
+      if (
+        minX < obs.x + obs.w &&
+        maxX > obs.x &&
+        minY < obs.y + obs.h &&
+        maxY > obs.y
+      ) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const openList: Node[] = [];
+  const closedSet = new Set<string>();
+
+  openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1 });
+
+  while (openList.length > 0) {
+    openList.sort((a, b) => a.f - b.f);
+    const curr = openList.shift()!;
+
+    if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
+      const path: Point[] = [];
+      let c: Node | null = curr;
+      while (c) {
+        path.push({ x: xCoords[c.xIdx], y: yCoords[c.yIdx] });
+        c = c.parent;
+      }
+      return Object.freeze(path.reverse());
+    }
+
+    const key = `${curr.xIdx},${curr.yIdx},${curr.dirX},${curr.dirY}`;
+    if (closedSet.has(key)) continue;
+    closedSet.add(key);
+
+    const dirs = [
+      { dx: 0, dy: -1 },
+      { dx: 0, dy: 1 },
+      { dx: -1, dy: 0 },
+      { dx: 1, dy: 0 },
+    ];
+
+    for (let i = 0; i < dirs.length; i++) {
+      const d = dirs[i];
+      const nxIdx = curr.xIdx + d.dx;
+      const nyIdx = curr.yIdx + d.dy;
+
+      if (nxIdx >= 0 && nxIdx < xCoords.length && nyIdx >= 0 && nyIdx < yCoords.length) {
+        if (curr.parent === null && (d.dx !== 0 || d.dy !== 1)) {
+            continue;
+        }
+
+        if (nxIdx === endXIdx && nyIdx === endYIdx) {
+             if (curr.xIdx === nxIdx && curr.yIdx === nyIdx - 1) {
+                // OK
+             } else {
+                 if (d.dx !== 0 || d.dy !== 1) continue;
+             }
+        }
+
+        const x1 = xCoords[curr.xIdx];
+        const y1 = yCoords[curr.yIdx];
+        const x2 = xCoords[nxIdx];
+        const y2 = yCoords[nyIdx];
+
+        if (!isSegmentValid(x1, y1, x2, y2)) continue;
+
+        const dist = Math.abs(x2 - x1) + Math.abs(y2 - y1);
+        let penalty = 0;
+        if (curr.parent !== null && (curr.dirX !== d.dx || curr.dirY !== d.dy)) {
+          penalty = 50;
+        }
+
+        const g = curr.g + dist + penalty;
+        const h = Math.abs(xCoords[endXIdx] - x2) + Math.abs(yCoords[endYIdx] - y2);
+        const f = g + h;
+
+        openList.push({ xIdx: nxIdx, yIdx: nyIdx, g, f, parent: curr, dirX: d.dx, dirY: d.dy });
+      }
+    }
+  }
+
+  return Object.freeze([
+    sourcePt,
+    { x: sourcePt.x, y: sourcePt.y + verticalOffset },
+    { x: targetPt.x, y: targetPt.y - verticalOffset },
+    targetPt
+  ]);
 }
 
 function assignVerticalDepths(

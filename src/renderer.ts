@@ -1465,17 +1465,17 @@ export class GraphView {
       const endpoints = edgeEndpoints(edge, layout);
       if (!endpoints) continue;
 
-      const sourceX = offsetX + endpoints.source.x * scale;
-      const sourceY = offsetY + endpoints.source.y * scale;
-      const targetX = offsetX + endpoints.target.x * scale;
-      const targetY = offsetY + endpoints.target.y * scale;
-
-      const curveMidY = sourceY + (targetY - sourceY) / 2;
-
       ctx.strokeStyle = this.#options.selection?.edges.has(edge.id) ? selectedColor : edgeColor;
       ctx.beginPath();
-      ctx.moveTo(sourceX, sourceY);
-      ctx.bezierCurveTo(sourceX, curveMidY, targetX, curveMidY, targetX, targetY);
+
+      const pathPts = endpoints.path;
+      if (pathPts.length > 0) {
+        ctx.moveTo(offsetX + pathPts[0].x * scale, offsetY + pathPts[0].y * scale);
+        for (let i = 1; i < pathPts.length; i++) {
+          ctx.lineTo(offsetX + pathPts[i].x * scale, offsetY + pathPts[i].y * scale);
+        }
+      }
+
       ctx.stroke();
     }
 
@@ -1911,13 +1911,12 @@ function renderEdges(
     if (options.selection?.edges.has(edge.id)) {
       className += " pgv-selected";
     }
-    const curveMidY = endpoints.source.y + (endpoints.target.y - endpoints.source.y) / 2;
-    const pathData = [
-      `M ${endpoints.source.x} ${endpoints.source.y}`,
-      `C ${endpoints.source.x} ${curveMidY}`,
-      `${endpoints.target.x} ${curveMidY}`,
-      `${endpoints.target.x} ${endpoints.target.y}`,
-    ].join(" ");
+
+    const pathPts = endpoints.path;
+    let pathData = `M ${pathPts[0].x} ${pathPts[0].y}`;
+    for (let i = 1; i < pathPts.length; i++) {
+      pathData += ` L ${pathPts[i].x} ${pathPts[i].y}`;
+    }
 
     group.setAttribute("class", className);
     group.dataset.edgeId = edge.id;
@@ -1931,9 +1930,34 @@ function renderEdges(
     if (label) {
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
 
+      // Find middle of the path to place the label
+      let totalLength = 0;
+      const lengths: number[] = [];
+      for (let i = 1; i < pathPts.length; i++) {
+        const len = Math.abs(pathPts[i].x - pathPts[i-1].x) + Math.abs(pathPts[i].y - pathPts[i-1].y);
+        lengths.push(len);
+        totalLength += len;
+      }
+
+      const halfLen = totalLength / 2;
+      let currLen = 0;
+      let midX = 0;
+      let midY = 0;
+
+      for (let i = 0; i < lengths.length; i++) {
+        if (currLen + lengths[i] >= halfLen) {
+           const remainder = halfLen - currLen;
+           const ratio = lengths[i] === 0 ? 0 : remainder / lengths[i];
+           midX = pathPts[i].x + (pathPts[i+1].x - pathPts[i].x) * ratio;
+           midY = pathPts[i].y + (pathPts[i+1].y - pathPts[i].y) * ratio;
+           break;
+        }
+        currLen += lengths[i];
+      }
+
       text.classList.add("pgv-edge-label");
-      text.setAttribute("x", `${(endpoints.source.x + endpoints.target.x) / 2}`);
-      text.setAttribute("y", `${curveMidY - 8}`);
+      text.setAttribute("x", `${midX}`);
+      text.setAttribute("y", `${midY - 8}`);
       text.textContent = label;
       group.appendChild(text);
     }
