@@ -623,7 +623,7 @@ function freezeTags(tags: readonly string[] = []): readonly string[] {
 function freezeAttributes(
   attributes: Readonly<Record<string, AttributeValue>> = {},
 ): AttributeMap {
-  const sanitizedAttributes: Record<string, AttributeValue> = {};
+  const sanitizedAttributes: Record<string, AttributeValue> = Object.create(null);
 
   for (const key in attributes) {
     if (Object.prototype.hasOwnProperty.call(attributes, key)) {
