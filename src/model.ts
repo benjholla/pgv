@@ -140,17 +140,6 @@ export interface GraphSnapshot {
    * A read-only map of all edges in the graph, keyed by their unique IDs.
    */
   readonly edges: ReadonlyMap<string, GraphEdge>;
-
-  /**
-   * The unique identifier for the entire logical graph series.
-   */
-  readonly graphId: string;
-
-  /**
-   * An identifier representing this specific point-in-time state.
-   */
-  readonly version: string | number;
-
   /**
    * Optional schema definition for the graph.
    */
@@ -216,16 +205,6 @@ export interface GraphEdgeJson {
  * A JSON-serializable representation of an entire `GraphSnapshot`.
  */
 export interface GraphSnapshotJson {
-  /**
-   * The unique identifier for the entire logical graph series.
-   */
-  readonly graphId: string;
-
-  /**
-   * An identifier representing this specific point-in-time state.
-   */
-  readonly version: string | number;
-
   /**
    * Optional schema definition for the graph.
    */
@@ -324,7 +303,6 @@ export class GraphModelError extends Error {
  * @throws {GraphModelError} If duplicate IDs are found, or references (edges, parents) are invalid.
  */
 export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
-  assertNonEmptyString(input.graphId, "graphId");
   const nodes = new Map<string, GraphNode>();
   const edges = new Map<string, GraphEdge>();
 
@@ -369,8 +347,6 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
   }
 
   const base: any = {
-    graphId: input.graphId,
-    version: input.version,
     nodes,
     edges,
   };
@@ -390,8 +366,6 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
  */
 export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson {
   const result: any = {
-    graphId: snapshot.graphId,
-    version: snapshot.version,
   };
   if (snapshot.schema) {
     result.schema = { ...snapshot.schema };
@@ -516,14 +490,12 @@ export function graphDiffToJson(diff: GraphDiff): GraphDiffJson {
  *
  * @param snapshot The starting graph state.
  * @param diff The incremental changes to apply (removals happen before additions).
- * @param newVersion The version identifier to assign to the new snapshot.
  * @returns A new, frozen `GraphSnapshot` incorporating the changes.
  * @throws {GraphModelError} If the diff introduces duplicate IDs or invalid references.
  */
 export function applyGraphDiff(
   snapshot: GraphSnapshot,
-  diff: GraphDiff,
-  newVersion: string | number
+  diff: GraphDiff
 ): GraphSnapshot {
   const nodes = new Map<string, GraphNode>(snapshot.nodes);
   const edges = new Map<string, GraphEdge>(snapshot.edges);
@@ -570,8 +542,6 @@ export function applyGraphDiff(
   }
 
   const base: any = {
-    graphId: snapshot.graphId,
-    version: newVersion,
     nodes,
     edges,
   };

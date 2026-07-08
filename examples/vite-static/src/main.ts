@@ -73,7 +73,7 @@ function updateGraph(): void {
     useSearch: true,
     onGraphChange: (graph: GraphSnapshot) => {
       currentGraph = graph;
-      summaryElement.textContent = `${graph.nodes.size} nodes, ${graph.edges.size} edges, version ${graph.version}`;
+      summaryElement.textContent = `${graph.nodes.size} nodes, ${graph.edges.size} edges`;
     },
     onThemeChange: (theme: string) => {
       document.documentElement.classList.remove("pgv-light", "pgv-dark", "pgv-auto");
@@ -112,7 +112,7 @@ function updateGraph(): void {
     graphView.updateOptions(options);
   }
 
-  summaryElement.textContent = `${currentGraph.nodes.size} nodes, ${currentGraph.edges.size} edges, version ${currentGraph.version}`;
+  summaryElement.textContent = `${currentGraph.nodes.size} nodes, ${currentGraph.edges.size} edges`;
 }
 
 let versionCounter = 2;
@@ -146,7 +146,8 @@ applyDiffAddBtn.addEventListener("click", () => {
   });
 
   try {
-    graphView.applyDiff(diff, versionCounter++);
+    graphView.applyDiff(diff);
+    versionCounter++;
   } catch (e: any) {
     alert(e.message);
   }
@@ -162,7 +163,8 @@ applyDiffRemoveBtn.addEventListener("click", () => {
   });
 
   try {
-    graphView.applyDiff(diff, versionCounter++);
+    graphView.applyDiff(diff);
+    versionCounter++;
   } catch (e: any) {
     alert(e.message);
   }
