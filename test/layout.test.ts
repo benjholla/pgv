@@ -134,6 +134,21 @@ describe("layout", () => {
       expect(layout.nodeSize).toEqual({ width: 220, height: 88 });
     });
 
+    it("Boundary: handles extremely deep graphs without call stack limits", () => {
+      const nodeCount = 20000;
+      const nodes = [];
+      const edges = [];
+      for (let i = 0; i < nodeCount; i++) {
+        nodes.push({ id: `n${i}` });
+        if (i > 0) {
+          edges.push({ id: `e${i}`, source: `n${i-1}`, target: `n${i}` });
+        }
+      }
+      const graph = createGraphSnapshot({ graphId: "deep", version: 1, nodes, edges });
+      const layout = verticalLayout(graph);
+      expect(layout.positions.size).toBe(nodeCount);
+    });
+
     it("Boundary: handles extremely wide graphs without call stack limits", () => {
       const nodeCount = 100_000;
       // Using an implicit loop array initialization

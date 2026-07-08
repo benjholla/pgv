@@ -748,7 +748,7 @@ export function sanitizeString(value: string): string {
     });
   } while (clean !== previousClean);
 
-  clean = clean.replace(/[\s\x00-\x1F]+/g, "").toLowerCase();
+  clean = clean.replace(/[\s\x00-\x1F\x7F]+/g, "").toLowerCase();
 
   // Block common javascript URIs and inline scripts
   if (clean.includes("javascript:") || clean.includes("vbscript:") || clean.includes("data:text/html")) {
