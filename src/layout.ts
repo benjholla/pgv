@@ -277,6 +277,8 @@ export function edgeEndpoints(
   layout: LayoutSnapshot,
   sourceOffsetPx: number = 0,
   targetOffsetPx: number = 0,
+  sourceVerticalOffsetPx: number = 60,
+  targetVerticalOffsetPx: number = 30,
 ): EdgeEndpointsResult | null {
   const source = layout.positions.get(edge.source);
   const target = layout.positions.get(edge.target);
@@ -295,7 +297,7 @@ export function edgeEndpoints(
     y: target.y,
   };
 
-  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout);
+  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout, sourceVerticalOffsetPx, targetVerticalOffsetPx);
 
   return {
     source: sourcePt,
@@ -317,12 +319,16 @@ export function edgeEndpoints(
  * @param sourcePt The starting point of the edge.
  * @param targetPt The ending point of the edge.
  * @param layout The current layout containing node sizes and positions (obstacles).
+ * @param sourceVerticalOffset The vertical distance to route downwards from the source before allowing horizontal movement. Used to prevent overlapping edges from bending at the same horizontal location.
+ * @param targetVerticalOffset The vertical distance to route upwards from the target before allowing horizontal movement.
  * @returns A readonly array of points defining the calculated orthogonal path.
  */
 function routeEdgeOrthogonal(
   sourcePt: Point,
   targetPt: Point,
   layout: LayoutSnapshot,
+  sourceVerticalOffset: number,
+  targetVerticalOffset: number,
 ): readonly Point[] {
   const margin = 20;
 
@@ -343,9 +349,6 @@ function routeEdgeOrthogonal(
   ySet.add(sourcePt.y);
   xSet.add(targetPt.x);
   ySet.add(targetPt.y);
-
-  const sourceVerticalOffset = 60; // Extra visual weight before joint
-  const targetVerticalOffset = 30;
 
   ySet.add(sourcePt.y + sourceVerticalOffset);
   ySet.add(targetPt.y - targetVerticalOffset);

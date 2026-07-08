@@ -1481,28 +1481,32 @@ export class GraphView {
       const outIndex = outList.indexOf(edgeId);
       const outTotal = outList.length;
       let sOffset = 0;
+      let sVertOffset = 60;
       if (outTotal > 1) {
         sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
         sOffset = Math.max(-maxOffset, Math.min(maxOffset, sOffset));
+        sVertOffset = 60 + Math.max(0, outIndex) * 20;
       }
 
       const inList = incomingEdges.get(targetId) || [];
       const inIndex = inList.indexOf(edgeId);
       const inTotal = inList.length;
       let tOffset = 0;
+      let tVertOffset = 30;
       if (inTotal > 1) {
         tOffset = (inIndex - (inTotal - 1) / 2) * spacing;
         tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
+        tVertOffset = 30 + Math.max(0, inIndex) * 20;
       }
 
-      return { sourceOffsetPx: sOffset, targetOffsetPx: tOffset };
+      return { sourceOffsetPx: sOffset, targetOffsetPx: tOffset, sourceVerticalOffsetPx: sVertOffset, targetVerticalOffsetPx: tVertOffset };
     };
 
     // Draw edges
     ctx.lineWidth = 1;
     for (const edge of this.#graph.edges.values()) {
       const offsets = getOffsets(edge.id, edge.source, edge.target);
-      const endpoints = edgeEndpoints(edge, layout, offsets.sourceOffsetPx, offsets.targetOffsetPx);
+      const endpoints = edgeEndpoints(edge, layout, offsets.sourceOffsetPx, offsets.targetOffsetPx, offsets.sourceVerticalOffsetPx, offsets.targetVerticalOffsetPx);
       if (!endpoints) continue;
 
       ctx.strokeStyle = this.#options.selection?.edges.has(edge.id) ? selectedColor : edgeColor;
@@ -1954,26 +1958,30 @@ function renderEdges(
     const outIndex = outList.indexOf(edgeId);
     const outTotal = outList.length;
     let sOffset = 0;
+    let sVertOffset = 60;
     if (outTotal > 1) {
       sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
       sOffset = Math.max(-maxOffset, Math.min(maxOffset, sOffset));
+      sVertOffset = 60 + Math.max(0, outIndex) * 20;
     }
 
     const inList = incomingEdges.get(targetId) || [];
     const inIndex = inList.indexOf(edgeId);
     const inTotal = inList.length;
     let tOffset = 0;
+    let tVertOffset = 30;
     if (inTotal > 1) {
       tOffset = (inIndex - (inTotal - 1) / 2) * spacing;
       tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
+      tVertOffset = 30 + Math.max(0, inIndex) * 20;
     }
 
-    return { sourceOffsetPx: sOffset, targetOffsetPx: tOffset };
+    return { sourceOffsetPx: sOffset, targetOffsetPx: tOffset, sourceVerticalOffsetPx: sVertOffset, targetVerticalOffsetPx: tVertOffset };
   };
 
   for (const edge of graph.edges.values()) {
     const offsets = getOffsets(edge.id, edge.source, edge.target);
-    const endpoints = edgeEndpoints(edge, layout, offsets.sourceOffsetPx, offsets.targetOffsetPx);
+    const endpoints = edgeEndpoints(edge, layout, offsets.sourceOffsetPx, offsets.targetOffsetPx, offsets.sourceVerticalOffsetPx, offsets.targetVerticalOffsetPx);
 
     if (!endpoints) {
       continue;
