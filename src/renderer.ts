@@ -1174,6 +1174,7 @@ export class GraphView {
               opt.classList.remove("selected");
             }
           }
+          dropdownBtn.focus();
         });
         dropdownMenu.appendChild(option);
       }
@@ -1185,8 +1186,21 @@ export class GraphView {
         dropdownBtn.setAttribute("aria-expanded", this.#downloadDropdownOpen ? "true" : "false");
         if (this.#downloadDropdownOpen) {
           dropdownMenu.classList.add("open");
+          const firstOption = dropdownMenu.querySelector('.pgv-dropdown-option') as HTMLElement;
+          if (firstOption) {
+            firstOption.focus();
+          }
         } else {
           dropdownMenu.classList.remove("open");
+        }
+      });
+
+      dropdownMenu.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") {
+          this.#downloadDropdownOpen = false;
+          dropdownBtn.setAttribute("aria-expanded", "false");
+          dropdownMenu.classList.remove("open");
+          dropdownBtn.focus();
         }
       });
 
