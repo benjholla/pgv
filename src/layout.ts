@@ -370,7 +370,7 @@ function routeEdgeOrthogonal(
   const xCoords = Array.from(xSet).sort((a, b) => a - b);
   const yCoords = Array.from(ySet).sort((a, b) => a - b);
 
-  type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number };
+  type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number; initialDescent: boolean };
 
   const getIdx = (arr: number[], val: number) => {
     let minIdx = 0;
@@ -413,7 +413,7 @@ function routeEdgeOrthogonal(
   const openList: Node[] = [];
   const closedSet = new Set<string>();
 
-  openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1 });
+  openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, initialDescent: true });
 
   while (openList.length > 0) {
     openList.sort((a, b) => a.f - b.f);
@@ -429,7 +429,7 @@ function routeEdgeOrthogonal(
       return Object.freeze(path.reverse());
     }
 
-    const key = `${curr.xIdx},${curr.yIdx},${curr.dirX},${curr.dirY}`;
+    const key = `${curr.xIdx},${curr.yIdx},${curr.dirX},${curr.dirY},${curr.initialDescent}`;
     if (closedSet.has(key)) continue;
     closedSet.add(key);
 
@@ -450,18 +450,44 @@ function routeEdgeOrthogonal(
             continue;
         }
 
-        if (nxIdx === endXIdx && nyIdx === endYIdx) {
-             if (curr.xIdx === nxIdx && curr.yIdx === nyIdx - 1) {
-                // OK
-             } else {
-                 if (d.dx !== 0 || d.dy !== 1) continue;
-             }
-        }
-
         const x1 = xCoords[curr.xIdx];
         const y1 = yCoords[curr.yIdx];
         const x2 = xCoords[nxIdx];
         const y2 = yCoords[nyIdx];
+
+        // Enforce staggering: do not allow turning left/right or up until we reach the initial vertical offset
+        let initialDescent = curr.initialDescent;
+        if (initialDescent) {
+          if (y1 < sourcePt.y + sourceVerticalOffset) {
+            if (d.dx !== 0 || d.dy !== 1) { // must go down
+              continue;
+            }
+          } else {
+            initialDescent = false;
+          }
+        }
+
+        // Enforce staggering on target: must enter target from exactly above it, after reaching target offset
+        if (nxIdx === endXIdx && nyIdx === endYIdx) {
+             if (curr.xIdx === nxIdx && curr.yIdx === nyIdx - 1) {
+                // OK
+             } else {
+                 continue; // Target must be entered from the top
+             }
+        }
+
+        // Target vertical enforcement: if we are directly above target and below target drop zone, we must go straight down
+        if (nxIdx === endXIdx && y2 > targetPt.y - targetVerticalOffset && y2 < targetPt.y) {
+          if (d.dx !== 0 || d.dy !== 1) {
+             continue; // Only go straight down if we are above the target within the vertical offset
+          }
+        }
+
+        // Also, don't allow entering the target's vertical drop zone from the sides
+        if (nxIdx !== endXIdx && y2 > targetPt.y - targetVerticalOffset && y2 < targetPt.y) {
+           // But what if the obstacle forces us? A* will penalize or route around. Let's just heavily penalize it to discourage
+           // overlapping the drop zone if we aren't aligned yet.
+        }
 
         if (!isSegmentValid(x1, y1, x2, y2)) continue;
 
@@ -471,11 +497,16 @@ function routeEdgeOrthogonal(
           penalty = 50;
         }
 
+        // Discourage entering the drop zone horizontally
+        if (d.dx !== 0 && y2 > targetPt.y - targetVerticalOffset && y2 < targetPt.y) {
+           penalty += 1000;
+        }
+
         const g = curr.g + dist + penalty;
         const h = Math.abs(xCoords[endXIdx] - x2) + Math.abs(yCoords[endYIdx] - y2);
         const f = g + h;
 
-        openList.push({ xIdx: nxIdx, yIdx: nyIdx, g, f, parent: curr, dirX: d.dx, dirY: d.dy });
+        openList.push({ xIdx: nxIdx, yIdx: nyIdx, g, f, parent: curr, dirX: d.dx, dirY: d.dy, initialDescent });
       }
     }
   }

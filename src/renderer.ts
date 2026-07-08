@@ -1499,6 +1499,20 @@ export class GraphView {
         tVertOffset = 30 + Math.max(0, inIndex) * 20;
       }
 
+      const sourcePos = layout.positions.get(sourceId);
+      const targetPos = layout.positions.get(targetId);
+      if (sourcePos && targetPos) {
+        const availableSpace = targetPos.y - (sourcePos.y + layout.nodeSize.height);
+        if (availableSpace > 0) {
+          const minRequiredSpace = 20;
+          if (sVertOffset + tVertOffset > availableSpace - minRequiredSpace) {
+             const scale = (availableSpace - minRequiredSpace) / (sVertOffset + tVertOffset);
+             sVertOffset *= scale;
+             tVertOffset *= scale;
+          }
+        }
+      }
+
       return { sourceOffsetPx: sOffset, targetOffsetPx: tOffset, sourceVerticalOffsetPx: sVertOffset, targetVerticalOffsetPx: tVertOffset };
     };
 
@@ -1974,6 +1988,20 @@ function renderEdges(
       tOffset = (inIndex - (inTotal - 1) / 2) * spacing;
       tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
       tVertOffset = 30 + Math.max(0, inIndex) * 20;
+    }
+
+    const sourcePos = layout.positions.get(sourceId);
+    const targetPos = layout.positions.get(targetId);
+    if (sourcePos && targetPos) {
+      const availableSpace = targetPos.y - (sourcePos.y + layout.nodeSize.height);
+      if (availableSpace > 0) {
+        const minRequiredSpace = 20;
+        if (sVertOffset + tVertOffset > availableSpace - minRequiredSpace) {
+           const scale = (availableSpace - minRequiredSpace) / (sVertOffset + tVertOffset);
+           sVertOffset *= scale;
+           tVertOffset *= scale;
+        }
+      }
     }
 
     return { sourceOffsetPx: sOffset, targetOffsetPx: tOffset, sourceVerticalOffsetPx: sVertOffset, targetVerticalOffsetPx: tVertOffset };
