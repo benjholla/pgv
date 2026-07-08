@@ -5,8 +5,6 @@ describe("model", () => {
   describe("Domain Properties of Graph Model", () => {
     it("Multi-graph Property: allows multiple directed edges between the exact same pair of nodes", () => {
       const json: GraphSnapshotJson = {
-        graphId: "test-multigraph",
-        version: 1,
         nodes: [{ id: "A" }, { id: "B" }],
         edges: [
           { id: "e1", source: "A", target: "B", tags: ["first"] },
@@ -23,8 +21,6 @@ describe("model", () => {
 
     it("Self-loop Property: allows edges where source === target", () => {
       const json: GraphSnapshotJson = {
-        graphId: "test-self-loop",
-        version: 1,
         nodes: [{ id: "A" }],
         edges: [
           { id: "e1", source: "A", target: "A" }
@@ -41,14 +37,10 @@ describe("model", () => {
   describe("createGraphSnapshot", () => {
     it("creates an empty snapshot successfully", () => {
       const json: GraphSnapshotJson = {
-        graphId: "test-1",
-        version: 1,
         nodes: [],
         edges: []
       };
       const snapshot = createGraphSnapshot(json);
-      expect(snapshot.graphId).toBe("test-1");
-      expect(snapshot.version).toBe(1);
       expect(snapshot.nodes.size).toBe(0);
       expect(snapshot.edges.size).toBe(0);
     });
@@ -80,8 +72,6 @@ describe("model", () => {
 
     it("preserves the schema property", () => {
       const json: GraphSnapshotJson = {
-        graphId: "test-schema",
-        version: 1,
         schema: { containment: ["cluster", "package"] },
         nodes: [],
         edges: []
@@ -93,8 +83,6 @@ describe("model", () => {
 
     it("throws on duplicate node ID", () => {
       const json: GraphSnapshotJson = {
-        graphId: "test",
-        version: 1,
         nodes: [{ id: "n1" }, { id: "n1" }],
         edges: []
       };
@@ -104,8 +92,6 @@ describe("model", () => {
 
     it("throws on missing parent node reference", () => {
       const json: GraphSnapshotJson = {
-        graphId: "test",
-        version: 1,
         nodes: [{ id: "n1", parent: "missing" }],
         edges: []
       };
@@ -115,15 +101,11 @@ describe("model", () => {
 
     it("throws on missing source or target node reference", () => {
       expect(() => createGraphSnapshot({
-        graphId: "test",
-        version: 1,
         nodes: [{ id: "n1" }],
         edges: [{ id: "e1", source: "n1", target: "missing" }]
       })).toThrow(/references missing target/);
 
       expect(() => createGraphSnapshot({
-        graphId: "test",
-        version: 1,
         nodes: [{ id: "n1" }],
         edges: [{ id: "e1", source: "missing", target: "n1" }]
       })).toThrow(/references missing source/);
@@ -131,8 +113,6 @@ describe("model", () => {
 
     it("throws on duplicate edge ID", () => {
       const json: GraphSnapshotJson = {
-        graphId: "test",
-        version: 1,
         nodes: [{ id: "n1" }, { id: "n2" }],
         edges: [
           { id: "e1", source: "n1", target: "n2" },
@@ -143,44 +123,31 @@ describe("model", () => {
     });
 
     it("throws on empty strings for IDs or tags", () => {
+
       expect(() => createGraphSnapshot({
-        graphId: "", version: 1, nodes: [], edges: []
+        nodes: [{ id: " " }], edges: []
       })).toThrow(/non-empty string/);
 
       expect(() => createGraphSnapshot({
-        graphId: "test", version: 1, nodes: [{ id: " " }], edges: []
-      })).toThrow(/non-empty string/);
-
-      expect(() => createGraphSnapshot({
-        graphId: "test", version: 1, nodes: [{ id: "n1", tags: [""] }], edges: []
+        nodes: [{ id: "n1", tags: [""] }], edges: []
       })).toThrow(/non-empty string/);
     });
 
     it("throws on blank or whitespace-only strings for IDs or tags", () => {
-      expect(() => createGraphSnapshot({
-        graphId: "   \t\n  ", version: 1, nodes: [], edges: []
-      })).toThrow(/non-empty string/);
 
       expect(() => createGraphSnapshot({
-        graphId: "test", version: 1, nodes: [{ id: "n1", tags: ["   "] }], edges: []
+        nodes: [{ id: "n1", tags: ["   "] }], edges: []
       })).toThrow(/non-empty string/);
     });
 
     it("throws on non-string values for IDs or tags", () => {
+
       expect(() => createGraphSnapshot({
-        graphId: 123 as any, version: 1, nodes: [], edges: []
+        nodes: [{ id: 456 as any }], edges: []
       })).toThrow(/non-empty string/);
 
       expect(() => createGraphSnapshot({
-        graphId: null as any, version: 1, nodes: [], edges: []
-      })).toThrow(/non-empty string/);
-
-      expect(() => createGraphSnapshot({
-        graphId: "test", version: 1, nodes: [{ id: 456 as any }], edges: []
-      })).toThrow(/non-empty string/);
-
-      expect(() => createGraphSnapshot({
-        graphId: "test", version: 1, nodes: [{ id: "n1", tags: [true as any] }], edges: []
+        nodes: [{ id: "n1", tags: [true as any] }], edges: []
       })).toThrow(/non-empty string/);
     });
 
@@ -192,20 +159,8 @@ describe("model", () => {
       expect(() => sanitizeString({} as any)).toThrow(TypeError);
     });
 
-    it("throws on unsafe content in graphId", () => {
-      expect(() => createGraphSnapshot({
-        graphId: "javascript:alert(1)", version: 1, nodes: [], edges: []
-      })).toThrow(/contains unsafe content/);
-
-      expect(() => createGraphSnapshot({
-        graphId: "<scr<script>ipt>alert(1)</script>", version: 1, nodes: [], edges: []
-      })).toThrow(/contains unsafe content/);
-    });
-
     it("throws on unsupported attribute value types", () => {
       const invalidJson: any = {
-        graphId: "test",
-        version: 1,
         nodes: [{ id: "n1", attributes: { obj: {} } }],
         edges: []
       };
@@ -214,8 +169,6 @@ describe("model", () => {
 
     it("sanitizes unsafe strings in attributes", () => {
       const json: GraphSnapshotJson = {
-        graphId: "test",
-        version: 1,
         nodes: [{
           id: "n1", attributes: {
             safe: "hello world",
@@ -267,8 +220,6 @@ describe("model", () => {
     describe("Property and Edge Case Tests", () => {
       it("Commutativity: Independent diffs can be applied in any order with identical results", () => {
         const base = createGraphSnapshot({
-          graphId: "test",
-          version: 1,
           nodes: [{ id: "n1" }],
           edges: []
         });
@@ -297,8 +248,6 @@ describe("model", () => {
 
       it("Replacement Property: Safely replace an element in a single diff without duplicate ID errors", () => {
         const base = createGraphSnapshot({
-          graphId: "test",
-          version: 1,
           nodes: [{ id: "n1", tags: ["old"] }],
           edges: []
         });
@@ -316,8 +265,6 @@ describe("model", () => {
 
       it("Security Properties: Benign URIs are preserved while dangerous ones are blocked", () => {
         const json: GraphSnapshotJson = {
-          graphId: "test",
-          version: 1,
           nodes: [{
             id: "n1", attributes: {
               safeData: "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
@@ -340,8 +287,6 @@ describe("model", () => {
     });
 
     const baseSnapshot = createGraphSnapshot({
-      graphId: "test-algebraic",
-      version: 1,
       nodes: [
         { id: "n1", tags: ["A"], attributes: { val: { integer: 1 } } },
         { id: "n2", parent: "n1", tags: [], attributes: {} }
@@ -359,7 +304,7 @@ describe("model", () => {
       const baseJson = graphSnapshotToJson(baseSnapshot);
       const nextJson = graphSnapshotToJson(nextSnapshot);
 
-      expect({ ...nextJson, version: 1 }).toEqual(baseJson);
+      expect(nextJson).toEqual(baseJson);
       expect(nextSnapshot.nodes.size).toBe(baseSnapshot.nodes.size);
       expect(nextSnapshot.edges.size).toBe(baseSnapshot.edges.size);
     });
@@ -370,7 +315,7 @@ describe("model", () => {
         removedEdges: ["missing-edge-123"]
       });
 
-      const nextSnapshot = applyGraphDiff(baseSnapshot, diff, 2);
+      const nextSnapshot = applyGraphDiff(baseSnapshot, diff);
 
       // Ensure the base snapshot was not mutated
       expect(baseSnapshot.nodes.has("missing-node-123")).toBe(false);
@@ -380,7 +325,7 @@ describe("model", () => {
       const baseJson = graphSnapshotToJson(baseSnapshot);
       const nextJson = graphSnapshotToJson(nextSnapshot);
 
-      expect({ ...nextJson, version: 1 }).toEqual(baseJson);
+      expect(nextJson).toEqual(baseJson);
     });
 
     it("Immutability: applyGraphDiff does not mutate the original snapshot", () => {
@@ -389,7 +334,7 @@ describe("model", () => {
         addedEdges: [{ id: "e2", source: "n1", target: "n3", tags: [], attributes: {} }]
       });
 
-      const nextSnapshot = applyGraphDiff(baseSnapshot, diff, 2);
+      const nextSnapshot = applyGraphDiff(baseSnapshot, diff);
 
       // Ensure the new snapshot has the additions
       expect(nextSnapshot.nodes.has("n3")).toBe(true);
@@ -398,7 +343,6 @@ describe("model", () => {
       // Ensure the original snapshot remains unchanged
       expect(baseSnapshot.nodes.has("n3")).toBe(false);
       expect(baseSnapshot.edges.has("e2")).toBe(false);
-      expect(baseSnapshot.version).toBe(1);
       expect(baseSnapshot.nodes.size).toBe(2);
       expect(baseSnapshot.edges.size).toBe(1);
     });
@@ -422,7 +366,7 @@ describe("model", () => {
       const baseJson = graphSnapshotToJson(baseSnapshot);
       const finalJson = graphSnapshotToJson(snapshotAfterRemove);
 
-      expect({ ...finalJson, version: 1 }).toEqual(baseJson);
+      expect(finalJson).toEqual(baseJson);
     });
   });
 
@@ -470,8 +414,6 @@ describe("model", () => {
 
     it("round-trips GraphSnapshotJson to GraphSnapshot and back", () => {
       const originalJson: GraphSnapshotJson = {
-        graphId: "test-roundtrip",
-        version: 42,
         nodes: [
           { id: "n1", tags: ["A"], attributes: { a: { integer: 1 }, b: "string", c: true } },
           { id: "n2", parent: "n1", tags: [], attributes: {} }
@@ -489,8 +431,6 @@ describe("model", () => {
 
     it("round-trips GraphSnapshotJson to GraphSnapshot and back with schema", () => {
       const originalJson: GraphSnapshotJson = {
-        graphId: "test-roundtrip-schema",
-        version: 42,
         schema: { containment: ["package", "module"] },
         nodes: [],
         edges: []
@@ -532,8 +472,6 @@ describe("model", () => {
 
     it("correctly validates and parses float, integer, and bytes", () => {
       const validJson: GraphSnapshotJson = {
-        graphId: "test-types",
-        version: 1,
         nodes: [{
           id: "n1", tags: [], attributes: {
             i: { integer: 42 },
@@ -557,15 +495,11 @@ describe("model", () => {
       attrs.valid = "ok";
 
       expect(() => createGraphSnapshot({
-        graphId: "test-attributes-object",
-        version: 1,
         nodes: [{ id: "n1", tags: [], attributes: attrs }],
         edges: []
       })).toThrow(/unsupported value type/i);
 
       expect(() => createGraphSnapshot({
-        graphId: "test-attributes-array",
-        version: 1,
         nodes: [{ id: "n1", tags: [], attributes: { invalid: [] as any } }],
         edges: []
       })).toThrow(/unsupported value type/i);
@@ -576,8 +510,6 @@ describe("model", () => {
       attrs.valid = "ok";
 
       const snap = createGraphSnapshot({
-        graphId: "test-attributes-inherited",
-        version: 1,
         nodes: [{ id: "n1", tags: [], attributes: attrs }],
         edges: []
       });
@@ -589,8 +521,6 @@ describe("model", () => {
 
   describe("applyGraphDiff", () => {
     const baseSnapshot = createGraphSnapshot({
-      graphId: "test-diff",
-      version: 1,
       schema: { containment: ["folder"] },
       nodes: [
         { id: "n1" },
@@ -606,7 +536,7 @@ describe("model", () => {
         addedNodes: [{ id: "n3" }]
       });
 
-      const nextSnapshot = applyGraphDiff(baseSnapshot, diff, 2);
+      const nextSnapshot = applyGraphDiff(baseSnapshot, diff);
 
       expect(nextSnapshot.schema).toBeDefined();
       expect(nextSnapshot.schema?.containment).toEqual(["folder"]);
@@ -620,10 +550,7 @@ describe("model", () => {
         addedEdges: [{ id: "e2", source: "n1", target: "n3" }]
       });
 
-      const nextSnapshot = applyGraphDiff(baseSnapshot, diff, 2);
-
-      expect(nextSnapshot.graphId).toBe("test-diff");
-      expect(nextSnapshot.version).toBe(2);
+      const nextSnapshot = applyGraphDiff(baseSnapshot, diff);
       expect(nextSnapshot.nodes.has("n2")).toBe(false);
       expect(nextSnapshot.edges.has("e1")).toBe(false);
       expect(nextSnapshot.nodes.has("n3")).toBe(true);
@@ -635,17 +562,17 @@ describe("model", () => {
 
     it("throws on adding duplicate node ID", () => {
       const diff = createGraphDiff({ addedNodes: [{ id: "n1" }] });
-      expect(() => applyGraphDiff(baseSnapshot, diff, 2)).toThrow(/duplicate node id/);
+      expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/duplicate node id/);
     });
 
     it("throws on adding duplicate edge ID", () => {
       const diff = createGraphDiff({ addedEdges: [{ id: "e1", source: "n1", target: "n2" }] });
-      expect(() => applyGraphDiff(baseSnapshot, diff, 2)).toThrow(/duplicate edge id/);
+      expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/duplicate edge id/);
     });
 
     it("throws when adding a node with missing parent", () => {
       const diff = createGraphDiff({ addedNodes: [{ id: "n3", parent: "missing" }] });
-      expect(() => applyGraphDiff(baseSnapshot, diff, 2)).toThrow(/references missing parent/);
+      expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/references missing parent/);
     });
 
     it("throws when adding an edge with missing source or target", () => {
@@ -660,12 +587,12 @@ describe("model", () => {
 
     it("throws when removing a node leaves an orphaned edge", () => {
       const diff = createGraphDiff({ removedNodes: ["n2"] }); // n1->n2 edge still exists
-      expect(() => applyGraphDiff(baseSnapshot, diff, 2)).toThrow(/references missing target/);
+      expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/references missing target/);
     });
 
     it("throws when removing a node leaves an orphaned child node", () => {
       const diff = createGraphDiff({ removedNodes: ["n1"], removedEdges: ["e1"] }); // n2 has parent n1
-      expect(() => applyGraphDiff(baseSnapshot, diff, 2)).toThrow(/references missing parent/);
+      expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/references missing parent/);
     });
 
     it("allows adding a node and edge simultaneously", () => {
@@ -674,7 +601,7 @@ describe("model", () => {
         addedNodes: [{ id: "n3" }],
         addedEdges: [{ id: "e2", source: "n1", target: "n3" }]
       });
-      const nextSnapshot = applyGraphDiff(baseSnapshot, diff, 2);
+      const nextSnapshot = applyGraphDiff(baseSnapshot, diff);
       expect(nextSnapshot.edges.get("e2")?.target).toBe("n3");
     });
 
@@ -705,8 +632,6 @@ describe("model", () => {
     it("throws when removing a node leaves an orphaned edge source", () => {
       // Use a custom snapshot without parent dependencies to isolate the source edge error
       const customBase = createGraphSnapshot({
-        graphId: "test-diff-source",
-        version: 1,
         nodes: [{ id: "n1" }, { id: "n3" }],
         edges: [{ id: "e2", source: "n1", target: "n3" }]
       });
@@ -718,8 +643,6 @@ describe("model", () => {
     it("throws when removing a node leaves an orphaned edge target", () => {
       // Use a custom snapshot without parent dependencies to isolate the target edge error
       const customBase = createGraphSnapshot({
-        graphId: "test-diff-target",
-        version: 1,
         nodes: [{ id: "n1" }, { id: "n3" }],
         edges: [{ id: "e2", source: "n1", target: "n3" }]
       });

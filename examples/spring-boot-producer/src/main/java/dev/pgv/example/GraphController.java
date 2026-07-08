@@ -23,43 +23,42 @@ public class GraphController {
             "cfg-main",
             1,
             List.of(
-                new GraphNode("entry", List.of("entry"), Map.of(
-                    "label", "Entry",
-                    "kind", "basic-block"
+                new GraphNode("entry", List.of("XCSG.ControlFlow_Node", "XCSG.controlFlowRoot"), Map.of(
+                    "XCSG.name", "Entry"
                 ), null),
-                new GraphNode("init", List.of(), Map.of(
-                    "label", "Initialize i = 0",
+                new GraphNode("init", List.of("XCSG.ControlFlow_Node"), Map.of(
+                    "XCSG.name", "Initialize i = 0",
                     "line", 3
                 ), null),
-                new GraphNode("condition", List.of("decision", "loop"), Map.of(
-                    "label", "i < n?",
+                new GraphNode("condition", List.of("XCSG.ControlFlow_Node", "XCSG.Loop"), Map.of(
+                    "XCSG.name", "i < n?",
                     "line", 4
                 ), null),
-                new GraphNode("body", List.of(), Map.of(
-                    "label", "sum += values[i]",
+                new GraphNode("body", List.of("XCSG.ControlFlow_Node"), Map.of(
+                    "XCSG.name", "sum += values[i]",
                     "line", 5
                 ), null),
-                new GraphNode("increment", List.of("loop"), Map.of(
-                    "label", "i++",
+                new GraphNode("increment", List.of("XCSG.ControlFlow_Node"), Map.of(
+                    "XCSG.name", "i++",
                     "line", 6
                 ), null),
-                new GraphNode("exit", List.of("exit"), Map.of(
-                    "label", "Return sum",
+                new GraphNode("exit", List.of("XCSG.ControlFlow_Node", "XCSG.controlFlowExit"), Map.of(
+                    "XCSG.name", "Return sum",
                     "line", 8
                 ), null)
             ),
             List.of(
-                new GraphEdge("e-entry-init", "entry", "init", List.of(), Map.of()),
-                new GraphEdge("e-init-condition", "init", "condition", List.of(), Map.of()),
-                new GraphEdge("e-condition-body", "condition", "body", List.of("true-branch"), Map.of(
-                    "label", "true"
+                new GraphEdge("e-entry-init", "entry", "init", List.of("XCSG.ControlFlow_Edge"), Map.of()),
+                new GraphEdge("e-init-condition", "init", "condition", List.of("XCSG.ControlFlow_Edge"), Map.of()),
+                new GraphEdge("e-condition-body", "condition", "body", List.of("XCSG.ControlFlow_Edge"), Map.of(
+                    "XCSG.conditionValue", true
                 )),
-                new GraphEdge("e-body-increment", "body", "increment", List.of(), Map.of()),
-                new GraphEdge("e-increment-condition", "increment", "condition", List.of("back-edge"), Map.of(
-                    "label", "next"
+                new GraphEdge("e-body-increment", "body", "increment", List.of("XCSG.ControlFlow_Edge"), Map.of()),
+                new GraphEdge("e-increment-condition", "increment", "condition", List.of("XCSG.ControlFlow_Edge"), Map.of(
+                    "XCSG.name", "next"
                 )),
-                new GraphEdge("e-condition-exit", "condition", "exit", List.of("false-branch"), Map.of(
-                    "label", "false"
+                new GraphEdge("e-condition-exit", "condition", "exit", List.of("XCSG.ControlFlow_Edge"), Map.of(
+                    "XCSG.conditionValue", false
                 ))
             )
         );

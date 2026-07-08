@@ -101,16 +101,20 @@ const DEFAULT_VERTICAL_LAYOUT: Required<VerticalLayoutOptions> = {
 /**
  * Computes a basic hierarchical vertical layout for a given graph.
  *
- * This function assigns an `(x, y)` coordinate to each node by organizing
- * them into depth layers (e.g., BFS layering) and distributing them horizontally.
+ * This layout orchestrates the primary rendering pipeline design by decoupling topological sorting from geometric routing. It first organizes nodes into hierarchical depth layers using an iterative Kahn's algorithm (with a DFS cycle-breaking pass). Once layered, nodes are distributed horizontally.
+ *
+ * If a `previousLayout` is provided, the algorithm will attempt to preserve the relative topological order and visual locality of nodes within layers, minimizing context shifts and jumping during re-renders.
+ * Later in the rendering pipeline, edges are individually routed between these laid-out nodes using an A* shortest-path algorithm (via `edgeEndpoints`) to compute orthogonal lines that avoid intersecting node bounding boxes.
  *
  * @param graph The logical graph to lay out.
  * @param options Dimensions and spacing parameters.
+ * @param previousLayout An optional previous layout to use as an ordering hint for nodes.
  * @returns A computed `LayoutSnapshot` containing absolute coordinates for all nodes.
  */
 export function verticalLayout(
   graph: GraphSnapshot,
   options: VerticalLayoutOptions = {},
+  previousLayout?: LayoutSnapshot,
 ): LayoutSnapshot {
   const config = { ...DEFAULT_VERTICAL_LAYOUT, ...options };
   // Sort node IDs to guarantee determinism in layout regardless of input map iteration order
@@ -139,6 +143,59 @@ export function verticalLayout(
 
   const depths = assignVerticalDepths(nodeIds, outgoing, incomingCounts);
   const layers = groupByDepth(nodeIds, depths);
+
+  if (previousLayout) {
+    for (const ids of layers.values()) {
+      const hintX = new Map<string, number>();
+
+      for (const id of ids) {
+        if (previousLayout.positions.has(id)) {
+          hintX.set(id, previousLayout.positions.get(id)!.x);
+        } else {
+          // Calculate average X of incoming neighbors
+          let sumIn = 0;
+          let countIn = 0;
+
+          for (const edge of graph.edges.values()) {
+            if (edge.target === id && previousLayout.positions.has(edge.source)) {
+              sumIn += previousLayout.positions.get(edge.source)!.x;
+              countIn++;
+            }
+          }
+
+          if (countIn > 0) {
+            hintX.set(id, sumIn / countIn);
+          } else {
+            // Fall back to outgoing neighbors
+            let sumOut = 0;
+            let countOut = 0;
+            for (const edge of graph.edges.values()) {
+              if (edge.source === id && previousLayout.positions.has(edge.target)) {
+                sumOut += previousLayout.positions.get(edge.target)!.x;
+                countOut++;
+              }
+            }
+
+            if (countOut > 0) {
+              hintX.set(id, sumOut / countOut);
+            } else {
+              hintX.set(id, 0);
+            }
+          }
+        }
+      }
+
+      // Sort nodes in this layer by hintX, falling back to ID for determinism
+      (ids as string[]).sort((a, b) => {
+        const diff = hintX.get(a)! - hintX.get(b)!;
+        if (diff === 0) {
+          return a.localeCompare(b);
+        }
+        return diff;
+      });
+    }
+  }
+
   const positions = new Map<string, Point>();
 
   // Replace spread Math.max with iterative calculation to prevent Maximum Call Stack Size Exceeded
@@ -197,6 +254,10 @@ export interface EdgeEndpointsResult {
    * The end point of the edge.
    */
   readonly target: Point;
+  /**
+   * The routed path for the edge.
+   */
+  readonly path: readonly Point[];
 }
 
 /**
@@ -214,6 +275,8 @@ export interface EdgeEndpointsResult {
 export function edgeEndpoints(
   edge: GraphEdge,
   layout: LayoutSnapshot,
+  sourceOffsetPx: number = 0,
+  targetOffsetPx: number = 0,
 ): EdgeEndpointsResult | null {
   const source = layout.positions.get(edge.source);
   const target = layout.positions.get(edge.target);
@@ -222,18 +285,219 @@ export function edgeEndpoints(
     return null;
   }
 
+  const sourcePt = {
+    x: source.x + layout.nodeSize.width / 2 + sourceOffsetPx,
+    y: source.y + layout.nodeSize.height,
+  };
+
+  const targetPt = {
+    x: target.x + layout.nodeSize.width / 2 + targetOffsetPx,
+    y: target.y,
+  };
+
+  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout);
+
   return {
-    source: {
-      x: source.x + layout.nodeSize.width / 2,
-      y: source.y + layout.nodeSize.height,
-    },
-    target: {
-      x: target.x + layout.nodeSize.width / 2,
-      y: target.y,
-    },
+    source: sourcePt,
+    target: targetPt,
+    path,
   };
 }
 
+/**
+ * Routes an edge orthogonally between two points while avoiding node obstacles.
+ *
+ * This function uses an A* pathfinding algorithm over a dynamically generated
+ * orthogonal grid. The grid is constructed from the coordinates of the nodes,
+ * start and end points, and routing margins. It uses `g` (distance + penalty)
+ * and `f` (heuristic) scores, tracking open and closed sets to find the shortest
+ * valid path. Directional penalties are applied to minimize unnecessary joints
+ * and produce clean, predictable edge routing.
+ *
+ * @param sourcePt The starting point of the edge.
+ * @param targetPt The ending point of the edge.
+ * @param layout The current layout containing node sizes and positions (obstacles).
+ * @returns A readonly array of points defining the calculated orthogonal path.
+ */
+function routeEdgeOrthogonal(
+  sourcePt: Point,
+  targetPt: Point,
+  layout: LayoutSnapshot,
+): readonly Point[] {
+  const margin = 20;
+
+  const obstacles: { x: number; y: number; w: number; h: number }[] = [];
+  for (const pos of layout.positions.values()) {
+    obstacles.push({
+      x: pos.x,
+      y: pos.y,
+      w: layout.nodeSize.width,
+      h: layout.nodeSize.height,
+    });
+  }
+
+  const xSet = new Set<number>();
+  const ySet = new Set<number>();
+
+  xSet.add(sourcePt.x);
+  ySet.add(sourcePt.y);
+  xSet.add(targetPt.x);
+  ySet.add(targetPt.y);
+
+  const sourceVerticalOffset = 60; // Extra visual weight before joint
+  const targetVerticalOffset = 30;
+
+  ySet.add(sourcePt.y + sourceVerticalOffset);
+  ySet.add(targetPt.y - targetVerticalOffset);
+
+  for (const pos of layout.positions.values()) {
+    xSet.add(pos.x - margin);
+    xSet.add(pos.x + layout.nodeSize.width + margin);
+    ySet.add(pos.y - margin);
+    ySet.add(pos.y + layout.nodeSize.height + margin);
+
+    xSet.add(pos.x + layout.nodeSize.width / 2);
+  }
+
+  xSet.add(-margin);
+  xSet.add(layout.width + margin);
+  ySet.add(-margin);
+  ySet.add(layout.height + margin);
+
+  const xCoords = Array.from(xSet).sort((a, b) => a - b);
+  const yCoords = Array.from(ySet).sort((a, b) => a - b);
+
+  type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number };
+
+  const getIdx = (arr: number[], val: number) => {
+    let minIdx = 0;
+    let minD = Math.abs(arr[0] - val);
+    for (let i = 1; i < arr.length; i++) {
+        const d = Math.abs(arr[i] - val);
+        if (d < minD) {
+            minD = d;
+            minIdx = i;
+        }
+    }
+    return minIdx;
+  };
+
+  const startXIdx = getIdx(xCoords, sourcePt.x);
+  const startYIdx = getIdx(yCoords, sourcePt.y);
+  const endXIdx = getIdx(xCoords, targetPt.x);
+  const endYIdx = getIdx(yCoords, targetPt.y);
+
+  const isSegmentValid = (x1: number, y1: number, x2: number, y2: number) => {
+    const minX = Math.min(x1, x2);
+    const maxX = Math.max(x1, x2);
+    const minY = Math.min(y1, y2);
+    const maxY = Math.max(y1, y2);
+
+    for (let i = 0; i < obstacles.length; i++) {
+      const obs = obstacles[i];
+      if (
+        minX < obs.x + obs.w &&
+        maxX > obs.x &&
+        minY < obs.y + obs.h &&
+        maxY > obs.y
+      ) {
+        return false;
+      }
+    }
+    return true;
+  };
+
+  const openList: Node[] = [];
+  const closedSet = new Set<string>();
+
+  openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1 });
+
+  while (openList.length > 0) {
+    openList.sort((a, b) => a.f - b.f);
+    const curr = openList.shift()!;
+
+    if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
+      const path: Point[] = [];
+      let c: Node | null = curr;
+      while (c) {
+        path.push({ x: xCoords[c.xIdx], y: yCoords[c.yIdx] });
+        c = c.parent;
+      }
+      return Object.freeze(path.reverse());
+    }
+
+    const key = `${curr.xIdx},${curr.yIdx},${curr.dirX},${curr.dirY}`;
+    if (closedSet.has(key)) continue;
+    closedSet.add(key);
+
+    const dirs = [
+      { dx: 0, dy: -1 },
+      { dx: 0, dy: 1 },
+      { dx: -1, dy: 0 },
+      { dx: 1, dy: 0 },
+    ];
+
+    for (let i = 0; i < dirs.length; i++) {
+      const d = dirs[i];
+      const nxIdx = curr.xIdx + d.dx;
+      const nyIdx = curr.yIdx + d.dy;
+
+      if (nxIdx >= 0 && nxIdx < xCoords.length && nyIdx >= 0 && nyIdx < yCoords.length) {
+        if (curr.parent === null && (d.dx !== 0 || d.dy !== 1)) {
+            continue;
+        }
+
+        if (nxIdx === endXIdx && nyIdx === endYIdx) {
+             if (curr.xIdx === nxIdx && curr.yIdx === nyIdx - 1) {
+                // OK
+             } else {
+                 if (d.dx !== 0 || d.dy !== 1) continue;
+             }
+        }
+
+        const x1 = xCoords[curr.xIdx];
+        const y1 = yCoords[curr.yIdx];
+        const x2 = xCoords[nxIdx];
+        const y2 = yCoords[nyIdx];
+
+        if (!isSegmentValid(x1, y1, x2, y2)) continue;
+
+        const dist = Math.abs(x2 - x1) + Math.abs(y2 - y1);
+        let penalty = 0;
+        if (curr.parent !== null && (curr.dirX !== d.dx || curr.dirY !== d.dy)) {
+          penalty = 50;
+        }
+
+        const g = curr.g + dist + penalty;
+        const h = Math.abs(xCoords[endXIdx] - x2) + Math.abs(yCoords[endYIdx] - y2);
+        const f = g + h;
+
+        openList.push({ xIdx: nxIdx, yIdx: nyIdx, g, f, parent: curr, dirX: d.dx, dirY: d.dy });
+      }
+    }
+  }
+
+  return Object.freeze([
+    sourcePt,
+    { x: sourcePt.x, y: sourcePt.y + sourceVerticalOffset },
+    { x: targetPt.x, y: targetPt.y - targetVerticalOffset },
+    targetPt
+  ]);
+}
+/**
+ * Assigns vertical depth levels to nodes using a topological sort approach.
+ *
+ * This function employs an iterative Kahn's algorithm combined with an initial
+ * DFS (Depth-First Search) cycle-breaking pass. The DFS pass ensures the graph
+ * is treated as a Directed Acyclic Graph (DAG) by ignoring back-edges.
+ * Kahn's algorithm then processes the nodes to assign depths based on the
+ * longest path from a root, positioning them appropriately in the vertical hierarchy.
+ *
+ * @param nodeIds A list of all node IDs in the graph.
+ * @param outgoing A map of outgoing edges for each node.
+ * @param incomingCounts A map of the number of incoming edges for each node.
+ * @returns A map associating each node ID with its calculated depth level.
+ */
 function assignVerticalDepths(
   nodeIds: readonly string[],
   outgoing: ReadonlyMap<string, readonly string[]>,
@@ -244,30 +508,46 @@ function assignVerticalDepths(
 
   const state = new Map<string, "visiting" | "visited">();
 
-  function dfsBreakCycles(u: string) {
-    state.set(u, "visiting");
-    for (const v of outgoing.get(u)!) {
-      const vState = state.get(v);
-      if (vState === "visiting") {
-        continue;
-      }
-      acyclicOutgoing.get(u)!.push(v);
-      if (vState !== "visited") {
-        dfsBreakCycles(v);
+  function dfsBreakCyclesIterative(startNode: string) {
+    const stack: { u: string; edges: readonly string[]; index: number }[] = [];
+    stack.push({ u: startNode, edges: outgoing.get(startNode)!, index: 0 });
+    state.set(startNode, "visiting");
+
+    while (stack.length > 0) {
+      const top = stack[stack.length - 1];
+      const { u, edges, index } = top;
+
+      if (index < edges.length) {
+        top.index++;
+        const v = edges[index];
+        const vState = state.get(v);
+
+        if (vState === "visiting") {
+          continue; // Break cycle
+        }
+
+        acyclicOutgoing.get(u)!.push(v);
+
+        if (vState !== "visited") {
+          state.set(v, "visiting");
+          stack.push({ u: v, edges: outgoing.get(v)!, index: 0 });
+        }
+      } else {
+        state.set(u, "visited");
+        stack.pop();
       }
     }
-    state.set(u, "visited");
   }
 
   const roots = nodeIds.filter((id) => incomingCounts.get(id) === 0);
   for (const id of roots) {
     if (state.get(id) !== "visited") {
-      dfsBreakCycles(id);
+      dfsBreakCyclesIterative(id);
     }
   }
   for (const id of nodeIds) {
     if (state.get(id) !== "visited") {
-      dfsBreakCycles(id);
+      dfsBreakCyclesIterative(id);
     }
   }
 
