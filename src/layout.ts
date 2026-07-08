@@ -101,15 +101,20 @@ const DEFAULT_VERTICAL_LAYOUT: Required<VerticalLayoutOptions> = {
 /**
  * Computes a basic hierarchical vertical layout for a given graph.
  *
- * This layout orchestrates the primary rendering pipeline design by decoupling topological sorting from geometric routing. It first organizes nodes into hierarchical depth layers using an iterative Kahn's algorithm (with a DFS cycle-breaking pass). Once layered, nodes are distributed horizontally. Later in the rendering pipeline, edges are individually routed between these laid-out nodes using an A* shortest-path algorithm (via `edgeEndpoints`) to compute orthogonal lines that avoid intersecting node bounding boxes.
+ * This layout orchestrates the primary rendering pipeline design by decoupling topological sorting from geometric routing. It first organizes nodes into hierarchical depth layers using an iterative Kahn's algorithm (with a DFS cycle-breaking pass). Once layered, nodes are distributed horizontally.
+ *
+ * If a `previousLayout` is provided, the algorithm will attempt to preserve the relative topological order and visual locality of nodes within layers, minimizing context shifts and jumping during re-renders.
+ * Later in the rendering pipeline, edges are individually routed between these laid-out nodes using an A* shortest-path algorithm (via `edgeEndpoints`) to compute orthogonal lines that avoid intersecting node bounding boxes.
  *
  * @param graph The logical graph to lay out.
  * @param options Dimensions and spacing parameters.
+ * @param previousLayout An optional previous layout to use as an ordering hint for nodes.
  * @returns A computed `LayoutSnapshot` containing absolute coordinates for all nodes.
  */
 export function verticalLayout(
   graph: GraphSnapshot,
   options: VerticalLayoutOptions = {},
+  previousLayout?: LayoutSnapshot,
 ): LayoutSnapshot {
   const config = { ...DEFAULT_VERTICAL_LAYOUT, ...options };
   // Sort node IDs to guarantee determinism in layout regardless of input map iteration order
@@ -138,6 +143,59 @@ export function verticalLayout(
 
   const depths = assignVerticalDepths(nodeIds, outgoing, incomingCounts);
   const layers = groupByDepth(nodeIds, depths);
+
+  if (previousLayout) {
+    for (const ids of layers.values()) {
+      const hintX = new Map<string, number>();
+
+      for (const id of ids) {
+        if (previousLayout.positions.has(id)) {
+          hintX.set(id, previousLayout.positions.get(id)!.x);
+        } else {
+          // Calculate average X of incoming neighbors
+          let sumIn = 0;
+          let countIn = 0;
+
+          for (const edge of graph.edges.values()) {
+            if (edge.target === id && previousLayout.positions.has(edge.source)) {
+              sumIn += previousLayout.positions.get(edge.source)!.x;
+              countIn++;
+            }
+          }
+
+          if (countIn > 0) {
+            hintX.set(id, sumIn / countIn);
+          } else {
+            // Fall back to outgoing neighbors
+            let sumOut = 0;
+            let countOut = 0;
+            for (const edge of graph.edges.values()) {
+              if (edge.source === id && previousLayout.positions.has(edge.target)) {
+                sumOut += previousLayout.positions.get(edge.target)!.x;
+                countOut++;
+              }
+            }
+
+            if (countOut > 0) {
+              hintX.set(id, sumOut / countOut);
+            } else {
+              hintX.set(id, 0);
+            }
+          }
+        }
+      }
+
+      // Sort nodes in this layer by hintX, falling back to ID for determinism
+      (ids as string[]).sort((a, b) => {
+        const diff = hintX.get(a)! - hintX.get(b)!;
+        if (diff === 0) {
+          return a.localeCompare(b);
+        }
+        return diff;
+      });
+    }
+  }
+
   const positions = new Map<string, Point>();
 
   // Replace spread Math.max with iterative calculation to prevent Maximum Call Stack Size Exceeded
