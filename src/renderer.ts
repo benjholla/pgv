@@ -1489,13 +1489,16 @@ export class GraphView {
       let tOffset = 0;
       let tVertOffset = 30;
 
+      let outFactor = 0;
+      let inFactor = 0;
+
       if (outTotal > 1 || inTotal > 1) {
         // Incorporate both outIndex and inIndex into the source vertical offset.
         // This ensures that edges originating from different nodes (outIndex=0)
         // but converging on the same target (inIndex=0,1,2) will still have unique
         // source vertical offsets, preventing overlapping horizontal runs.
-        const outFactor = Math.max(0, outIndex);
-        const inFactor = Math.max(0, inIndex);
+        outFactor = Math.max(0, outIndex);
+        inFactor = Math.max(0, inIndex);
 
         if (outTotal > 1) {
            sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
@@ -1517,9 +1520,25 @@ export class GraphView {
         if (availableSpace > 0) {
           const minRequiredSpace = 20;
           if (sVertOffset + tVertOffset > availableSpace - minRequiredSpace) {
-             const scale = Math.max(0, availableSpace - minRequiredSpace) / (sVertOffset + tVertOffset);
-             sVertOffset *= scale;
-             tVertOffset *= scale;
+             // Instead of scaling everything proportionally (which squashes the 20px stagger),
+             // scale the base offset but try to preserve a minimum stagger step.
+             const baseS = 40;
+             const baseT = 20;
+             let step = 20;
+
+             // If even the base + small step doesn't fit, squash the step down
+             const totalFactors = outFactor + inFactor;
+             if (totalFactors > 0) {
+                const maxAllowedStep = Math.max(4, (availableSpace - minRequiredSpace - baseS - baseT) / (totalFactors * 2));
+                step = Math.min(20, maxAllowedStep);
+             }
+
+             // Calculate new offsets with preserved (but bounded) stagger steps
+             const scaledBaseS = baseS * Math.max(0, availableSpace - minRequiredSpace) / (baseS + baseT + 20); // fallback scale
+             const scaledBaseT = baseT * Math.max(0, availableSpace - minRequiredSpace) / (baseS + baseT + 20);
+
+             sVertOffset = (step >= 4 ? baseS : scaledBaseS) + outFactor * step + inFactor * step;
+             tVertOffset = (step >= 4 ? baseT : scaledBaseT) + inFactor * step + outFactor * step;
           }
         }
       }
@@ -1991,13 +2010,16 @@ function renderEdges(
     let tOffset = 0;
     let tVertOffset = 30;
 
+    let outFactor = 0;
+    let inFactor = 0;
+
     if (outTotal > 1 || inTotal > 1) {
       // Incorporate both outIndex and inIndex into the source vertical offset.
       // This ensures that edges originating from different nodes (outIndex=0)
       // but converging on the same target (inIndex=0,1,2) will still have unique
       // source vertical offsets, preventing overlapping horizontal runs.
-      const outFactor = Math.max(0, outIndex);
-      const inFactor = Math.max(0, inIndex);
+      outFactor = Math.max(0, outIndex);
+      inFactor = Math.max(0, inIndex);
 
       if (outTotal > 1) {
          sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
@@ -2019,9 +2041,25 @@ function renderEdges(
       if (availableSpace > 0) {
         const minRequiredSpace = 20;
         if (sVertOffset + tVertOffset > availableSpace - minRequiredSpace) {
-           const scale = Math.max(0, availableSpace - minRequiredSpace) / (sVertOffset + tVertOffset);
-           sVertOffset *= scale;
-           tVertOffset *= scale;
+           // Instead of scaling everything proportionally (which squashes the 20px stagger),
+           // scale the base offset but try to preserve a minimum stagger step.
+           const baseS = 40;
+           const baseT = 20;
+           let step = 20;
+
+           // If even the base + small step doesn't fit, squash the step down
+           const totalFactors = outFactor + inFactor;
+           if (totalFactors > 0) {
+              const maxAllowedStep = Math.max(4, (availableSpace - minRequiredSpace - baseS - baseT) / (totalFactors * 2));
+              step = Math.min(20, maxAllowedStep);
+           }
+
+           // Calculate new offsets with preserved (but bounded) stagger steps
+           const scaledBaseS = baseS * Math.max(0, availableSpace - minRequiredSpace) / (baseS + baseT + 20); // fallback scale
+           const scaledBaseT = baseT * Math.max(0, availableSpace - minRequiredSpace) / (baseS + baseT + 20);
+
+           sVertOffset = (step >= 4 ? baseS : scaledBaseS) + outFactor * step + inFactor * step;
+           tVertOffset = (step >= 4 ? baseT : scaledBaseT) + inFactor * step + outFactor * step;
         }
       }
     }
