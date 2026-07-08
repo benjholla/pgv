@@ -224,7 +224,7 @@ export class GraphView {
     if (options.layout !== undefined && options.layout !== oldLayout) {
       this.#layout = options.layout;
     } else if (options.layoutOptions !== undefined && options.layoutOptions !== oldLayoutOptions && this.#graph) {
-      this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions);
+      this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions, this.#layout ?? undefined);
     }
     if (this.#clearSelectionBtn) {
       this.#clearSelectionBtn.disabled = !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0);
@@ -273,7 +273,7 @@ export class GraphView {
     if (this.#historyIndex === this.#history.length - 2) { // It was at the tip before pushing
       this.#historyIndex = this.#history.length - 1;
       this.#graph = applyGraphDiff(this.#graph, diff);
-      this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions);
+      this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions, this.#layout ?? undefined);
       this.#options.onGraphChange?.(this.#graph);
       this.#render();
     } else {
@@ -532,7 +532,7 @@ export class GraphView {
     }
 
     this.#graph = current;
-    this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions);
+    this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions, this.#layout ?? undefined);
     this.#options.onGraphChange?.(this.#graph);
     this.#render();
   }
