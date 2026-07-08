@@ -151,7 +151,7 @@ export class GraphView {
   #downloadAbortController: AbortController | null = null;
 
   #preHistoryGraph: GraphSnapshot | null = null;
-  #history: Array<{ diff: GraphDiff; version: string | number }> = [];
+  #history: Array<{ diff: GraphDiff }> = [];
   #historyIndex: number = -1;
 
   #searchOpen: boolean = false;
@@ -242,9 +242,9 @@ export class GraphView {
    * the view history (if `maxHistory > 0`), and animating the transition.
    *
    * @param diff The incremental changes to apply.
-   * @param newVersion The version identifier to assign to the new snapshot.
+
    */
-  applyDiff(diff: GraphDiff, newVersion: string | number): void {
+  applyDiff(diff: GraphDiff): void {
     if (!this.#graph || !this.#preHistoryGraph) {
       throw new Error("Cannot apply diff to an empty graph view.");
     }
@@ -259,12 +259,12 @@ export class GraphView {
       }
     }
 
-    this.#history.push({ diff, version: newVersion });
+    this.#history.push({ diff });
 
     if (maxHistory > 0 && this.#history.length > maxHistory) {
       // Compress oldest history into preHistoryGraph
       const oldest = this.#history.shift()!;
-      this.#preHistoryGraph = applyGraphDiff(this.#preHistoryGraph, oldest.diff, oldest.version);
+      this.#preHistoryGraph = applyGraphDiff(this.#preHistoryGraph, oldest.diff);
       if (this.#historyIndex > -1) {
         this.#historyIndex--;
       }
@@ -272,7 +272,7 @@ export class GraphView {
 
     if (this.#historyIndex === this.#history.length - 2) { // It was at the tip before pushing
       this.#historyIndex = this.#history.length - 1;
-      this.#graph = applyGraphDiff(this.#graph, diff, newVersion);
+      this.#graph = applyGraphDiff(this.#graph, diff);
       this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions);
       this.#options.onGraphChange?.(this.#graph);
       this.#render();
@@ -528,7 +528,7 @@ export class GraphView {
     let current = this.#preHistoryGraph;
     for (let i = 0; i <= this.#historyIndex; i++) {
       const h = this.#history[i];
-      current = applyGraphDiff(current, h.diff, h.version);
+      current = applyGraphDiff(current, h.diff);
     }
 
     this.#graph = current;
