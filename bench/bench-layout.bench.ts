@@ -11,7 +11,7 @@ function generateDeepGraph(depth: number, branchesPerNode: number): GraphSnapsho
     if (currentDepth > depth) return;
 
     const currentId = `n${nextId++}`;
-    nodes.push({ id: currentId, tags: ["level"], attributes: { d: currentDepth } });
+    nodes.push({ id: currentId, tags: ["level"], attributes: { d: { integer: currentDepth } } });
 
     if (parentId !== undefined) {
       edges.push({ id: `e_${parentId}_${currentId}`, source: parentId, target: currentId });

@@ -4,9 +4,9 @@ import { createGraphSnapshot, applyGraphDiff, createGraphDiff, graphSnapshotToJs
 function generateLargeGraph(numNodes: number, edgesPerNode: number): GraphSnapshotJson {
   const nodes = [];
   const edges = [];
-  nodes.push({ id: `n_root`, tags: ["test"], attributes: { val: -1 } });
+  nodes.push({ id: `n_root`, tags: ["test"], attributes: { val: { integer: -1 } } });
   for (let i = 0; i < numNodes; i++) {
-    nodes.push({ id: `n${i}`, tags: ["test"], attributes: { val: i }, parent: i % 2 === 0 ? "n_root" : undefined });
+    nodes.push({ id: `n${i}`, tags: ["test"], attributes: { val: { integer: i } }, parent: i % 2 === 0 ? "n_root" : undefined });
     for (let j = 0; j < edgesPerNode; j++) {
       const target = (i + j + 1) % numNodes;
       edges.push({ id: `e${i}-${target}`, source: `n${i}`, target: `n${target}` });
