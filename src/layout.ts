@@ -497,6 +497,14 @@ function routeEdgeOrthogonal(
           penalty = 50;
         }
 
+        // Strongly prefer horizontal segments to ONLY exist at the source or target vertical offsets
+        // to maximize the effectiveness of staggering and avoid overlapping random horizontal grid lines
+        if (d.dx !== 0) {
+           if (y2 !== sourcePt.y + sourceVerticalOffset && y2 !== targetPt.y - targetVerticalOffset) {
+             penalty += 200;
+           }
+        }
+
         // Discourage entering the drop zone horizontally
         if (d.dx !== 0 && y2 > targetPt.y - targetVerticalOffset && y2 < targetPt.y) {
            penalty += 1000;

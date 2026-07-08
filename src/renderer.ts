@@ -1482,21 +1482,32 @@ export class GraphView {
       const outTotal = outList.length;
       let sOffset = 0;
       let sVertOffset = 60;
-      if (outTotal > 1) {
-        sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
-        sOffset = Math.max(-maxOffset, Math.min(maxOffset, sOffset));
-        sVertOffset = 60 + Math.max(0, outIndex) * 20;
-      }
 
       const inList = incomingEdges.get(targetId) || [];
       const inIndex = inList.indexOf(edgeId);
       const inTotal = inList.length;
       let tOffset = 0;
       let tVertOffset = 30;
-      if (inTotal > 1) {
-        tOffset = (inIndex - (inTotal - 1) / 2) * spacing;
-        tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
-        tVertOffset = 30 + Math.max(0, inIndex) * 20;
+
+      if (outTotal > 1 || inTotal > 1) {
+        // Incorporate both outIndex and inIndex into the source vertical offset.
+        // This ensures that edges originating from different nodes (outIndex=0)
+        // but converging on the same target (inIndex=0,1,2) will still have unique
+        // source vertical offsets, preventing overlapping horizontal runs.
+        const outFactor = Math.max(0, outIndex);
+        const inFactor = Math.max(0, inIndex);
+
+        if (outTotal > 1) {
+           sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
+           sOffset = Math.max(-maxOffset, Math.min(maxOffset, sOffset));
+        }
+        sVertOffset = 60 + outFactor * 20 + inFactor * 20;
+
+        if (inTotal > 1) {
+           tOffset = (inIndex - (inTotal - 1) / 2) * spacing;
+           tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
+        }
+        tVertOffset = 30 + inFactor * 20 + outFactor * 20;
       }
 
       const sourcePos = layout.positions.get(sourceId);
@@ -1506,7 +1517,7 @@ export class GraphView {
         if (availableSpace > 0) {
           const minRequiredSpace = 20;
           if (sVertOffset + tVertOffset > availableSpace - minRequiredSpace) {
-             const scale = (availableSpace - minRequiredSpace) / (sVertOffset + tVertOffset);
+             const scale = Math.max(0, availableSpace - minRequiredSpace) / (sVertOffset + tVertOffset);
              sVertOffset *= scale;
              tVertOffset *= scale;
           }
@@ -1973,21 +1984,32 @@ function renderEdges(
     const outTotal = outList.length;
     let sOffset = 0;
     let sVertOffset = 60;
-    if (outTotal > 1) {
-      sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
-      sOffset = Math.max(-maxOffset, Math.min(maxOffset, sOffset));
-      sVertOffset = 60 + Math.max(0, outIndex) * 20;
-    }
 
     const inList = incomingEdges.get(targetId) || [];
     const inIndex = inList.indexOf(edgeId);
     const inTotal = inList.length;
     let tOffset = 0;
     let tVertOffset = 30;
-    if (inTotal > 1) {
-      tOffset = (inIndex - (inTotal - 1) / 2) * spacing;
-      tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
-      tVertOffset = 30 + Math.max(0, inIndex) * 20;
+
+    if (outTotal > 1 || inTotal > 1) {
+      // Incorporate both outIndex and inIndex into the source vertical offset.
+      // This ensures that edges originating from different nodes (outIndex=0)
+      // but converging on the same target (inIndex=0,1,2) will still have unique
+      // source vertical offsets, preventing overlapping horizontal runs.
+      const outFactor = Math.max(0, outIndex);
+      const inFactor = Math.max(0, inIndex);
+
+      if (outTotal > 1) {
+         sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
+         sOffset = Math.max(-maxOffset, Math.min(maxOffset, sOffset));
+      }
+      sVertOffset = 60 + outFactor * 20 + inFactor * 20;
+
+      if (inTotal > 1) {
+         tOffset = (inIndex - (inTotal - 1) / 2) * spacing;
+         tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
+      }
+      tVertOffset = 30 + inFactor * 20 + outFactor * 20;
     }
 
     const sourcePos = layout.positions.get(sourceId);
@@ -1997,7 +2019,7 @@ function renderEdges(
       if (availableSpace > 0) {
         const minRequiredSpace = 20;
         if (sVertOffset + tVertOffset > availableSpace - minRequiredSpace) {
-           const scale = (availableSpace - minRequiredSpace) / (sVertOffset + tVertOffset);
+           const scale = Math.max(0, availableSpace - minRequiredSpace) / (sVertOffset + tVertOffset);
            sVertOffset *= scale;
            tVertOffset *= scale;
         }
