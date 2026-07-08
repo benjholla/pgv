@@ -43,7 +43,7 @@ export interface GraphNode {
   readonly id: string;
 
   /**
-   * An immutable list of semantic tags (e.g., "entry", "loop-header").
+   * An immutable list of semantic tags.
    * Tags are converted into CSS classes during rendering for styling.
    */
   readonly tags: readonly string[];
@@ -77,7 +77,7 @@ export interface GraphEdge {
   readonly id: string;
 
   /**
-   * An immutable list of semantic tags (e.g., "back-edge", "true-branch").
+   * An immutable list of semantic tags.
    * Tags are converted into CSS classes during rendering for styling.
    */
   readonly tags: readonly string[];

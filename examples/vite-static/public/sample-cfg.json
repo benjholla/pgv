@@ -1,53 +1,75 @@
 {
-  "graphId": "cfg-main",
-  "version": 1,
   "nodes": [
     {
       "id": "entry",
-      "tags": ["entry"],
+      "tags": [
+        "XCSG.ControlFlow_Node",
+        "XCSG.controlFlowRoot"
+      ],
       "attributes": {
-        "label": "Entry",
-        "kind": "basic-block"
+        "XCSG.name": "Entry"
       }
     },
     {
       "id": "init",
-      "tags": [],
+      "tags": [
+        "XCSG.ControlFlow_Node"
+      ],
       "attributes": {
-        "label": "Initialize i = 0",
-        "line": { "integer": 3 }
+        "line": {
+          "integer": 3
+        },
+        "XCSG.name": "Initialize i = 0"
       }
     },
     {
       "id": "condition",
-      "tags": ["decision", "loop"],
+      "tags": [
+        "XCSG.ControlFlow_Node",
+        "XCSG.Loop"
+      ],
       "attributes": {
-        "label": "i < n?",
-        "line": { "integer": 4 }
+        "line": {
+          "integer": 4
+        },
+        "XCSG.name": "i < n?"
       }
     },
     {
       "id": "body",
-      "tags": [],
+      "tags": [
+        "XCSG.ControlFlow_Node"
+      ],
       "attributes": {
-        "label": "sum += values[i]",
-        "line": { "integer": 5 }
+        "line": {
+          "integer": 5
+        },
+        "XCSG.name": "sum += values[i]"
       }
     },
     {
       "id": "increment",
-      "tags": ["loop"],
+      "tags": [
+        "XCSG.ControlFlow_Node"
+      ],
       "attributes": {
-        "label": "i++",
-        "line": { "integer": 6 }
+        "line": {
+          "integer": 6
+        },
+        "XCSG.name": "i++"
       }
     },
     {
       "id": "exit",
-      "tags": ["exit"],
+      "tags": [
+        "XCSG.ControlFlow_Node",
+        "XCSG.controlFlowExit"
+      ],
       "attributes": {
-        "label": "Return sum",
-        "line": { "integer": 8 }
+        "line": {
+          "integer": 8
+        },
+        "XCSG.name": "Return sum"
       }
     }
   ],
@@ -56,48 +78,60 @@
       "id": "e-entry-init",
       "source": "entry",
       "target": "init",
-      "tags": [],
+      "tags": [
+        "XCSG.ControlFlow_Edge"
+      ],
       "attributes": {}
     },
     {
       "id": "e-init-condition",
       "source": "init",
       "target": "condition",
-      "tags": [],
+      "tags": [
+        "XCSG.ControlFlow_Edge"
+      ],
       "attributes": {}
     },
     {
       "id": "e-condition-body",
       "source": "condition",
       "target": "body",
-      "tags": ["true-branch"],
+      "tags": [
+        "XCSG.ControlFlow_Edge"
+      ],
       "attributes": {
-        "label": "true"
+        "XCSG.conditionValue": true
       }
     },
     {
       "id": "e-body-increment",
       "source": "body",
       "target": "increment",
-      "tags": [],
+      "tags": [
+        "XCSG.ControlFlow_Edge"
+      ],
       "attributes": {}
     },
     {
       "id": "e-increment-condition",
       "source": "increment",
       "target": "condition",
-      "tags": ["back-edge"],
+      "tags": [
+        "XCSG.ControlFlow_Edge"
+      ],
       "attributes": {
-        "label": "next"
+        "XCSG.name": "next"
       }
     },
     {
       "id": "e-condition-exit",
       "source": "condition",
       "target": "exit",
-      "tags": ["false-branch"],
+      "tags": [
+        "XCSG.ControlFlow_Edge"
+      ],
       "attributes": {
-        "label": "false"
+        "XCSG.conditionValue": false
       }
     }
   ]

@@ -123,10 +123,10 @@ applyDiffAddBtn.addEventListener("click", () => {
     addedNodes: [
       {
         id: `new-node-${versionCounter}`,
-        tags: ["decision"],
+        tags: ["XCSG.ControlFlow_Node", "XCSG.Loop"],
         attributes: {
-          label: `New Node ${versionCounter}`,
-          kind: "added",
+          "XCSG.name": `New Node ${versionCounter}`,
+
         },
       },
     ],
@@ -135,9 +135,9 @@ applyDiffAddBtn.addEventListener("click", () => {
         id: `new-edge-${versionCounter}`,
         source: "entry",
         target: `new-node-${versionCounter}`,
-        tags: ["true"],
+        tags: ["XCSG.ControlFlow_Edge"],
         attributes: {
-          label: "Added path",
+          "XCSG.name": "Added path",
         },
       },
     ],
