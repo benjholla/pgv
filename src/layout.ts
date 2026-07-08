@@ -101,8 +101,7 @@ const DEFAULT_VERTICAL_LAYOUT: Required<VerticalLayoutOptions> = {
 /**
  * Computes a basic hierarchical vertical layout for a given graph.
  *
- * This function assigns an `(x, y)` coordinate to each node by organizing
- * them into depth layers (e.g., BFS layering) and distributing them horizontally.
+ * This layout orchestrates the primary rendering pipeline design by decoupling topological sorting from geometric routing. It first organizes nodes into hierarchical depth layers using an iterative Kahn's algorithm (with a DFS cycle-breaking pass). Once layered, nodes are distributed horizontally. Later in the rendering pipeline, edges are individually routed between these laid-out nodes using an A* shortest-path algorithm (via `edgeEndpoints`) to compute orthogonal lines that avoid intersecting node bounding boxes.
  *
  * @param graph The logical graph to lay out.
  * @param options Dimensions and spacing parameters.
@@ -247,6 +246,21 @@ export function edgeEndpoints(
   };
 }
 
+/**
+ * Routes an edge orthogonally between two points while avoiding node obstacles.
+ *
+ * This function uses an A* pathfinding algorithm over a dynamically generated
+ * orthogonal grid. The grid is constructed from the coordinates of the nodes,
+ * start and end points, and routing margins. It uses `g` (distance + penalty)
+ * and `f` (heuristic) scores, tracking open and closed sets to find the shortest
+ * valid path. Directional penalties are applied to minimize unnecessary joints
+ * and produce clean, predictable edge routing.
+ *
+ * @param sourcePt The starting point of the edge.
+ * @param targetPt The ending point of the edge.
+ * @param layout The current layout containing node sizes and positions (obstacles).
+ * @returns A readonly array of points defining the calculated orthogonal path.
+ */
 function routeEdgeOrthogonal(
   sourcePt: Point,
   targetPt: Point,
@@ -412,7 +426,20 @@ function routeEdgeOrthogonal(
     targetPt
   ]);
 }
-
+/**
+ * Assigns vertical depth levels to nodes using a topological sort approach.
+ *
+ * This function employs an iterative Kahn's algorithm combined with an initial
+ * DFS (Depth-First Search) cycle-breaking pass. The DFS pass ensures the graph
+ * is treated as a Directed Acyclic Graph (DAG) by ignoring back-edges.
+ * Kahn's algorithm then processes the nodes to assign depths based on the
+ * longest path from a root, positioning them appropriately in the vertical hierarchy.
+ *
+ * @param nodeIds A list of all node IDs in the graph.
+ * @param outgoing A map of outgoing edges for each node.
+ * @param incomingCounts A map of the number of incoming edges for each node.
+ * @returns A map associating each node ID with its calculated depth level.
+ */
 function assignVerticalDepths(
   nodeIds: readonly string[],
   outgoing: ReadonlyMap<string, readonly string[]>,
