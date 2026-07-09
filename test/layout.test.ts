@@ -414,6 +414,60 @@ describe("layout", () => {
   });
 
   describe("edgeEndpoints", () => {
+    describe("Property and Edge Case Tests", () => {
+      it("Orthogonality: path segments strictly align horizontally or vertically", () => {
+        const graph = createGraphSnapshot({
+          nodes: [{ id: "A" }, { id: "B" }, { id: "C" }],
+          edges: [
+            { id: "e1", source: "A", target: "B" },
+            { id: "e2", source: "A", target: "C" },
+            { id: "e3", source: "B", target: "C" },
+          ],
+        });
+
+        const layout = verticalLayout(graph);
+        for (const edge of graph.edges.values()) {
+          const endpoints = edgeEndpoints(edge, layout);
+          expect(endpoints).not.toBeNull();
+
+          const path = endpoints!.path;
+          for (let i = 0; i < path.length - 1; i++) {
+            const p1 = path[i];
+            const p2 = path[i + 1];
+            // Segment must be either perfectly horizontal or perfectly vertical
+            const isOrthogonal = (p1.x === p2.x) || (p1.y === p2.y);
+            expect(isOrthogonal).toBe(true);
+          }
+        }
+      });
+
+      it("Endpoint Consistency: first and last path points exactly match source and target endpoints", () => {
+        const graph = createGraphSnapshot({
+          nodes: [{ id: "A" }, { id: "B" }, { id: "C" }],
+          edges: [
+            { id: "e1", source: "A", target: "B" },
+            { id: "e2", source: "A", target: "C" },
+            { id: "e3", source: "B", target: "C" },
+          ],
+        });
+
+        const layout = verticalLayout(graph);
+        for (const edge of graph.edges.values()) {
+          const endpoints = edgeEndpoints(edge, layout);
+          expect(endpoints).not.toBeNull();
+
+          const path = endpoints!.path;
+          expect(path.length).toBeGreaterThanOrEqual(2);
+
+          const firstPoint = path[0];
+          const lastPoint = path[path.length - 1];
+
+          expect(firstPoint).toEqual(endpoints!.source);
+          expect(lastPoint).toEqual(endpoints!.target);
+        }
+      });
+    });
+
     it("calculates correct endpoints for an edge", () => {
       const graph = createGraphSnapshot({
         graphId: "test",
