@@ -43,8 +43,8 @@ function requireElement(selector: string): HTMLElement {
 
 async function loadGraph(): Promise<void> {
   const [graphRes, schemaRes] = await Promise.all([
-    fetch("/sample-cfg.json"),
-    fetch("/sample-schema.json")
+    fetch("./sample-cfg.json"),
+    fetch("./sample-schema.json")
   ]);
 
   if (!graphRes.ok) {
