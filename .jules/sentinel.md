@@ -7,3 +7,8 @@
 **Vulnerability:** An XSS filter bypass existed in `src/model.ts` inside the `sanitizeString` function. The function attempted to strip whitespace and control characters from the string using the regex `/[\s\x00-\x1F]+/g` before checking for forbidden keywords like `javascript:`.
 **Learning:** The regex failed to account for the `DEL` control character (`\x7F`). Attackers could inject the `DEL` character into keywords (e.g., `java\x7Fscript:`), which would not be stripped by the regex, successfully splitting the keyword to evade detection but still potentially being interpreted as executable in some browser contexts.
 **Prevention:** When stripping control characters to prevent evasion of keyword checks, ensure the full range of ASCII control characters is covered, including `DEL` (`\x7F`), which falls outside the `\x00-\x1F` range. The regex should be `/[\s\x00-\x1F\x7F]+/g`.
+
+## 2024-03-24 - Mutation XSS bypass via unclosed script tags
+**Vulnerability:** A mutation XSS bypass existed in `src/model.ts` inside the `sanitizeString` function. The function attempted to strip `<script>` tags using the regex `/<\/?script\b[^>]*>/gi`.
+**Learning:** The regex failed to account for unclosed `<script>` tags (e.g., `<script src="malicious"` without a closing `>`). If an unclosed `<script>` tag was injected into a context where a subsequent `>` character could close it, the browser would execute the script. The regex `[^>]*>` required a closing `>` to match and strip the tag.
+**Prevention:** When stripping potentially dangerous tags, ensure the regex accounts for unclosed tags by making the closing `>` optional. The regex should be `/<\/?script\b[^>]*>?/gi`.
