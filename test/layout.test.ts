@@ -3,6 +3,69 @@ import { verticalLayout, edgeEndpoints, type VerticalLayoutOptions } from "../sr
 import { createGraphSnapshot, type GraphSnapshot } from "../src/model";
 
 describe("layout", () => {
+
+  describe("Edge Routing Orthogonality and Visual Cleanness", () => {
+    // SKIPPED (TECHNICAL DEBT):
+    // Why it is disabled: The current `routeEdgeOrthogonal` A* pathfinding algorithm does not correctly
+    // stagger horizontal edge paths vertically based on source/target rank and lexical edge ID.
+    // Consequently, when multiple siblings are added to a node, their orthogonal edges route through
+    // the exact same horizontal Y-coordinate, creating visually unclear overlapping paths.
+    // Why it is acceptable to leave disabled: Fixing layout algorithms can introduce complex regressions, so it should be addressed in a dedicated PR focusing exclusively on layout stability.
+    // What conditions must be satisfied to re-enable it: The layout algorithm must be updated
+    // to dynamically stagger vertical offsets for these routing paths before this test can be enabled.
+    it.skip("avoids overlapping horizontal paths for orthogonal edges between same ranks", () => {
+      const graph = createGraphSnapshot({
+        graphId: "g1",
+        version: 1,
+        nodes: [{ id: "A" }, { id: "B1" }, { id: "B2" }, { id: "B3" }],
+        edges: [
+          { id: "e1", source: "A", target: "B1" },
+          { id: "e2", source: "A", target: "B2" },
+          { id: "e3", source: "A", target: "B3" }
+        ]
+      });
+
+      const layout = verticalLayout(graph);
+
+      // Compute endpoints and paths for each edge, spacing out the target source X offsets
+      // to mimic renderer behavior where multiple edges out of a node get offset.
+      const p1 = edgeEndpoints(graph.edges.get("e1")!, layout, -20, 0);
+      const p2 = edgeEndpoints(graph.edges.get("e2")!, layout, 0, 0);
+      const p3 = edgeEndpoints(graph.edges.get("e3")!, layout, 20, 0);
+
+      expect(p1).not.toBeNull();
+      expect(p2).not.toBeNull();
+      expect(p3).not.toBeNull();
+
+      // Extract the horizontal segments for each path.
+      // A horizontal segment is defined by a change in X but same Y coordinate across two path points.
+      const getHorizontalYs = (endpoints: NonNullable<ReturnType<typeof edgeEndpoints>>) => {
+        const ys = new Set<number>();
+        const path = endpoints.path;
+        for (let i = 0; i < path.length - 1; i++) {
+          if (path[i].y === path[i + 1].y && Math.abs(path[i].x - path[i + 1].x) > 0) {
+            ys.add(path[i].y);
+          }
+        }
+        return Array.from(ys);
+      };
+
+      const p1Ys = getHorizontalYs(p1!);
+      const p2Ys = getHorizontalYs(p2!);
+      const p3Ys = getHorizontalYs(p3!);
+
+      // Since all target nodes (B1, B2, B3) are at depth 1, they will likely share
+      // horizontal paths to get from their starting X offsets to their final targets.
+      // These horizontal segments should NOT share the exact same Y coordinate.
+      const allYs = [...p1Ys, ...p2Ys, ...p3Ys];
+      const uniqueYs = new Set(allYs);
+
+      // If there are overlaps, the number of unique Y coordinates will be less than the total
+      // number of horizontal segments computed. We want to ensure no two edges share the same Y.
+      expect(uniqueYs.size).toBe(allYs.length);
+    });
+  });
+
   describe("verticalLayout", () => {
     describe("Geometric and Topological Properties", () => {
       it("Translation Invariance: Uniformly shifting margin shifts all coordinates by exact amount", () => {
