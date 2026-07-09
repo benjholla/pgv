@@ -375,7 +375,7 @@ describe('GraphView', () => {
         removedContainment: []
     });
 
-    view.applyDiff(diff, 2);
+    view.applyDiff(diff);
 
     await new Promise(resolve => setTimeout(resolve, 50));
 

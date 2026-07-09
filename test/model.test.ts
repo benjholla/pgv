@@ -234,8 +234,8 @@ describe("model", () => {
           addedEdges: [{ id: "e2", source: "n1", target: "n3" }]
         });
 
-        const snap1 = applyGraphDiff(applyGraphDiff(base, diff1, 2), diff2, 3);
-        const snap2 = applyGraphDiff(applyGraphDiff(base, diff2, 2), diff1, 3);
+        const snap1 = applyGraphDiff(applyGraphDiff(base, diff1), diff2);
+        const snap2 = applyGraphDiff(applyGraphDiff(base, diff2), diff1);
 
         const ids1 = Array.from(snap1.nodes.keys()).sort();
         const ids2 = Array.from(snap2.nodes.keys()).sort();
@@ -257,7 +257,7 @@ describe("model", () => {
           addedNodes: [{ id: "n1", tags: ["new"] }]
         });
 
-        const snap = applyGraphDiff(base, diff, 2);
+        const snap = applyGraphDiff(base, diff);
 
         expect(snap.nodes.size).toBe(1);
         expect(snap.nodes.get("n1")?.tags).toEqual(["new"]);
@@ -298,9 +298,9 @@ describe("model", () => {
 
     it("Identity: Applying an empty diff yields an equivalent snapshot", () => {
       const emptyDiff = createGraphDiff({});
-      const nextSnapshot = applyGraphDiff(baseSnapshot, emptyDiff, 2);
+      const nextSnapshot = applyGraphDiff(baseSnapshot, emptyDiff);
 
-      // Same structural contents (JSON serialized representation should be identical except for version)
+      // Same structural contents (JSON serialized representation should be identical)
       const baseJson = graphSnapshotToJson(baseSnapshot);
       const nextJson = graphSnapshotToJson(nextSnapshot);
 
@@ -321,7 +321,7 @@ describe("model", () => {
       expect(baseSnapshot.nodes.has("missing-node-123")).toBe(false);
       expect(baseSnapshot.edges.has("missing-edge-123")).toBe(false);
 
-      // Same structural contents (version should update, but elements remain the same)
+      // Same structural contents (elements remain the same)
       const baseJson = graphSnapshotToJson(baseSnapshot);
       const nextJson = graphSnapshotToJson(nextSnapshot);
 
@@ -353,14 +353,14 @@ describe("model", () => {
         addedNodes: [{ id: "n3", tags: ["C"], attributes: {} }],
         addedEdges: [{ id: "e2", source: "n1", target: "n3", tags: [], attributes: {} }]
       });
-      const snapshotAfterAdd = applyGraphDiff(baseSnapshot, addDiff, 2);
+      const snapshotAfterAdd = applyGraphDiff(baseSnapshot, addDiff);
 
       // Step 2: Remove those exact elements
       const removeDiff = createGraphDiff({
         removedNodes: ["n3"],
         removedEdges: ["e2"]
       });
-      const snapshotAfterRemove = applyGraphDiff(snapshotAfterAdd, removeDiff, 3);
+      const snapshotAfterRemove = applyGraphDiff(snapshotAfterAdd, removeDiff);
 
       // The final snapshot should be structurally identical to the base snapshot
       const baseJson = graphSnapshotToJson(baseSnapshot);
@@ -612,7 +612,7 @@ describe("model", () => {
         removedNodes: [],
         removedEdges: [],
       };
-      expect(() => applyGraphDiff(baseSnapshot, diff as any, 2)).toThrow(/duplicate node id/);
+      expect(() => applyGraphDiff(baseSnapshot, diff as any)).toThrow(/duplicate node id/);
     });
 
     it("throws when diff contains duplicate edges directly in applyGraphDiff (safety fallback check)", () => {
@@ -626,7 +626,7 @@ describe("model", () => {
         removedNodes: [],
         removedEdges: [],
       };
-      expect(() => applyGraphDiff(baseSnapshot, diff as any, 2)).toThrow(/duplicate edge id/);
+      expect(() => applyGraphDiff(baseSnapshot, diff as any)).toThrow(/duplicate edge id/);
     });
 
     it("throws when removing a node leaves an orphaned edge source", () => {
@@ -637,7 +637,7 @@ describe("model", () => {
       });
       // e2 source n1 is removed, but e2 itself is not explicitly removed.
       const diff = createGraphDiff({ removedNodes: ["n1"] });
-      expect(() => applyGraphDiff(customBase, diff, 2)).toThrow(/references missing source/);
+      expect(() => applyGraphDiff(customBase, diff)).toThrow(/references missing source/);
     });
 
     it("throws when removing a node leaves an orphaned edge target", () => {
@@ -648,7 +648,7 @@ describe("model", () => {
       });
       // n1->n3 edge exists. We remove n3, but not e2. e2's target is now missing.
       const diff = createGraphDiff({ removedNodes: ["n3"] });
-      expect(() => applyGraphDiff(customBase, diff, 2)).toThrow(/references missing target/);
+      expect(() => applyGraphDiff(customBase, diff)).toThrow(/references missing target/);
     });
   });
 });
