@@ -279,6 +279,8 @@ export function edgeEndpoints(
   targetOffsetPx: number = 0,
   outIndex: number = 0,
   inIndex: number = 0,
+  outTotal: number = 1,
+  inTotal: number = 1,
 ): EdgeEndpointsResult | null {
   const source = layout.positions.get(edge.source);
   const target = layout.positions.get(edge.target);
@@ -297,7 +299,7 @@ export function edgeEndpoints(
     y: target.y,
   };
 
-  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout, outIndex, inIndex);
+  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout, outIndex, inIndex, outTotal, inTotal);
 
   return {
     source: sourcePt,
@@ -327,6 +329,8 @@ function routeEdgeOrthogonal(
   layout: LayoutSnapshot,
   outIndex: number = 0,
   inIndex: number = 0,
+  outTotal: number = 1,
+  inTotal: number = 1,
 ): readonly Point[] {
   const margin = 20;
 
@@ -349,13 +353,29 @@ function routeEdgeOrthogonal(
   ySet.add(targetPt.y);
 
   const spacing = 15;
-  let sourceVerticalOffset = 15 + outIndex * spacing;
-  let targetVerticalOffset = 15 + inIndex * spacing;
+  const minOffset = 20;
 
   const physicalSpace = targetPt.y - sourcePt.y;
+  let maxOffset = Infinity;
   if (physicalSpace > 0) {
-    const maxOffset = Math.max(0, (physicalSpace / 2) - 4);
+    maxOffset = Math.max(minOffset, (physicalSpace / 2) - 4);
+  }
+
+  const maxRequiredSource = minOffset + (outTotal - 1) * spacing;
+  let sourceVerticalOffset = minOffset + outIndex * spacing;
+  if (maxRequiredSource > maxOffset && outTotal > 1) {
+    const availableStagger = Math.max(0, maxOffset - minOffset);
+    sourceVerticalOffset = minOffset + outIndex * (availableStagger / (outTotal - 1));
+  } else {
     sourceVerticalOffset = Math.min(sourceVerticalOffset, maxOffset);
+  }
+
+  const maxRequiredTarget = minOffset + (inTotal - 1) * spacing;
+  let targetVerticalOffset = minOffset + inIndex * spacing;
+  if (maxRequiredTarget > maxOffset && inTotal > 1) {
+    const availableStagger = Math.max(0, maxOffset - minOffset);
+    targetVerticalOffset = minOffset + inIndex * (availableStagger / (inTotal - 1));
+  } else {
     targetVerticalOffset = Math.min(targetVerticalOffset, maxOffset);
   }
 
@@ -486,6 +506,10 @@ function routeEdgeOrthogonal(
         if (d.dx !== 0) {
           if (y1 !== allowedY1 && y1 !== allowedY2) {
             penalty += 5000;
+          } else {
+            if (outIndex > inIndex && y1 === allowedY2) penalty += 10;
+            else if (inIndex > outIndex && y1 === allowedY1) penalty += 10;
+            else if (outIndex === inIndex && y1 === allowedY2) penalty += 10;
           }
         }
 
