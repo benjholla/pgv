@@ -1871,27 +1871,6 @@ export class GraphView {
   }
 }
 
-/**
- * A convenience function to instantiate and mount a `GraphView` into a given container.
- *
- * @param container The DOM element to attach the graph view to.
- * @param schema The fixed visual semantics schema for this graph view.
- * @param graph The initial snapshot to render.
- * @param options Configuration for layout, interactions, and features.
- * @returns An active `GraphView` controller instance.
- * @deprecated Use `new GraphView(container, schema, options)` and `view.setGraph(graph)` instead.
- */
-export function renderGraph(
-  container: HTMLElement,
-  schema: GraphSchema,
-  graph: GraphSnapshot,
-  options: GraphViewOptions = {},
-): GraphView {
-  const view = new GraphView(container, schema, options);
-  view.setGraph(graph);
-  return view;
-}
-
 // Cache computed class names for graph tags to avoid redundant string allocations
 // and regex evaluations during render loops.
 const tagCache = new Map<string, string>();
