@@ -687,7 +687,7 @@ export function sanitizeString(value: string): string {
   let previous;
   do {
     previous = sanitized;
-    sanitized = sanitized.replace(/<\/?script\b[^>]*>/gi, "");
+    sanitized = sanitized.replace(/<\/?script\b[^>]*>?/gi, "");
   } while (sanitized !== previous);
 
   // Strip inline event handlers (on*)
