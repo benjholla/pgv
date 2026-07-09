@@ -429,7 +429,10 @@ function routeEdgeOrthogonal(
       return Object.freeze(path.reverse());
     }
 
-    const key = `${curr.xIdx},${curr.yIdx},${curr.dirX},${curr.dirY},${curr.initialDescent}`;
+    // Do not include initialDescent in the key. Including it allows the algorithm to
+    // "revisit" the same spatial node + direction simply because the mode flag toggled,
+    // which led to paths crossing themselves and forming "T" shapes.
+    const key = `${curr.xIdx},${curr.yIdx},${curr.dirX},${curr.dirY}`;
     if (closedSet.has(key)) continue;
     closedSet.add(key);
 
@@ -458,7 +461,7 @@ function routeEdgeOrthogonal(
         // Enforce staggering: do not allow turning left/right or up until we reach the initial vertical offset
         let initialDescent = curr.initialDescent;
         if (initialDescent) {
-          if (y1 < sourcePt.y + sourceVerticalOffset) {
+          if (y1 < sourcePt.y + sourceVerticalOffset - 0.001) {
             if (d.dx !== 0 || d.dy !== 1) { // must go down
               continue;
             }
@@ -468,23 +471,19 @@ function routeEdgeOrthogonal(
         }
 
         // Enforce staggering on target: must enter target from exactly above it, after reaching target offset
-        if (nxIdx === endXIdx && nyIdx === endYIdx) {
-             if (curr.xIdx === nxIdx && curr.yIdx === nyIdx - 1) {
-                // OK
-             } else {
-                 continue; // Target must be entered from the top
-             }
+        if (nxIdx === endXIdx && nyIdx === endYIdx && !(curr.xIdx === nxIdx && curr.yIdx === nyIdx - 1)) {
+            continue; // Target must be entered from the top
         }
 
         // Target vertical enforcement: if we are directly above target and below target drop zone, we must go straight down
-        if (nxIdx === endXIdx && y2 > targetPt.y - targetVerticalOffset && y2 < targetPt.y) {
+        if (nxIdx === endXIdx && y2 > targetPt.y - targetVerticalOffset - 0.001 && y2 < targetPt.y) {
           if (d.dx !== 0 || d.dy !== 1) {
              continue; // Only go straight down if we are above the target within the vertical offset
           }
         }
 
         // Also, don't allow entering the target's vertical drop zone from the sides
-        if (nxIdx !== endXIdx && y2 > targetPt.y - targetVerticalOffset && y2 < targetPt.y) {
+        if (nxIdx !== endXIdx && y2 > targetPt.y - targetVerticalOffset - 0.001 && y2 < targetPt.y) {
            // But what if the obstacle forces us? A* will penalize or route around. Let's just heavily penalize it to discourage
            // overlapping the drop zone if we aren't aligned yet.
         }
@@ -500,13 +499,15 @@ function routeEdgeOrthogonal(
         // Strongly prefer horizontal segments to ONLY exist at the source or target vertical offsets
         // to maximize the effectiveness of staggering and avoid overlapping random horizontal grid lines
         if (d.dx !== 0) {
-           if (y2 !== sourcePt.y + sourceVerticalOffset && y2 !== targetPt.y - targetVerticalOffset) {
+           const isAtSourcePlane = Math.abs(y2 - (sourcePt.y + sourceVerticalOffset)) < 0.001;
+           const isAtTargetPlane = Math.abs(y2 - (targetPt.y - targetVerticalOffset)) < 0.001;
+           if (!isAtSourcePlane && !isAtTargetPlane) {
              penalty += 200;
            }
         }
 
         // Discourage entering the drop zone horizontally
-        if (d.dx !== 0 && y2 > targetPt.y - targetVerticalOffset && y2 < targetPt.y) {
+        if (d.dx !== 0 && y2 > targetPt.y - targetVerticalOffset - 0.001 && y2 < targetPt.y) {
            penalty += 1000;
         }
 
