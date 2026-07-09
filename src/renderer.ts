@@ -169,6 +169,7 @@ export class GraphView {
   #searchInputRef: HTMLInputElement | null = null;
   #searchKeyInputRef: HTMLInputElement | null = null;
   #updateSearchUI: (() => void) | null = null;
+  #isDragging: boolean = false;
 
   constructor(container: HTMLElement, schema: GraphSchema, options: GraphViewOptions = {}) {
     this.container = container;
@@ -1776,16 +1777,22 @@ export class GraphView {
   #setupPanZoomEvents(viewport: HTMLElement, signal: AbortSignal): void {
     const activePointers = new Map<number, PointerEvent>();
     let lastPanDistance = 0;
+    let startX = 0;
+    let startY = 0;
 
     viewport.addEventListener("pointerdown", (e) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
-      if ((e.target as HTMLElement).closest(".pgv-graph-node, .pgv-graph-edge")) {
-        return;
+
+      if (activePointers.size === 0) {
+        this.#isDragging = false;
+        startX = e.clientX;
+        startY = e.clientY;
       }
-      viewport.setPointerCapture(e.pointerId);
+
       activePointers.set(e.pointerId, e);
 
       if (activePointers.size === 2) {
+        viewport.setPointerCapture(e.pointerId);
         const iter = activePointers.values();
         const p1 = iter.next().value!;
         const p2 = iter.next().value!;
@@ -1802,10 +1809,17 @@ export class GraphView {
       activePointers.set(e.pointerId, e);
 
       if (activePointers.size === 1) {
-        const dx = e.clientX - lastPointer.clientX;
-        const dy = e.clientY - lastPointer.clientY;
-        this.#pan(dx, dy);
+        if (!this.#isDragging && Math.hypot(e.clientX - startX, e.clientY - startY) > 5) {
+          this.#isDragging = true;
+          viewport.setPointerCapture(e.pointerId);
+        }
+        if (this.#isDragging) {
+          const dx = e.clientX - lastPointer.clientX;
+          const dy = e.clientY - lastPointer.clientY;
+          this.#pan(dx, dy);
+        }
       } else if (activePointers.size === 2) {
+        this.#isDragging = true;
         const iter = activePointers.values();
         const p1 = iter.next().value!;
         const p2 = iter.next().value!;
@@ -1828,10 +1842,23 @@ export class GraphView {
 
     const handlePointerUp = (e: PointerEvent) => {
       activePointers.delete(e.pointerId);
+
       if (activePointers.size < 2) {
         lastPanDistance = 0;
       }
-      viewport.releasePointerCapture(e.pointerId);
+
+      // JSDOM does not implement hasPointerCapture, so we just wrap in try/catch or check if present
+      if (typeof viewport.hasPointerCapture === 'function') {
+        if (viewport.hasPointerCapture(e.pointerId)) {
+          viewport.releasePointerCapture(e.pointerId);
+        }
+      } else {
+        try {
+          viewport.releasePointerCapture(e.pointerId);
+        } catch (err) {
+          // Ignore
+        }
+      }
     };
 
     viewport.addEventListener("pointerup", handlePointerUp, { signal });
@@ -1863,6 +1890,9 @@ export class GraphView {
     };
 
     element.addEventListener("click", (event) => {
+      if (this.#isDragging) {
+        return;
+      }
       handleInteraction(event.target as HTMLElement, event);
     });
 
