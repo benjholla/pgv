@@ -70,7 +70,6 @@ function updateGraph(): void {
     usePanZoom: true,
     useThemeToggle: true,
     maxHistory: 10,
-    useSearch: true,
     onGraphChange: (graph: GraphSnapshot) => {
       currentGraph = graph;
       summaryElement.textContent = `${graph.nodes.size} nodes, ${graph.edges.size} edges`;
@@ -115,26 +114,26 @@ function updateGraph(): void {
   summaryElement.textContent = `${currentGraph.nodes.size} nodes, ${currentGraph.edges.size} edges`;
 }
 
-let versionCounter = 2;
+let diffCounter = 2;
 
 applyDiffAddBtn.addEventListener("click", () => {
   if (!graphView) return;
   const diff = createGraphDiff({
     addedNodes: [
       {
-        id: `new-node-${versionCounter}`,
+        id: `new-node-${diffCounter}`,
         tags: ["XCSG.ControlFlow_Node", "XCSG.Loop"],
         attributes: {
-          "XCSG.name": `New Node ${versionCounter}`,
+          "XCSG.name": `New Node ${diffCounter}`,
 
         },
       },
     ],
     addedEdges: [
       {
-        id: `new-edge-${versionCounter}`,
+        id: `new-edge-${diffCounter}`,
         source: "entry",
-        target: `new-node-${versionCounter}`,
+        target: `new-node-${diffCounter}`,
         tags: ["XCSG.ControlFlow_Edge"],
         attributes: {
           "XCSG.name": "Added path",
@@ -147,7 +146,7 @@ applyDiffAddBtn.addEventListener("click", () => {
 
   try {
     graphView.applyDiff(diff);
-    versionCounter++;
+    diffCounter++;
   } catch (e: any) {
     alert(e.message);
   }
@@ -164,7 +163,7 @@ applyDiffRemoveBtn.addEventListener("click", () => {
 
   try {
     graphView.applyDiff(diff);
-    versionCounter++;
+    diffCounter++;
   } catch (e: any) {
     alert(e.message);
   }

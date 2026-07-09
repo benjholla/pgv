@@ -125,7 +125,7 @@ export interface GraphSchemaJson {
  * Represents a specific, immutable point-in-time version of a graph.
  *
  * Since graphs are immutable in this library, any changes to a graph result
- * in a new `GraphSnapshot` with an updated `version`.
+ * in a new `GraphSnapshot`.
  *
  * **Usage**: Use this type when interacting with the renderer or layout engines,
  * as it ensures the data cannot be mutated out-from-under the view state.
