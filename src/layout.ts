@@ -277,6 +277,8 @@ export function edgeEndpoints(
   layout: LayoutSnapshot,
   sourceOffsetPx: number = 0,
   targetOffsetPx: number = 0,
+  outIndex: number = 0,
+  inIndex: number = 0,
 ): EdgeEndpointsResult | null {
   const source = layout.positions.get(edge.source);
   const target = layout.positions.get(edge.target);
@@ -295,7 +297,7 @@ export function edgeEndpoints(
     y: target.y,
   };
 
-  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout);
+  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout, outIndex, inIndex);
 
   return {
     source: sourcePt,
@@ -323,6 +325,8 @@ function routeEdgeOrthogonal(
   sourcePt: Point,
   targetPt: Point,
   layout: LayoutSnapshot,
+  outIndex: number = 0,
+  inIndex: number = 0,
 ): readonly Point[] {
   const margin = 20;
 
@@ -344,8 +348,16 @@ function routeEdgeOrthogonal(
   xSet.add(targetPt.x);
   ySet.add(targetPt.y);
 
-  const sourceVerticalOffset = 60; // Extra visual weight before joint
-  const targetVerticalOffset = 30;
+  const spacing = 15;
+  let sourceVerticalOffset = 15 + outIndex * spacing;
+  let targetVerticalOffset = 15 + inIndex * spacing;
+
+  const physicalSpace = targetPt.y - sourcePt.y;
+  if (physicalSpace > 0) {
+    const maxOffset = Math.max(0, (physicalSpace / 2) - 4);
+    sourceVerticalOffset = Math.min(sourceVerticalOffset, maxOffset);
+    targetVerticalOffset = Math.min(targetVerticalOffset, maxOffset);
+  }
 
   ySet.add(sourcePt.y + sourceVerticalOffset);
   ySet.add(targetPt.y - targetVerticalOffset);
@@ -412,6 +424,9 @@ function routeEdgeOrthogonal(
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1 });
 
+  const allowedY1 = sourcePt.y + sourceVerticalOffset;
+  const allowedY2 = targetPt.y - targetVerticalOffset;
+
   while (openList.length > 0) {
     openList.sort((a, b) => a.f - b.f);
     const curr = openList.shift()!;
@@ -468,6 +483,12 @@ function routeEdgeOrthogonal(
           penalty = 50;
         }
 
+        if (d.dx !== 0) {
+          if (y1 !== allowedY1 && y1 !== allowedY2) {
+            penalty += 5000;
+          }
+        }
+
         const g = curr.g + dist + penalty;
         const h = Math.abs(xCoords[endXIdx] - x2) + Math.abs(yCoords[endYIdx] - y2);
         const f = g + h;
@@ -479,8 +500,8 @@ function routeEdgeOrthogonal(
 
   return Object.freeze([
     sourcePt,
-    { x: sourcePt.x, y: sourcePt.y + sourceVerticalOffset },
-    { x: targetPt.x, y: targetPt.y - targetVerticalOffset },
+    { x: sourcePt.x, y: allowedY1 },
+    { x: targetPt.x, y: allowedY2 },
     targetPt
   ]);
 }

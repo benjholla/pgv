@@ -1509,14 +1509,14 @@ export class GraphView {
         tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
       }
 
-      return { sourceOffsetPx: sOffset, targetOffsetPx: tOffset };
+      return { sourceOffsetPx: sOffset, targetOffsetPx: tOffset, outIndex, inIndex };
     };
 
     // Draw edges
     ctx.lineWidth = 1;
     for (const edge of this.#graph.edges.values()) {
       const offsets = getOffsets(edge.id, edge.source, edge.target);
-      const endpoints = edgeEndpoints(edge, layout, offsets.sourceOffsetPx, offsets.targetOffsetPx);
+      const endpoints = edgeEndpoints(edge, layout, offsets.sourceOffsetPx, offsets.targetOffsetPx, offsets.outIndex, offsets.inIndex);
       if (!endpoints) continue;
 
       ctx.strokeStyle = this.#options.selection?.edges.has(edge.id) ? selectedColor : edgeColor;
@@ -1982,12 +1982,12 @@ function renderEdges(
       tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
     }
 
-    return { sourceOffsetPx: sOffset, targetOffsetPx: tOffset };
+    return { sourceOffsetPx: sOffset, targetOffsetPx: tOffset, outIndex, inIndex };
   };
 
   for (const edge of graph.edges.values()) {
     const offsets = getOffsets(edge.id, edge.source, edge.target);
-    const endpoints = edgeEndpoints(edge, layout, offsets.sourceOffsetPx, offsets.targetOffsetPx);
+    const endpoints = edgeEndpoints(edge, layout, offsets.sourceOffsetPx, offsets.targetOffsetPx, offsets.outIndex, offsets.inIndex);
 
     if (!endpoints) {
       continue;
