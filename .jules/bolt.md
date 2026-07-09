@@ -29,3 +29,7 @@
 ## 2026-07-06 - Array.from in Event Listeners
 **Learning:** Using `Array.from()` on Maps in high-frequency event listeners (like pointermove at 60Hz+) causes significant array allocation overhead and garbage collection pressure, leading to micro-stutters during interactions like panning/zooming.
 **Action:** Use manual iterator traversal (`.values().next().value`) or `for..of` loops for small, fixed-size Map extractions in hot paths instead of converting the entire Map to an array.
+
+## 2026-07-06 - Avoid .map() for Intermediate Array Allocations
+**Learning:** Using declarative array methods like `.map()` during large-scale object transformation (like creating graph diffs or snapshots) allocates intermediate arrays and callback functions, leading to unnecessary GC churn in hot paths.
+**Action:** To avoid allocating intermediate arrays and reduce garbage collection churn, replace declarative array methods like `.map()` and `.filter()` with explicit `for` loops and `push()` when working on arrays of graph elements in data normalization pipelines.

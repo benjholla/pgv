@@ -402,43 +402,59 @@ export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson 
  * @throws {GraphModelError} If the diff contains invalid data.
  */
 export function createGraphDiff(input: GraphDiffJson): GraphDiff {
-  const addedNodes = (input.addedNodes || []).map(normalizeNode);
+  const addedNodes: GraphNode[] = [];
   const addedNodesIds = new Set<string>();
-  for (const node of addedNodes) {
-    if (addedNodesIds.has(node.id)) {
-      throw new GraphModelError(`Duplicate node id "${node.id}".`);
+  if (input.addedNodes) {
+    for (let i = 0; i < input.addedNodes.length; i++) {
+      const node = normalizeNode(input.addedNodes[i]);
+      if (addedNodesIds.has(node.id)) {
+        throw new GraphModelError(`Duplicate node id "${node.id}".`);
+      }
+      addedNodesIds.add(node.id);
+      addedNodes.push(node);
     }
-    addedNodesIds.add(node.id);
   }
 
-  const addedEdges = (input.addedEdges || []).map(normalizeEdge);
+  const addedEdges: GraphEdge[] = [];
   const addedEdgesIds = new Set<string>();
-  for (const edge of addedEdges) {
-    if (addedEdgesIds.has(edge.id)) {
-      throw new GraphModelError(`Duplicate edge id "${edge.id}".`);
+  if (input.addedEdges) {
+    for (let i = 0; i < input.addedEdges.length; i++) {
+      const edge = normalizeEdge(input.addedEdges[i]);
+      if (addedEdgesIds.has(edge.id)) {
+        throw new GraphModelError(`Duplicate edge id "${edge.id}".`);
+      }
+      addedEdgesIds.add(edge.id);
+      addedEdges.push(edge);
     }
-    addedEdgesIds.add(edge.id);
   }
 
   const removedNodesIds = new Set<string>();
-  const removedNodes = (input.removedNodes || []).map((id) => {
-    assertNonEmptyString(id, "removedNode id");
-    if (removedNodesIds.has(id)) {
-      throw new GraphModelError(`Duplicate node id "${id}".`);
+  const removedNodes: string[] = [];
+  if (input.removedNodes) {
+    for (let i = 0; i < input.removedNodes.length; i++) {
+      const id = input.removedNodes[i];
+      assertNonEmptyString(id, "removedNode id");
+      if (removedNodesIds.has(id)) {
+        throw new GraphModelError(`Duplicate node id "${id}".`);
+      }
+      removedNodesIds.add(id);
+      removedNodes.push(id);
     }
-    removedNodesIds.add(id);
-    return id;
-  });
+  }
 
   const removedEdgesIds = new Set<string>();
-  const removedEdges = (input.removedEdges || []).map((id) => {
-    assertNonEmptyString(id, "removedEdge id");
-    if (removedEdgesIds.has(id)) {
-      throw new GraphModelError(`Duplicate edge id "${id}".`);
+  const removedEdges: string[] = [];
+  if (input.removedEdges) {
+    for (let i = 0; i < input.removedEdges.length; i++) {
+      const id = input.removedEdges[i];
+      assertNonEmptyString(id, "removedEdge id");
+      if (removedEdgesIds.has(id)) {
+        throw new GraphModelError(`Duplicate edge id "${id}".`);
+      }
+      removedEdgesIds.add(id);
+      removedEdges.push(id);
     }
-    removedEdgesIds.add(id);
-    return id;
-  });
+  }
 
   return Object.freeze({
     addedNodes: Object.freeze(addedNodes),
@@ -455,28 +471,38 @@ export function createGraphDiff(input: GraphDiffJson): GraphDiff {
  * @returns A plain `GraphDiffJson` object.
  */
 export function graphDiffToJson(diff: GraphDiff): GraphDiffJson {
-  return {
-    addedNodes: diff.addedNodes.map((node) => {
-      // PERF(Bolt): Replaced object spread syntax (...(condition ? { key: val } : {}))
-      // with explicit assignment to avoid excessive object allocations and GC churn
-      // when processing a large number of nodes.
-      const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>>; parent?: string } = {
-        id: node.id,
-        tags: node.tags,
-        attributes: node.attributes,
-      };
-      if (node.parent !== undefined) {
-        n.parent = node.parent;
-      }
-      return n as GraphNodeJson;
-    }),
-    addedEdges: diff.addedEdges.map((edge) => ({
+  const addedNodes: GraphNodeJson[] = [];
+  for (let i = 0; i < diff.addedNodes.length; i++) {
+    const node = diff.addedNodes[i];
+    // PERF(Bolt): Replaced object spread syntax (...(condition ? { key: val } : {}))
+    // with explicit assignment to avoid excessive object allocations and GC churn
+    // when processing a large number of nodes.
+    const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>>; parent?: string } = {
+      id: node.id,
+      tags: node.tags,
+      attributes: node.attributes,
+    };
+    if (node.parent !== undefined) {
+      n.parent = node.parent;
+    }
+    addedNodes.push(n as GraphNodeJson);
+  }
+
+  const addedEdges: GraphEdgeJson[] = [];
+  for (let i = 0; i < diff.addedEdges.length; i++) {
+    const edge = diff.addedEdges[i];
+    addedEdges.push({
       id: edge.id,
       source: edge.source,
       target: edge.target,
       tags: edge.tags,
       attributes: edge.attributes,
-    })),
+    });
+  }
+
+  return {
+    addedNodes,
+    addedEdges,
     removedNodes: [...diff.removedNodes],
     removedEdges: [...diff.removedEdges],
   };
@@ -582,12 +608,13 @@ function normalizeEdge(edge: GraphEdgeJson): GraphEdge {
 }
 
 function freezeTags(tags: readonly string[] = []): readonly string[] {
-  return Object.freeze(
-    tags.map((tag, index) => {
-      assertNonEmptyString(tag, `tag at index ${index}`);
-      return tag;
-    }),
-  );
+  const result: string[] = [];
+  for (let i = 0; i < tags.length; i++) {
+    const tag = tags[i];
+    assertNonEmptyString(tag, `tag at index ${i}`);
+    result.push(tag);
+  }
+  return Object.freeze(result);
 }
 
 function freezeAttributes(
