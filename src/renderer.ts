@@ -690,6 +690,10 @@ export class GraphView {
       if (parent) {
         const newBar = this.#renderSearchControls();
         parent.replaceChild(newBar, bar);
+        const newSelect = newBar.querySelector("select");
+        if (newSelect) {
+          newSelect.focus();
+        }
       }
     });
 
@@ -893,7 +897,7 @@ export class GraphView {
     // Add a close button
     const closeBtn = document.createElement("button");
     closeBtn.type = "button";
-    closeBtn.title = "Close Search";
+    closeBtn.title = "Close Search (Esc)";
     closeBtn.setAttribute("aria-label", "Close Search");
     closeBtn.style.marginLeft = "auto";
     closeBtn.innerHTML = `
@@ -902,14 +906,30 @@ export class GraphView {
         <line x1="6" y1="6" x2="18" y2="18"></line>
       </svg>
     `;
-    closeBtn.addEventListener("click", () => {
+    const handleClose = () => {
       this.#searchOpen = false;
       this.#render();
-    });
+      requestAnimationFrame(() => {
+        const toggleBtn = this.container.querySelector(".pgv-search-toggle-btn") as HTMLButtonElement | null;
+        if (toggleBtn) {
+          toggleBtn.focus();
+        }
+      });
+    };
+
+    closeBtn.addEventListener("click", handleClose);
 
     actionsContainer.appendChild(closeBtn);
 
     bar.appendChild(actionsContainer);
+
+    bar.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        e.stopPropagation();
+        handleClose();
+      }
+    });
 
     return bar;
   }
@@ -1072,14 +1092,25 @@ export class GraphView {
       topButtonsContainer.appendChild(this.#clearSelectionBtn);
 
 
-      topButtonsContainer.appendChild(this.#createControlButton({
+      const searchToggleBtn = this.#createControlButton({
         icon: icons.search,
         action: () => {
           this.#searchOpen = !this.#searchOpen;
           this.#render();
+          if (this.#searchOpen) {
+            requestAnimationFrame(() => {
+              if (this.#searchMode === "node-attribute" || this.#searchMode === "edge-attribute" || this.#searchMode === "attribute") {
+                this.#searchKeyInputRef?.focus();
+              } else {
+                this.#searchInputRef?.focus();
+              }
+            });
+          }
         },
         label: "Toggle Search",
-      }));
+      });
+      searchToggleBtn.classList.add("pgv-search-toggle-btn");
+      topButtonsContainer.appendChild(searchToggleBtn);
 
 
       miscGroup.appendChild(topButtonsContainer);
