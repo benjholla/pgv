@@ -734,3 +734,13 @@
     width: 44px;
   }
 }
+
+@media (max-width: 640px) {
+  .pgv-bottom-container {
+    flex-wrap: wrap-reverse;
+  }
+
+  .pgv-bottom-left-container {
+    flex-basis: 100%;
+  }
+}
