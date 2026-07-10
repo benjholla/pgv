@@ -143,6 +143,7 @@ export class GraphView {
   #panZoomAbortController: AbortController | null = null;
   #currentTheme: "light" | "dark" | "auto";
   #minimapOpen: boolean = false;
+  #historyOpen: boolean = false;
   #firstRender: boolean = true;
   #minimapResizeObserver: ResizeObserver | null = null;
   #minimapAbortController: AbortController | null = null;
@@ -611,7 +612,6 @@ export class GraphView {
       }
 
       if (this.#options.maxHistory && this.#options.maxHistory > 0) {
-        root.appendChild(this.#renderHistoryControls());
       }
 
       root.appendChild(viewport);
@@ -935,9 +935,9 @@ export class GraphView {
     return bar;
   }
 
-  #renderHistoryControls(): HTMLElement {
+  #renderHistoryPanel(): HTMLElement {
     const controls = document.createElement("div");
-    controls.className = "pgv-history-controls";
+    controls.className = `pgv-history-panel ${this.#historyOpen ? "pgv-history-panel-open" : ""}`;
 
     const icons = {
       left: "M15 18l-6-6 6-6",
@@ -1016,6 +1016,8 @@ export class GraphView {
       download: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
       chevronDown: "M6 9l6 6 6-6",
       search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
+      history: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+      placeholder: ""
     };
 
     const buttonsContainer = document.createElement("div");
@@ -1058,41 +1060,7 @@ export class GraphView {
       const topButtonsContainer = document.createElement("div");
       topButtonsContainer.className = "pgv-misc-top-buttons";
 
-      if (this.#options.useThemeToggle) {
-        const themeIcon = this.#currentTheme === "light" ? icons.sun : this.#currentTheme === "dark" ? icons.moon : icons.auto;
-        const themeLabel = `Theme: ${this.#currentTheme.charAt(0).toUpperCase() + this.#currentTheme.slice(1)}`;
-
-        topButtonsContainer.appendChild(this.#createControlButton({
-          icon: themeIcon,
-          action: () => this.#toggleTheme(),
-          label: themeLabel,
-        }));
-      }
-
-      if (this.#options.usePanZoom) {
-        topButtonsContainer.appendChild(this.#createControlButton({
-          icon: icons.map,
-          action: () => this.#toggleMinimap(),
-          label: "Toggle Minimap",
-        }));
-      }
-
-
-      this.#clearSelectionBtn = this.#createControlButton({
-        icon: icons.eraser,
-        action: () => {
-          this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
-        },
-        label: "Clear Selection",
-      });
-      this.#clearSelectionBtn.disabled = !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0);
-      if (this.#clearSelectionBtn.disabled) {
-        this.#clearSelectionBtn.title = "No nodes or edges selected";
-      }
-
-      topButtonsContainer.appendChild(this.#clearSelectionBtn);
-
-
+      // Row 1: Search, History, Minimap
       const searchToggleBtn = this.#createControlButton({
         icon: icons.search,
         action: () => {
@@ -1112,6 +1080,62 @@ export class GraphView {
       });
       searchToggleBtn.classList.add("pgv-search-toggle-btn");
       topButtonsContainer.appendChild(searchToggleBtn);
+
+      const historyToggleBtn = this.#createControlButton({
+        icon: icons.history,
+        action: () => {
+          this.#historyOpen = !this.#historyOpen;
+          this.#render();
+        },
+        label: "Toggle History Navigation",
+      });
+
+      topButtonsContainer.appendChild(historyToggleBtn);
+
+      if (this.#options.usePanZoom) {
+        topButtonsContainer.appendChild(this.#createControlButton({
+          icon: icons.map,
+          action: () => this.#toggleMinimap(),
+          label: "Toggle Minimap",
+        }));
+      } else {
+        const ph = this.#createControlButton({ icon: icons.placeholder, action: () => {}, label: "" });
+        ph.style.visibility = "hidden";
+        topButtonsContainer.appendChild(ph);
+      }
+
+      // Row 2: Clear, Theme, Future Placeholder
+      this.#clearSelectionBtn = this.#createControlButton({
+        icon: icons.eraser,
+        action: () => {
+          this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
+        },
+        label: "Clear Selection",
+      });
+      this.#clearSelectionBtn.disabled = !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0);
+      if (this.#clearSelectionBtn.disabled) {
+        this.#clearSelectionBtn.title = "No nodes or edges selected";
+      }
+      topButtonsContainer.appendChild(this.#clearSelectionBtn);
+
+      if (this.#options.useThemeToggle) {
+        const themeIcon = this.#currentTheme === "light" ? icons.sun : this.#currentTheme === "dark" ? icons.moon : icons.auto;
+        const themeLabel = `Theme: ${this.#currentTheme.charAt(0).toUpperCase() + this.#currentTheme.slice(1)}`;
+        topButtonsContainer.appendChild(this.#createControlButton({
+          icon: themeIcon,
+          action: () => this.#toggleTheme(),
+          label: themeLabel,
+        }));
+      } else {
+        const ph = this.#createControlButton({ icon: icons.placeholder, action: () => {}, label: "" });
+        ph.style.visibility = "hidden";
+        topButtonsContainer.appendChild(ph);
+      }
+
+      // Space for a future misc button
+      const futureBtn = this.#createControlButton({ icon: icons.placeholder, action: () => {}, label: "" });
+      futureBtn.style.visibility = "hidden";
+      topButtonsContainer.appendChild(futureBtn);
 
 
       miscGroup.appendChild(topButtonsContainer);
@@ -1276,6 +1300,7 @@ export class GraphView {
       }
     }
 
+    controls.appendChild(this.#renderHistoryPanel());
     controls.appendChild(buttonsContainer);
 
     return controls;
@@ -1633,7 +1658,7 @@ export class GraphView {
       },
       filter: (node: HTMLElement) => {
         // Exclude the controls from the image if we ever capture the container directly
-        if (node.classList?.contains("pgv-controls") || node.classList?.contains("pgv-history-controls")) {
+        if (node.classList?.contains("pgv-controls") || node.classList?.contains("pgv-history-panel")) {
           return false;
         }
         return true;
