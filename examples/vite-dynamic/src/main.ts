@@ -16,6 +16,7 @@ const applyDiffAddBtn = requireElement("#apply-diff-add");
 const applyDiffRemoveBtn = requireElement("#apply-diff-remove");
 
 let currentGraph: GraphSnapshot | null = null;
+let currentSchema: any = {};
 let currentSelection: SelectionState = {
   nodes: new Set(),
   edges: new Set(),
@@ -41,14 +42,21 @@ function requireElement(selector: string): HTMLElement {
 }
 
 async function loadGraph(): Promise<void> {
-  const graphRes = await fetch("http://localhost:8080/api/graphs/cfg-main");
+  const [graphRes, schemaRes] = await Promise.all([
+    fetch("http://localhost:8080/api/graphs/cfg-main"),
+    fetch("http://localhost:8080/api/graphs/cfg-main/schema")
+  ]);
 
   if (!graphRes.ok) {
     throw new Error(`Unable to load graph JSON: ${graphRes.status}`);
   }
+  if (!schemaRes.ok) {
+    throw new Error(`Unable to load schema JSON: ${schemaRes.status}`);
+  }
 
   const json = (await graphRes.json()) as GraphSnapshotJson;
   currentGraph = createGraphSnapshot(json);
+  currentSchema = await schemaRes.json();
 
   updateGraph();
 }
@@ -97,7 +105,7 @@ function updateGraph(): void {
   };
 
   if (!graphView) {
-    graphView = new GraphView(graphElement, options);
+    graphView = new GraphView(graphElement, currentSchema, options);
     graphView.setGraph(currentGraph);
   } else {
     graphView.updateOptions(options);

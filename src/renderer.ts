@@ -1,5 +1,5 @@
 import { edgeEndpoints, verticalLayout, type LayoutSnapshot, type VerticalLayoutOptions } from "./layout";
-import type { AttributeValue, GraphEdge, GraphNode, GraphSnapshot } from "./model";
+import type { AttributeValue, GraphEdge, GraphNode, GraphSchema, GraphSnapshot } from "./model";
 import { toSvg, toPng, toJpeg } from "html-to-image";
 
 let markerIdSequence = 0;
@@ -135,6 +135,7 @@ export class GraphView {
    */
   readonly container: HTMLElement;
 
+  readonly #schema: GraphSchema;
   #options: GraphViewOptions;
   #graph: GraphSnapshot | null = null;
   #layout: LayoutSnapshot | null = null;
@@ -170,8 +171,16 @@ export class GraphView {
   #updateSearchUI: (() => void) | null = null;
   #isDragging: boolean = false;
 
-  constructor(container: HTMLElement, options: GraphViewOptions = {}) {
+  /**
+   * Initializes a new interactive graph visualization within the given DOM container.
+   *
+   * @param container The root DOM element where the graph view will be mounted.
+   * @param schema Groundwork for future graph presentation details (e.g., semantic containment relationships).
+   * @param options Optional configuration overrides to customize layout, behavior, and styling.
+   */
+  constructor(container: HTMLElement, schema: GraphSchema, options: GraphViewOptions = {}) {
     this.container = container;
+    this.#schema = schema;
     this.#options = options;
     this.#currentTheme = options.theme ?? "auto";
   }
