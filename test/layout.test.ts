@@ -5,15 +5,7 @@ import { createGraphSnapshot, type GraphSnapshot } from "../src/model";
 describe("layout", () => {
 
   describe("Edge Routing Orthogonality and Visual Cleanness", () => {
-    // SKIPPED (TECHNICAL DEBT):
-    // Why it is disabled: The current `routeEdgeOrthogonal` A* pathfinding algorithm does not correctly
-    // stagger horizontal edge paths vertically based on source/target rank and lexical edge ID.
-    // Consequently, when multiple siblings are added to a node, their orthogonal edges route through
-    // the exact same horizontal Y-coordinate, creating visually unclear overlapping paths.
-    // Why it is acceptable to leave disabled: Fixing layout algorithms can introduce complex regressions, so it should be addressed in a dedicated PR focusing exclusively on layout stability.
-    // What conditions must be satisfied to re-enable it: The layout algorithm must be updated
-    // to dynamically stagger vertical offsets for these routing paths before this test can be enabled.
-    it.skip("avoids overlapping horizontal paths for orthogonal edges between same ranks", () => {
+    it("avoids overlapping horizontal paths for orthogonal edges between same ranks", () => {
       const graph = createGraphSnapshot({
         graphId: "g1",
         version: 1,
@@ -29,9 +21,9 @@ describe("layout", () => {
 
       // Compute endpoints and paths for each edge, spacing out the target source X offsets
       // to mimic renderer behavior where multiple edges out of a node get offset.
-      const p1 = edgeEndpoints(graph.edges.get("e1")!, layout, -20, 0);
-      const p2 = edgeEndpoints(graph.edges.get("e2")!, layout, 0, 0);
-      const p3 = edgeEndpoints(graph.edges.get("e3")!, layout, 20, 0);
+      const p1 = edgeEndpoints(graph.edges.get("e1")!, layout, -20, 0, 0, 0, 3, 1);
+      const p2 = edgeEndpoints(graph.edges.get("e2")!, layout, 0, 0, 1, 0, 3, 1);
+      const p3 = edgeEndpoints(graph.edges.get("e3")!, layout, 20, 0, 2, 0, 3, 1);
 
       expect(p1).not.toBeNull();
       expect(p2).not.toBeNull();
