@@ -33,3 +33,6 @@
 ## 2024-07-29 - Accessible UI Dialogs and Popovers Focus Management
 **Learning:** For a component to be keyboard accessible, any dynamically toggled popover or dialog (such as a search bar or settings menu) requires strict focus management. You must do three things: (1) `focus()` the first interactive element inside it when opened, (2) provide an `Escape` key handler to dismiss the panel, and (3) return `focus()` back to the toggle button that originally opened it when dismissed. Failure to do so will drop the user's keyboard focus onto the `<body>` element, destroying their flow.
 **Action:** When conditionally rendering floating or overlay UI panels, implement auto-focus on open, `Escape` key support, and restore focus to the trigger element on close.
+## 2026-07-06 - Hiding decorative SVGs from screen readers
+**Learning:** Screen readers may attempt to read or focus on `<svg>` elements inside `<button>` tags even if the button itself has an `aria-label`. SVGs used strictly as decorative icons within a labelled button do not provide meaningful semantic content and can create redundant or confusing speech output.
+**Action:** When creating icon buttons, always apply `aria-hidden="true"` to the `<svg>` element inside to ensure a clean, accessible experience where only the button's `aria-label` or visible text is announced.

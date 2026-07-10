@@ -754,7 +754,7 @@ export class GraphView {
     searchBtn.title = "Search";
     searchBtn.setAttribute("aria-label", "Execute search");
     searchBtn.innerHTML = `
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
@@ -770,7 +770,7 @@ export class GraphView {
     cycleBtn.setAttribute("aria-label", "Cycle search results");
     cycleBtn.disabled = this.#searchResults.length === 0;
     cycleBtn.innerHTML = `
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
         <path d="M3 3v5h5"></path>
       </svg>
@@ -909,7 +909,7 @@ export class GraphView {
     closeBtn.setAttribute("aria-label", "Close Search");
     closeBtn.style.marginLeft = "auto";
     closeBtn.innerHTML = `
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <line x1="18" y1="6" x2="6" y2="18"></line>
         <line x1="6" y1="6" x2="18" y2="18"></line>
       </svg>
@@ -1169,7 +1169,7 @@ export class GraphView {
       downloadBtn.setAttribute("aria-label", "Download Graph");
       downloadBtn.setAttribute("title", "Download Graph");
       downloadBtn.innerHTML = `
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="${icons.download}"></path>
         </svg>
         <span>${formatLabels[this.#downloadFormat]}</span>
@@ -1185,7 +1185,7 @@ export class GraphView {
       dropdownBtn.setAttribute("aria-haspopup", "menu");
       dropdownBtn.setAttribute("aria-expanded", this.#downloadDropdownOpen ? "true" : "false");
       dropdownBtn.innerHTML = `
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="${icons.chevronDown}"></path>
         </svg>
       `;
@@ -1320,6 +1320,7 @@ export class GraphView {
     button.setAttribute("title", btn.label);
 
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("aria-hidden", "true");
     svg.setAttribute("viewBox", "0 0 24 24");
     svg.setAttribute("width", "20");
     svg.setAttribute("height", "20");
