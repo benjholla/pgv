@@ -33,3 +33,6 @@
 ## 2026-07-06 - Avoid .map() for Intermediate Array Allocations
 **Learning:** Using declarative array methods like `.map()` during large-scale object transformation (like creating graph diffs or snapshots) allocates intermediate arrays and callback functions, leading to unnecessary GC churn in hot paths.
 **Action:** To avoid allocating intermediate arrays and reduce garbage collection churn, replace declarative array methods like `.map()` and `.filter()` with explicit `for` loops and `push()` when working on arrays of graph elements in data normalization pipelines.
+## 2025-02-19 - Avoid Array.from(iterable, mapper) in hot paths
+**Learning:** `Array.from(map.values(), mapper)` is surprisingly slower (by ~2x) compared to a pre-allocated array populated within a `for...of` loop over `map.values()`. This is likely due to the overhead of creating an intermediate array and the repeated closure invocations during mapping, which causes extra garbage collection and execution time overhead in V8 when serializing very large graph datasets.
+**Action:** Use pre-allocated arrays and explicit `for...of` loops (e.g. `const arr = new Array(map.size); let i = 0; for(const v of map.values()) { arr[i++] = v; }`) instead of `Array.from` when processing large collections of items for JSON serialization or rendering loops.
