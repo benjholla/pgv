@@ -45,7 +45,7 @@ import "@pgv/graph-core/style.css";
 const graph = createGraphSnapshot(json as GraphSnapshotJson);
 const layout = verticalLayout(graph);
 
-const view = new GraphView(document.querySelector("#graph")!, schema, {
+const view = new GraphView(document.querySelector("#graph")!, {
   layout,
   usePanZoom: true,
   useThemeToggle: true,

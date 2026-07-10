@@ -1,5 +1,5 @@
 import { edgeEndpoints, verticalLayout, type LayoutSnapshot, type VerticalLayoutOptions } from "./layout";
-import type { AttributeValue, GraphEdge, GraphNode, GraphSchema, GraphSnapshot } from "./model";
+import type { AttributeValue, GraphEdge, GraphNode, GraphSnapshot } from "./model";
 import { toSvg, toPng, toJpeg } from "html-to-image";
 
 let markerIdSequence = 0;
@@ -135,7 +135,6 @@ export class GraphView {
    */
   readonly container: HTMLElement;
 
-  readonly #schema: GraphSchema;
   #options: GraphViewOptions;
   #graph: GraphSnapshot | null = null;
   #layout: LayoutSnapshot | null = null;
@@ -171,9 +170,8 @@ export class GraphView {
   #updateSearchUI: (() => void) | null = null;
   #isDragging: boolean = false;
 
-  constructor(container: HTMLElement, schema: GraphSchema, options: GraphViewOptions = {}) {
+  constructor(container: HTMLElement, options: GraphViewOptions = {}) {
     this.container = container;
-    this.#schema = schema;
     this.#options = options;
     this.#currentTheme = options.theme ?? "auto";
   }
