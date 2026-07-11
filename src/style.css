@@ -743,4 +743,65 @@
   .pgv-bottom-left-container {
     flex-basis: 100%;
   }
+
+  .pgv-search-bar {
+    display: grid;
+    grid-template-columns: auto 1fr auto auto;
+    grid-template-areas:
+      "select info cycle close"
+      "inputs inputs search search";
+    gap: 8px;
+  }
+
+  .pgv-search-bar.attribute-mode {
+    grid-template-areas:
+      "select info cycle close"
+      "inputs inputs search search"
+      "inputs inputs search search";
+  }
+
+  /* Select */
+  .pgv-search-bar > select {
+    grid-area: select;
+  }
+
+  /* Inputs wrapper */
+  .pgv-search-inputs {
+    grid-area: inputs;
+    flex-direction: column;
+    min-width: 0; /* Important for flex child to shrink */
+  }
+
+  .pgv-search-input-wrapper {
+    min-width: 0;
+    flex-wrap: nowrap;
+  }
+
+  .pgv-search-bar input {
+    min-width: 0; /* Input shrink */
+  }
+
+  /* Un-nest the actions container so its children can use the grid areas */
+  .pgv-search-actions {
+    display: contents;
+  }
+
+  .pgv-search-results-info {
+    grid-area: info;
+    justify-self: end;
+    align-self: center;
+  }
+
+  .pgv-search-btn {
+    grid-area: search;
+    align-self: stretch;
+  }
+
+  .pgv-search-cycle-btn {
+    grid-area: cycle;
+  }
+
+  .pgv-search-close-btn {
+    grid-area: close;
+  }
 }

@@ -657,6 +657,9 @@ export class GraphView {
   #renderSearchControls(): HTMLElement {
     const bar = document.createElement("div");
     bar.className = "pgv-search-bar";
+    if (["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode)) {
+      bar.classList.add("attribute-mode");
+    }
 
     // Select mode
     const select = document.createElement("select");
@@ -744,6 +747,7 @@ export class GraphView {
     // Search button (created early so inputs can update its state)
     const searchBtn = document.createElement("button");
     searchBtn.type = "button";
+    searchBtn.className = "pgv-search-btn";
     searchBtn.title = "Search";
     searchBtn.setAttribute("aria-label", "Execute search");
     searchBtn.innerHTML = `
@@ -759,6 +763,7 @@ export class GraphView {
     // Cycle button
     const cycleBtn = document.createElement("button");
     cycleBtn.type = "button";
+    cycleBtn.className = "pgv-search-cycle-btn";
     cycleBtn.title = "Cycle Results";
     cycleBtn.setAttribute("aria-label", "Cycle search results");
     cycleBtn.disabled = this.#searchResults.length === 0;
@@ -898,6 +903,7 @@ export class GraphView {
     // Add a close button
     const closeBtn = document.createElement("button");
     closeBtn.type = "button";
+    closeBtn.className = "pgv-search-close-btn";
     closeBtn.title = "Close Search (Esc)";
     closeBtn.setAttribute("aria-label", "Close Search");
     closeBtn.style.marginLeft = "auto";
