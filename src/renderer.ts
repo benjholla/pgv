@@ -608,10 +608,17 @@ export class GraphView {
       // Append controls *before* viewport to ensure natural tabbing sequence
       // enters controls first, and graph elements last.
 
+      const topContainer = document.createElement("div");
+      topContainer.className = "pgv-top-container";
+
+      if (this.#searchOpen) {
+        topContainer.appendChild(this.#renderSearchControls());
+        root.appendChild(topContainer);
+      }
+
       const bottomContainer = document.createElement("div");
       bottomContainer.className = "pgv-bottom-container";
 
-      bottomContainer.appendChild(this.#renderBottomLeftControls());
       bottomContainer.appendChild(this.#renderControls());
 
       if (bottomContainer.children.length > 0) {
@@ -650,16 +657,6 @@ export class GraphView {
 
 
 
-  #renderBottomLeftControls(): HTMLElement {
-    const container = document.createElement("div");
-    container.className = "pgv-bottom-left-container";
-
-    if (this.#searchOpen) {
-      container.appendChild(this.#renderSearchControls());
-    }
-
-    return container;
-  }
 
   #renderSearchControls(): HTMLElement {
     const bar = document.createElement("div");
@@ -751,6 +748,7 @@ export class GraphView {
     // Search button (created early so inputs can update its state)
     const searchBtn = document.createElement("button");
     searchBtn.type = "button";
+    searchBtn.className = "pgv-search-btn";
     searchBtn.title = "Search";
     searchBtn.setAttribute("aria-label", "Execute search");
     searchBtn.innerHTML = `
@@ -766,6 +764,7 @@ export class GraphView {
     // Cycle button
     const cycleBtn = document.createElement("button");
     cycleBtn.type = "button";
+    cycleBtn.className = "pgv-search-cycle-btn";
     cycleBtn.title = "Cycle Results";
     cycleBtn.setAttribute("aria-label", "Cycle search results");
     cycleBtn.disabled = this.#searchResults.length === 0;
@@ -905,6 +904,7 @@ export class GraphView {
     // Add a close button
     const closeBtn = document.createElement("button");
     closeBtn.type = "button";
+    closeBtn.className = "pgv-search-close-btn";
     closeBtn.title = "Close Search (Esc)";
     closeBtn.setAttribute("aria-label", "Close Search");
     closeBtn.style.marginLeft = "auto";
