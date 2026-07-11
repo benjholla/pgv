@@ -35,6 +35,19 @@ export interface Size {
  * structure (`GraphSnapshot`), ensuring that rendering engines can predictably
  * position elements without coupling logic to geometry.
  */
+
+/**
+ * Routing hints for orthogonal edges to stagger overlapping paths.
+ */
+export interface EdgeRoutingHint {
+  readonly sourceOffsetPx: number;
+  readonly targetOffsetPx: number;
+  readonly outIndex: number;
+  readonly inIndex: number;
+  readonly outTotal: number;
+  readonly inTotal: number;
+}
+
 export interface LayoutSnapshot {
   /**
    * A map of node IDs to their absolute visual coordinates.
@@ -55,6 +68,11 @@ export interface LayoutSnapshot {
    * The dimensions allocated to each node in the layout.
    */
   readonly nodeSize: Size;
+
+  /**
+   * Routing hints for staggering edge paths.
+   */
+  readonly edgeRouting?: ReadonlyMap<string, EdgeRoutingHint>;
 }
 
 /**
@@ -231,6 +249,53 @@ export function verticalLayout(
     Math.max(0, layerCount - 1) * config.layerSpacing +
     config.margin * 2;
 
+  const edgeRouting = new Map<string, EdgeRoutingHint>();
+  const spacing = 16;
+  const maxOffset = config.nodeWidth / 2 - 8;
+
+  // We need to re-compute outgoing edges sorted by edge ID so that staggering is deterministic
+  const edgeOutgoing = new Map<string, string[]>();
+  const edgeIncoming = new Map<string, string[]>();
+
+  for (const edge of graph.edges.values()) {
+    if (!edgeOutgoing.has(edge.source)) edgeOutgoing.set(edge.source, []);
+    if (!edgeIncoming.has(edge.target)) edgeIncoming.set(edge.target, []);
+    edgeOutgoing.get(edge.source)!.push(edge.id);
+    edgeIncoming.get(edge.target)!.push(edge.id);
+  }
+
+  for (const list of edgeOutgoing.values()) list.sort();
+  for (const list of edgeIncoming.values()) list.sort();
+
+  for (const edge of graph.edges.values()) {
+    const outList = edgeOutgoing.get(edge.source) || [];
+    const outIndex = outList.indexOf(edge.id);
+    const outTotal = outList.length;
+    let sOffset = 0;
+    if (outTotal > 1) {
+      sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
+      sOffset = Math.max(-maxOffset, Math.min(maxOffset, sOffset));
+    }
+
+    const inList = edgeIncoming.get(edge.target) || [];
+    const inIndex = inList.indexOf(edge.id);
+    const inTotal = inList.length;
+    let tOffset = 0;
+    if (inTotal > 1) {
+      tOffset = (inIndex - (inTotal - 1) / 2) * spacing;
+      tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
+    }
+
+    edgeRouting.set(edge.id, Object.freeze({
+      sourceOffsetPx: sOffset,
+      targetOffsetPx: tOffset,
+      outIndex,
+      inIndex,
+      outTotal,
+      inTotal
+    }));
+  }
+
   return Object.freeze({
     positions,
     width,
@@ -239,6 +304,7 @@ export function verticalLayout(
       width: config.nodeWidth,
       height: config.nodeHeight,
     }),
+    edgeRouting,
   });
 }
 
@@ -275,12 +341,6 @@ export interface EdgeEndpointsResult {
 export function edgeEndpoints(
   edge: GraphEdge,
   layout: LayoutSnapshot,
-  sourceOffsetPx: number = 0,
-  targetOffsetPx: number = 0,
-  outIndex: number = 0,
-  inIndex: number = 0,
-  outTotal: number = 1,
-  inTotal: number = 1,
 ): EdgeEndpointsResult | null {
   const source = layout.positions.get(edge.source);
   const target = layout.positions.get(edge.target);
@@ -289,17 +349,21 @@ export function edgeEndpoints(
     return null;
   }
 
+  const routing = layout.edgeRouting?.get(edge.id) || {
+    sourceOffsetPx: 0, targetOffsetPx: 0, outIndex: 0, inIndex: 0, outTotal: 1, inTotal: 1
+  };
+
   const sourcePt = {
-    x: source.x + layout.nodeSize.width / 2 + sourceOffsetPx,
+    x: source.x + layout.nodeSize.width / 2 + routing.sourceOffsetPx,
     y: source.y + layout.nodeSize.height,
   };
 
   const targetPt = {
-    x: target.x + layout.nodeSize.width / 2 + targetOffsetPx,
+    x: target.x + layout.nodeSize.width / 2 + routing.targetOffsetPx,
     y: target.y,
   };
 
-  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout, outIndex, inIndex, outTotal, inTotal);
+  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout, routing.outIndex, routing.inIndex, routing.outTotal, routing.inTotal);
 
   return {
     source: sourcePt,

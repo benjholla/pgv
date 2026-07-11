@@ -1537,51 +1537,10 @@ export class GraphView {
     const nodeColor = computedStyle.getPropertyValue("--pgv-minimap-node-color").trim() || "rgba(105, 117, 134, 0.6)";
     const edgeColor = computedStyle.getPropertyValue("--pgv-minimap-edge-color").trim() || "rgba(105, 117, 134, 0.4)";
     const selectedColor = computedStyle.getPropertyValue("--pgv-minimap-selected-color").trim() || "#d97706";
-
-    // Compute sorted incoming and outgoing edges per node to assign offsets
-    const outgoingEdges = new Map<string, string[]>();
-    const incomingEdges = new Map<string, string[]>();
-
-    for (const edge of this.#graph.edges.values()) {
-      if (!outgoingEdges.has(edge.source)) outgoingEdges.set(edge.source, []);
-      if (!incomingEdges.has(edge.target)) incomingEdges.set(edge.target, []);
-      outgoingEdges.get(edge.source)!.push(edge.id);
-      incomingEdges.get(edge.target)!.push(edge.id);
-    }
-
-    for (const list of outgoingEdges.values()) list.sort();
-    for (const list of incomingEdges.values()) list.sort();
-
-    const getOffsets = (edgeId: string, sourceId: string, targetId: string) => {
-      const spacing = 16;
-      const maxOffset = layout.nodeSize.width / 2 - 8;
-
-      const outList = outgoingEdges.get(sourceId) || [];
-      const outIndex = outList.indexOf(edgeId);
-      const outTotal = outList.length;
-      let sOffset = 0;
-      if (outTotal > 1) {
-        sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
-        sOffset = Math.max(-maxOffset, Math.min(maxOffset, sOffset));
-      }
-
-      const inList = incomingEdges.get(targetId) || [];
-      const inIndex = inList.indexOf(edgeId);
-      const inTotal = inList.length;
-      let tOffset = 0;
-      if (inTotal > 1) {
-        tOffset = (inIndex - (inTotal - 1) / 2) * spacing;
-        tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
-      }
-
-      return { sourceOffsetPx: sOffset, targetOffsetPx: tOffset, outIndex, inIndex, outTotal, inTotal };
-    };
-
     // Draw edges
     ctx.lineWidth = 1;
     for (const edge of this.#graph.edges.values()) {
-      const offsets = getOffsets(edge.id, edge.source, edge.target);
-      const endpoints = edgeEndpoints(edge, layout, offsets.sourceOffsetPx, offsets.targetOffsetPx, offsets.outIndex, offsets.inIndex, offsets.outTotal, offsets.inTotal);
+      const endpoints = edgeEndpoints(edge, layout);
       if (!endpoints) continue;
 
       ctx.strokeStyle = this.#options.selection?.edges.has(edge.id) ? selectedColor : edgeColor;
@@ -2018,49 +1977,8 @@ function renderEdges(
   svg.appendChild(createArrowMarker(markerId));
   edgeLayer.classList.add("pgv-edge-layer-inner");
   svg.appendChild(edgeLayer);
-
-  // Compute sorted incoming and outgoing edges per node to assign offsets
-  const outgoingEdges = new Map<string, string[]>();
-  const incomingEdges = new Map<string, string[]>();
-
   for (const edge of graph.edges.values()) {
-    if (!outgoingEdges.has(edge.source)) outgoingEdges.set(edge.source, []);
-    if (!incomingEdges.has(edge.target)) incomingEdges.set(edge.target, []);
-    outgoingEdges.get(edge.source)!.push(edge.id);
-    incomingEdges.get(edge.target)!.push(edge.id);
-  }
-
-  for (const list of outgoingEdges.values()) list.sort();
-  for (const list of incomingEdges.values()) list.sort();
-
-  const getOffsets = (edgeId: string, sourceId: string, targetId: string) => {
-    const spacing = 16;
-    const maxOffset = layout.nodeSize.width / 2 - 8;
-
-    const outList = outgoingEdges.get(sourceId) || [];
-    const outIndex = outList.indexOf(edgeId);
-    const outTotal = outList.length;
-    let sOffset = 0;
-    if (outTotal > 1) {
-      sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
-      sOffset = Math.max(-maxOffset, Math.min(maxOffset, sOffset));
-    }
-
-    const inList = incomingEdges.get(targetId) || [];
-    const inIndex = inList.indexOf(edgeId);
-    const inTotal = inList.length;
-    let tOffset = 0;
-    if (inTotal > 1) {
-      tOffset = (inIndex - (inTotal - 1) / 2) * spacing;
-      tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
-    }
-
-    return { sourceOffsetPx: sOffset, targetOffsetPx: tOffset, outIndex, inIndex, outTotal, inTotal };
-  };
-
-  for (const edge of graph.edges.values()) {
-    const offsets = getOffsets(edge.id, edge.source, edge.target);
-    const endpoints = edgeEndpoints(edge, layout, offsets.sourceOffsetPx, offsets.targetOffsetPx, offsets.outIndex, offsets.inIndex, offsets.outTotal, offsets.inTotal);
+    const endpoints = edgeEndpoints(edge, layout);
 
     if (!endpoints) {
       continue;

@@ -21,9 +21,9 @@ describe("layout", () => {
 
       // Compute endpoints and paths for each edge, spacing out the target source X offsets
       // to mimic renderer behavior where multiple edges out of a node get offset.
-      const p1 = edgeEndpoints(graph.edges.get("e1")!, layout, -20, 0, 0, 0, 3, 1);
-      const p2 = edgeEndpoints(graph.edges.get("e2")!, layout, 0, 0, 1, 0, 3, 1);
-      const p3 = edgeEndpoints(graph.edges.get("e3")!, layout, 20, 0, 2, 0, 3, 1);
+      const p1 = edgeEndpoints(graph.edges.get("e1")!, layout);
+      const p2 = edgeEndpoints(graph.edges.get("e2")!, layout);
+      const p3 = edgeEndpoints(graph.edges.get("e3")!, layout);
 
       expect(p1).not.toBeNull();
       expect(p2).not.toBeNull();
