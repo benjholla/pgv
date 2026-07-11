@@ -759,7 +759,14 @@ export function sanitizeString(value: string): string {
   clean = clean.replace(/[\s\x00-\x1F\x7F]+/g, "").toLowerCase();
 
   // Block common javascript URIs and inline scripts
-  if (clean.includes("javascript:") || clean.includes("vbscript:") || clean.includes("data:text/html")) {
+  if (
+    clean.includes("javascript:") ||
+    clean.includes("vbscript:") ||
+    clean.includes("data:text/html") ||
+    clean.includes("data:image/svg+xml") ||
+    clean.includes("data:text/xml") ||
+    clean.includes("data:application/xhtml+xml")
+  ) {
     return "#blocked-uri";
   }
 
