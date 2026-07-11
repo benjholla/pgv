@@ -512,8 +512,9 @@ function routeEdgeOrthogonal(
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    openList.sort((a, b) => a.f - b.f);
-    const curr = openList.shift()!;
+    // PERF(Bolt): Sort descending and pop (O(1)) instead of shift (O(N))
+    openList.sort((a, b) => b.f - a.f);
+    const curr = openList.pop()!;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
