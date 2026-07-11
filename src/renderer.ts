@@ -1054,6 +1054,7 @@ export class GraphView {
       panGroup.className = "pgv-control-group pgv-pan-group";
       for (const btn of panButtons) {
         const button = this.#createControlButton(btn);
+        button.classList.add(`pgv-btn-${btn.id}`);
         button.style.gridArea = btn.gridArea!;
         panGroup.appendChild(button);
       }
