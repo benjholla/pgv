@@ -239,8 +239,10 @@ export class GraphView {
       this.#clearSelectionBtn.disabled = !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0);
       if (this.#clearSelectionBtn.disabled) {
         this.#clearSelectionBtn.title = "No nodes or edges selected";
+        this.#clearSelectionBtn.setAttribute("aria-label", "No nodes or edges selected");
       } else {
         this.#clearSelectionBtn.title = "Clear Selection";
+        this.#clearSelectionBtn.setAttribute("aria-label", "Clear Selection");
       }
     }
     this.#render();
@@ -783,8 +785,10 @@ export class GraphView {
 
       searchBtn.disabled = isQueryEmpty;
       searchBtn.title = isQueryEmpty ? "Enter a query to search" : "Search";
+      searchBtn.setAttribute("aria-label", searchBtn.title);
       cycleBtn.disabled = this.#searchResults.length === 0;
       cycleBtn.title = this.#searchResults.length === 0 ? "No results to cycle" : "Cycle Results";
+      cycleBtn.setAttribute("aria-label", cycleBtn.title);
 
       if (isQueryEmpty) {
         info.textContent = "";
@@ -969,9 +973,11 @@ export class GraphView {
       leftBtn.disabled = true;
       leftBtn.classList.add("disabled");
       leftBtn.title = "No previous snapshots available";
+      leftBtn.setAttribute("aria-label", "No previous snapshots available");
       rwBtn.disabled = true;
       rwBtn.classList.add("disabled");
       rwBtn.title = "Already at earliest snapshot";
+      rwBtn.setAttribute("aria-label", "Already at earliest snapshot");
     }
 
     const rightBtn = this.#createControlButton({
@@ -990,9 +996,11 @@ export class GraphView {
       rightBtn.disabled = true;
       rightBtn.classList.add("disabled");
       rightBtn.title = "No newer snapshots available";
+      rightBtn.setAttribute("aria-label", "No newer snapshots available");
       ffBtn.disabled = true;
       ffBtn.classList.add("disabled");
       ffBtn.title = "Already at latest snapshot";
+      ffBtn.setAttribute("aria-label", "Already at latest snapshot");
     }
 
     controls.appendChild(rwBtn);
@@ -1087,6 +1095,7 @@ export class GraphView {
         label: "Toggle Search",
       });
       searchToggleBtn.classList.add("pgv-search-toggle-btn");
+      searchToggleBtn.setAttribute("aria-expanded", this.#searchOpen ? "true" : "false");
       topButtonsContainer.appendChild(searchToggleBtn);
 
       const historyToggleBtn = this.#createControlButton({
@@ -1098,14 +1107,17 @@ export class GraphView {
         label: "Toggle History Navigation",
       });
 
+      historyToggleBtn.setAttribute("aria-expanded", this.#historyOpen ? "true" : "false");
       topButtonsContainer.appendChild(historyToggleBtn);
 
       if (this.#options.usePanZoom) {
-        topButtonsContainer.appendChild(this.#createControlButton({
+        const minimapToggleBtn = this.#createControlButton({
           icon: icons.map,
           action: () => this.#toggleMinimap(),
           label: "Toggle Minimap",
-        }));
+        });
+        minimapToggleBtn.setAttribute("aria-expanded", this.#minimapOpen ? "true" : "false");
+        topButtonsContainer.appendChild(minimapToggleBtn);
       } else {
         const ph = this.#createControlButton({ icon: icons.placeholder, action: () => {}, label: "" });
         ph.style.visibility = "hidden";
@@ -1123,6 +1135,7 @@ export class GraphView {
       this.#clearSelectionBtn.disabled = !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0);
       if (this.#clearSelectionBtn.disabled) {
         this.#clearSelectionBtn.title = "No nodes or edges selected";
+        this.#clearSelectionBtn.setAttribute("aria-label", "No nodes or edges selected");
       }
       topButtonsContainer.appendChild(this.#clearSelectionBtn);
 

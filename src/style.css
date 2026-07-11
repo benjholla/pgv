@@ -268,7 +268,7 @@
   background: var(--pgv-control-button-hover-bg);
 }
 
-.pgv-controls button:active:not(:disabled) {
+.pgv-controls button:active:not(:disabled), .pgv-controls button[aria-expanded="true"] {
   background: var(--pgv-control-button-active-bg);
 }
 
