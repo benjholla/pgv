@@ -12,3 +12,8 @@
 **Vulnerability:** A mutation XSS bypass existed in `src/model.ts` inside the `sanitizeString` function. The function attempted to strip `<script>` tags using the regex `/<\/?script\b[^>]*>/gi`.
 **Learning:** The regex failed to account for unclosed `<script>` tags (e.g., `<script src="malicious"` without a closing `>`). If an unclosed `<script>` tag was injected into a context where a subsequent `>` character could close it, the browser would execute the script. The regex `[^>]*>` required a closing `>` to match and strip the tag.
 **Prevention:** When stripping potentially dangerous tags, ensure the regex accounts for unclosed tags by making the closing `>` optional. The regex should be `/<\/?script\b[^>]*>?/gi`.
+
+## 2024-03-24 - XSS via dangerous data URIs
+**Vulnerability:** An XSS vulnerability existed in `src/model.ts` inside the `sanitizeString` function because the function only blocked `javascript:`, `vbscript:`, and `data:text/html` URIs, failing to block other dangerous `data:` URIs like `data:image/svg+xml`, `data:text/xml`, and `data:application/xhtml+xml` that can also execute scripts when rendered in a browser context.
+**Learning:** Browsers can execute embedded `<script>` tags when navigating to or rendering `data:` URIs of certain XML/SVG types. A deny-list approach for URIs must be comprehensive or replaced with an allow-list approach (e.g., only allowing `http://`, `https://`, `mailto:`, etc.).
+**Prevention:** Always block `data:image/svg+xml`, `data:text/xml`, and `data:application/xhtml+xml` in addition to `data:text/html` when filtering URIs, or strictly enforce an allow-list of safe protocols.
