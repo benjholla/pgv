@@ -441,6 +441,46 @@ describe("layout", () => {
         }
       });
 
+      it("Obstacle Avoidance: path segments strictly do not intersect node bounding boxes", () => {
+        const graph = createGraphSnapshot({
+          nodes: [{ id: "A" }, { id: "B" }, { id: "C" }],
+          edges: [
+            { id: "e1", source: "A", target: "B" },
+            { id: "e2", source: "A", target: "C" },
+            { id: "e3", source: "B", target: "C" },
+          ],
+        });
+
+        const layout = verticalLayout(graph);
+        const nodeBoxes = Array.from(layout.positions.values()).map(p => ({
+          left: p.x,
+          right: p.x + layout.nodeSize.width,
+          top: p.y,
+          bottom: p.y + layout.nodeSize.height,
+        }));
+
+        for (const edge of graph.edges.values()) {
+          const endpoints = edgeEndpoints(edge, layout);
+          expect(endpoints).not.toBeNull();
+
+          const path = endpoints!.path;
+          for (let i = 0; i < path.length - 1; i++) {
+            const p1 = path[i];
+            const p2 = path[i + 1];
+
+            const minX = Math.min(p1.x, p2.x);
+            const maxX = Math.max(p1.x, p2.x);
+            const minY = Math.min(p1.y, p2.y);
+            const maxY = Math.max(p1.y, p2.y);
+
+            for (const box of nodeBoxes) {
+              const intersects = minX < box.right && maxX > box.left && minY < box.bottom && maxY > box.top;
+              expect(intersects).toBe(false);
+            }
+          }
+        }
+      });
+
       it("Endpoint Consistency: first and last path points exactly match source and target endpoints", () => {
         const graph = createGraphSnapshot({
           nodes: [{ id: "A" }, { id: "B" }, { id: "C" }],

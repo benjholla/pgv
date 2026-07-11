@@ -1,6 +1,6 @@
 import { bench, describe } from "vitest";
 import { createGraphSnapshot, type GraphSnapshotJson } from "../src/model";
-import { verticalLayout } from "../src/layout";
+import { verticalLayout, edgeEndpoints } from "../src/layout";
 
 function generateDeepGraph(depth: number, branchesPerNode: number): GraphSnapshotJson {
   const nodes = [];
@@ -48,5 +48,16 @@ describe("layout performance", () => {
   const wideSnapshot = createGraphSnapshot(wideData);
   bench("verticalLayout (wide graph ~10k nodes)", () => {
     verticalLayout(wideSnapshot);
+  });
+
+  // For testing routing performance, we need a graph with some complexity
+  const routingData = generateDeepGraph(4, 3); // ~121 nodes
+  const routingSnapshot = createGraphSnapshot(routingData);
+  const routingLayout = verticalLayout(routingSnapshot);
+
+  bench("edgeEndpoints A* pathfinding (medium layout)", () => {
+    for (const edge of routingSnapshot.edges.values()) {
+      edgeEndpoints(edge, routingLayout);
+    }
   });
 });
