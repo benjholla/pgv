@@ -763,9 +763,9 @@
   .pgv-search-bar {
     display: grid;
     grid-template-areas:
-      "select input input input"
-      "info search cycle close";
-    grid-template-columns: auto 1fr auto auto;
+      "select input input input input"
+      "info empty search cycle close";
+    grid-template-columns: auto 1fr auto auto auto;
     gap: 4px 8px;
   }
   .pgv-search-bar select {
