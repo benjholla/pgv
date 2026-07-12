@@ -736,7 +736,7 @@ export function sanitizeString(value: string): string {
   } while (sanitized !== previous);
 
   // Strip inline event handlers (on*)
-  sanitized = sanitized.replace(/\bon[a-z]+\s*=/gi, "data-blocked=");
+  sanitized = sanitized.replace(/\bon[a-z]+[\s\x00-\x1F\x7F]*=/gi, "data-blocked=");
 
   // Strip CSS expressions
   sanitized = sanitized.replace(/expression\s*\(/gi, "blocked-expr(");

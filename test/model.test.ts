@@ -159,6 +159,12 @@ describe("model", () => {
       expect(() => sanitizeString({} as any)).toThrow(TypeError);
     });
 
+    it("strips inline event handlers containing control characters", () => {
+      expect(sanitizeString("onerror\x00=alert(1)")).toBe("data-blocked=alert(1)");
+      expect(sanitizeString("ONERROR\x7F=alert(1)")).toBe("data-blocked=alert(1)");
+      expect(sanitizeString("onmouseover \x00 =alert(1)")).toBe("data-blocked=alert(1)");
+    });
+
     it("throws on unsupported attribute value types", () => {
       const invalidJson: any = {
         nodes: [{ id: "n1", attributes: { obj: {} } }],
