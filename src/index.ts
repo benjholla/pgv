@@ -29,6 +29,7 @@ export {
   sanitizeString,
 } from "./model";
 export type {
+  EdgeRoutingHint,
   LayoutSnapshot,
   Point,
   Size,

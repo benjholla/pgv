@@ -29,25 +29,47 @@ export interface Size {
 }
 
 /**
+ * Routing hints for orthogonal edges to stagger overlapping paths.
+ */
+export interface EdgeRoutingHint {
+  /**
+   * The horizontal offset from the center of the source node (in pixels).
+   */
+  readonly sourceOffsetPx: number;
+
+  /**
+   * The horizontal offset from the center of the target node (in pixels).
+   */
+  readonly targetOffsetPx: number;
+
+  /**
+   * The relative ordering index of this edge among all edges leaving the same source node.
+   */
+  readonly outIndex: number;
+
+  /**
+   * The relative ordering index of this edge among all edges entering the same target node.
+   */
+  readonly inIndex: number;
+
+  /**
+   * The total number of edges leaving the same source node.
+   */
+  readonly outTotal: number;
+
+  /**
+   * The total number of edges entering the same target node.
+   */
+  readonly inTotal: number;
+}
+
+/**
  * Represents the computed visual coordinates and bounding box for a graph.
  *
  * This snapshot separates the spatial arrangement of the graph from its logical
  * structure (`GraphSnapshot`), ensuring that rendering engines can predictably
  * position elements without coupling logic to geometry.
  */
-
-/**
- * Routing hints for orthogonal edges to stagger overlapping paths.
- */
-export interface EdgeRoutingHint {
-  readonly sourceOffsetPx: number;
-  readonly targetOffsetPx: number;
-  readonly outIndex: number;
-  readonly inIndex: number;
-  readonly outTotal: number;
-  readonly inTotal: number;
-}
-
 export interface LayoutSnapshot {
   /**
    * A map of node IDs to their absolute visual coordinates.
