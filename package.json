@@ -34,6 +34,8 @@
     "preview:dynamic": "vite preview --config examples/vite-dynamic/vite.config.ts --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:update": "playwright test --update-snapshots",
     "bench": "vitest bench",
     "docs": "typedoc src/index.ts --out docs"
   },
@@ -46,13 +48,14 @@
     "typescript"
   ],
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^20.14.12",
     "@vitest/coverage-v8": "^4.1.9",
     "jsdom": "^29.1.1",
     "playwright": "^1.61.1",
     "typedoc": "^0.28.19",
-    "typescript": "^5.5.4",
-    "vite": "^8.1.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.4",
     "vitest": "^4.1.9"
   },
   "dependencies": {
