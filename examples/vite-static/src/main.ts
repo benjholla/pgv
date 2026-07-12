@@ -104,19 +104,6 @@ function updateGraph(): void {
     },
   };
 
-  const urlParams = new URLSearchParams(window.location.search);
-  const isE2E = urlParams.has("e2e");
-
-  if (isE2E) {
-    options.usePanZoom = false;
-    options.useThemeToggle = false;
-    options.maxHistory = 0;
-
-    // Hide the demo toolbar for a cleaner screenshot
-    const toolbar = document.querySelector(".demo-toolbar") as HTMLElement;
-    if (toolbar) toolbar.style.display = "none";
-  }
-
   if (!graphView) {
     graphView = new GraphView(graphElement, currentSchema, options);
     graphView.setGraph(currentGraph);
@@ -126,12 +113,6 @@ function updateGraph(): void {
 
   summaryElement.textContent = `${currentGraph.nodes.size} nodes, ${currentGraph.edges.size} edges`;
 }
-
-// Expose a way for e2e tests to inject a new graph directly
-(window as any).__setTestGraph = (json: GraphSnapshotJson) => {
-  currentGraph = createGraphSnapshot(json);
-  updateGraph();
-};
 
 let diffCounter = 2;
 

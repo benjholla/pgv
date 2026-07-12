@@ -12,10 +12,11 @@ async function injectGraph(page: any, graphJson: any) {
 
 test.describe("Graph Visual Regression", () => {
   test.beforeEach(async ({ page }) => {
-    // Navigate to root since dev:static uses examples/vite-static as the root directory
-    await page.goto("/?e2e=1", { waitUntil: "networkidle" });
-    // Ensure the default graph has initially rendered
-    await page.waitForSelector("#graph > *", { timeout: 10000 });
+    // Navigate to root (which is the static-tester app)
+    await page.goto("/");
+    // We don't really need to ensure a default graph rendered if we are just going to overwrite it
+    // Wait for the container to be ready at least
+    await page.waitForSelector("#graph", { timeout: 10000 });
   });
 
   test("Default sample graph layout", async ({ page }) => {

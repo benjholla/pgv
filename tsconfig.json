@@ -22,6 +22,8 @@
     "vite.config.ts",
     "examples/vite-static/src",
     "examples/vite-static/vite.config.ts",
+    "examples/static-tester/src",
+    "examples/static-tester/vite.config.ts",
     "test/e2e",
     "playwright.config.ts"
   ]
