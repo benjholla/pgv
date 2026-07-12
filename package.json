@@ -24,6 +24,7 @@
   ],
   "scripts": {
     "dev:static": "vite --config examples/vite-static/vite.config.ts --host 127.0.0.1",
+    "dev:tester": "vite --config examples/static-tester/vite.config.ts --host 127.0.0.1 --port 5174",
     "dev:backend": "mvn -f examples/spring-boot-producer/pom.xml spring-boot:run",
     "dev:dynamic": "vite --config examples/vite-dynamic/vite.config.ts --host 127.0.0.1",
     "build": "pnpm run typecheck && vite build && tsc -p tsconfig.build.json && pnpm run copy:css",
@@ -34,6 +35,8 @@
     "preview:dynamic": "vite preview --config examples/vite-dynamic/vite.config.ts --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:update": "playwright test --update-snapshots",
     "bench": "vitest bench",
     "docs": "typedoc src/index.ts --out docs"
   },
@@ -46,13 +49,14 @@
     "typescript"
   ],
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@types/node": "^20.14.12",
     "@vitest/coverage-v8": "^4.1.9",
     "jsdom": "^29.1.1",
     "playwright": "^1.61.1",
     "typedoc": "^0.28.19",
-    "typescript": "^5.5.4",
-    "vite": "^8.1.0",
+    "typescript": "^5.9.3",
+    "vite": "^8.1.4",
     "vitest": "^4.1.9"
   },
   "dependencies": {
