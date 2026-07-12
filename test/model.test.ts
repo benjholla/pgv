@@ -651,4 +651,42 @@ describe("model", () => {
       expect(() => applyGraphDiff(customBase, diff)).toThrow(/references missing target/);
     });
   });
+
+  describe("assertNonEmptyString validations", () => {
+    it("throws GraphModelError for unsafe strings (e.g., containing script tags)", () => {
+      const json: GraphSnapshotJson = {
+        nodes: [{ id: "n1", tags: ["<script>alert(1)</script>"] }],
+        edges: []
+      };
+      expect(() => createGraphSnapshot(json)).toThrow(GraphModelError);
+      expect(() => createGraphSnapshot(json)).toThrow(/contains unsafe content/);
+
+      // But safe strings and sanitized attributes are allowed
+      const json2: GraphSnapshotJson = {
+        nodes: [{ id: "n1", attributes: { key: "<script>alert(1)</script>" } }],
+        edges: []
+      };
+      expect(() => createGraphSnapshot(json2)).not.toThrow();
+      const snap = createGraphSnapshot(json2);
+      expect(snap.nodes.get("n1")?.attributes.key).toBe("alert(1)");
+    });
+
+    it("throws GraphModelError for empty or whitespace-only strings", () => {
+      const json: GraphSnapshotJson = {
+        nodes: [{ id: "n1", tags: [" "] }],
+        edges: []
+      };
+      expect(() => createGraphSnapshot(json)).toThrow(GraphModelError);
+      expect(() => createGraphSnapshot(json)).toThrow(/must be a non-empty string/);
+    });
+
+    it("throws GraphModelError for non-string types where strings are expected", () => {
+      const json = {
+        nodes: [{ id: "n1", tags: [123] }],
+        edges: []
+      } as unknown as GraphSnapshotJson;
+      expect(() => createGraphSnapshot(json)).toThrow(GraphModelError);
+      expect(() => createGraphSnapshot(json)).toThrow(/must be a non-empty string/);
+    });
+  });
 });

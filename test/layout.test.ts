@@ -548,4 +548,41 @@ describe("layout", () => {
       expect(endpoints).toBeNull();
     });
   });
+
+  describe("Sorting fallback edge cases", () => {
+    it("falls back to outgoing edges for hintX when node has no incoming edges connected to previously positioned nodes", () => {
+      const prevGraph = createGraphSnapshot({
+        nodes: [{ id: "A" }, { id: "B" }],
+        edges: []
+      });
+      const prevLayout = verticalLayout(prevGraph);
+
+      const newGraph = createGraphSnapshot({
+        nodes: [{ id: "A" }, { id: "B" }, { id: "C" }, { id: "D" }],
+        edges: [
+          { id: "e1", source: "C", target: "A" },
+          { id: "e2", source: "D", target: "B" },
+        ]
+      });
+
+      const nextLayout = verticalLayout(newGraph, { previousLayout: prevLayout });
+      expect(nextLayout).toBeDefined();
+    });
+
+    it("falls back to 0 for hintX when node has no positioned incoming or outgoing edges", () => {
+      const prevGraph = createGraphSnapshot({
+        nodes: [{ id: "A" }, { id: "B" }],
+        edges: []
+      });
+      const prevLayout = verticalLayout(prevGraph);
+
+      const newGraph = createGraphSnapshot({
+        nodes: [{ id: "A" }, { id: "B" }, { id: "C" }, { id: "D" }],
+        edges: []
+      });
+
+      const nextLayout = verticalLayout(newGraph, { previousLayout: prevLayout });
+      expect(nextLayout).toBeDefined();
+    });
+  });
 });

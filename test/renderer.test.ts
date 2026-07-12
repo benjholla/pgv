@@ -410,4 +410,78 @@ describe('GraphView', () => {
 
     view.destroy();
   });
+
+  describe("Edge Labels and Custom Node Content", () => {
+    it("renders edge labels correctly", () => {
+      const container = document.createElement("div");
+      const json: GraphSnapshotJson = {
+        nodes: [{ id: "n1" }, { id: "n2" }],
+        edges: [{ id: "e1", source: "n1", target: "n2", attributes: { label: "myLabel" } }]
+      };
+      const snap = createGraphSnapshot(json);
+      const view = new GraphView(container, snap.schema || {}, {
+        edgeLabel: (e) => e.attributes.label as string
+      });
+      view.setGraph(snap);
+
+      const label = container.querySelector(".pgv-edge-label");
+      expect(label).not.toBeNull();
+      expect(label?.textContent).toBe("myLabel");
+
+      view.destroy();
+    });
+
+    it("renders custom string and HTML node content", () => {
+      const container = document.createElement("div");
+      const json: GraphSnapshotJson = {
+        nodes: [{ id: "n1" }, { id: "n2" }],
+        edges: []
+      };
+      const snap = createGraphSnapshot(json);
+      const view = new GraphView(container, snap.schema || {}, {
+        nodeContent: (n) => {
+          if (n.id === "n1") return "string-content";
+          const div = document.createElement("div");
+          div.className = "custom-html-content";
+          div.textContent = "html-content";
+          return div;
+        }
+      });
+      view.setGraph(snap);
+
+      const n1 = container.querySelector('.pgv-graph-node[data-node-id="n1"]');
+      expect(n1).not.toBeNull();
+      expect(n1?.textContent).toBe("string-content");
+
+      const n2 = container.querySelector('.pgv-graph-node[data-node-id="n2"]');
+      expect(n2).not.toBeNull();
+      const customDiv = n2?.querySelector(".custom-html-content");
+      expect(customDiv).not.toBeNull();
+      expect(customDiv?.textContent).toBe("html-content");
+
+      view.destroy();
+    });
+
+    it("renders node attributes in a default <dl> list", () => {
+      const container = document.createElement("div");
+      const json: GraphSnapshotJson = {
+        nodes: [{ id: "n1", attributes: { a: { float: 1.5 }, b: { integer: 2 }, c: { bytes: "xyz" } } }],
+        edges: []
+      };
+      const snap = createGraphSnapshot(json);
+      const view = new GraphView(container, snap.schema || {});
+      view.setGraph(snap);
+
+      const dl = container.querySelector("dl.pgv-node-attributes");
+      expect(dl).not.toBeNull();
+
+      const dds = container.querySelectorAll("dd");
+      expect(dds.length).toBe(3);
+      expect(dds[0].textContent).toBe("1.5");
+      expect(dds[1].textContent).toBe("2");
+      expect(dds[2].textContent).toBe("[bytes: xyz]");
+
+      view.destroy();
+    });
+  });
 });
