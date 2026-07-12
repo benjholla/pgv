@@ -387,6 +387,8 @@ export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson 
     }
     nodes[i++] = n as GraphNodeJson;
   }
+  // Sort deterministically
+  nodes.sort((a, b) => a.id.localeCompare(b.id));
   result.nodes = nodes;
 
   const edges = new Array(snapshot.edges.size);
@@ -400,6 +402,8 @@ export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson 
       attributes: edge.attributes,
     };
   }
+  // Sort deterministically
+  edges.sort((a, b) => a.id.localeCompare(b.id));
   result.edges = edges;
 
   return result as GraphSnapshotJson;
@@ -511,11 +515,14 @@ export function graphDiffToJson(diff: GraphDiff): GraphDiffJson {
     });
   }
 
+  addedNodes.sort((a, b) => a.id.localeCompare(b.id));
+  addedEdges.sort((a, b) => a.id.localeCompare(b.id));
+
   return {
     addedNodes,
     addedEdges,
-    removedNodes: [...diff.removedNodes],
-    removedEdges: [...diff.removedEdges],
+    removedNodes: [...diff.removedNodes].sort((a, b) => a.localeCompare(b)),
+    removedEdges: [...diff.removedEdges].sort((a, b) => a.localeCompare(b)),
   };
 }
 
