@@ -272,7 +272,7 @@ describe('GraphView', () => {
     expect(resultInfo?.textContent).toContain("1 of 1");
 
     // Cycle search
-    const cycleBtn = container.querySelector('button[aria-label="Cycle search results"]') as HTMLButtonElement;
+    const cycleBtn = container.querySelector('button[aria-label="Cycle search results"]') || container.querySelector('button[title="Cycle Results"]') || container.querySelector('button[aria-label="Cycle Results"]') as HTMLButtonElement;
     cycleBtn.click();
 
     // Change search mode to attribute
@@ -381,10 +381,10 @@ describe('GraphView', () => {
 
     expect(container.querySelectorAll('.pgv-graph-node').length).toBe(2);
 
-    const leftBtn = container.querySelector('button[aria-label="Previous Graph Snapshot"]') || container.querySelector('button[title="Previous Graph Snapshot"]') as HTMLButtonElement;
-    const rightBtn = container.querySelector('button[aria-label="Next Graph Snapshot"]') || container.querySelector('button[title="Next Graph Snapshot"]') as HTMLButtonElement;
-    const rwBtn = container.querySelector('button[aria-label="Earliest Graph Snapshot"]') || container.querySelector('button[title="Earliest Graph Snapshot"]') as HTMLButtonElement;
-    const ffBtn = container.querySelector('button[aria-label="Latest Graph Snapshot"]') || container.querySelector('button[title="Latest Graph Snapshot"]') as HTMLButtonElement;
+    const leftBtn = container.querySelector('button[title="Previous Graph Snapshot"]') || container.querySelector('button[aria-label="No previous snapshots available"]') as HTMLButtonElement;
+    const rightBtn = container.querySelector('button[title="Next Graph Snapshot"]') || container.querySelector('button[aria-label="No newer snapshots available"]') as HTMLButtonElement;
+    const rwBtn = container.querySelector('button[title="Earliest Graph Snapshot"]') || container.querySelector('button[aria-label="Already at earliest snapshot"]') as HTMLButtonElement;
+    const ffBtn = container.querySelector('button[title="Latest Graph Snapshot"]') || container.querySelector('button[aria-label="Already at latest snapshot"]') as HTMLButtonElement;
 
     expect(leftBtn).not.toBeNull();
     expect(rightBtn).not.toBeNull();
