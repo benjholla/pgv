@@ -92,6 +92,11 @@ export interface LayoutSnapshot {
   readonly nodeSize: Size;
 
   /**
+   * Custom sizes for nodes (e.g. collapsed nodes). Fallback to nodeSize if not present.
+   */
+  readonly nodeSizes?: ReadonlyMap<string, Size>;
+
+  /**
    * Routing hints for staggering edge paths.
    */
   readonly edgeRouting?: ReadonlyMap<string, EdgeRoutingHint>;
@@ -128,6 +133,11 @@ export interface VerticalLayoutOptions {
    * The minimum margin around the outer boundary of the layout.
    */
   readonly margin?: number;
+
+  /**
+   * A set of node IDs that are currently collapsed.
+   */
+  readonly collapsedNodes?: ReadonlySet<string>;
 }
 
 const DEFAULT_VERTICAL_LAYOUT: Required<VerticalLayoutOptions> = {
@@ -136,6 +146,7 @@ const DEFAULT_VERTICAL_LAYOUT: Required<VerticalLayoutOptions> = {
   layerSpacing: 148,
   nodeSpacing: 280,
   margin: 32,
+  collapsedNodes: new Set(),
 };
 
 /**
@@ -240,6 +251,15 @@ export function verticalLayout(
 
   // Replace spread Math.max with iterative calculation to prevent Maximum Call Stack Size Exceeded
   // on very large graphs, and to avoid creating a large intermediate array.
+  const nodeSizes = new Map<string, Size>();
+  for (const id of nodeIds) {
+    const isCollapsed = config.collapsedNodes?.has(id) ?? false;
+    nodeSizes.set(id, {
+      width: config.nodeWidth,
+      height: isCollapsed ? 36 : config.nodeHeight,
+    });
+  }
+
   let maxLayerSize = 1;
   for (const ids of layers.values()) {
     if (ids.length > maxLayerSize) {
@@ -250,11 +270,36 @@ export function verticalLayout(
   const maxLayerWidth =
     config.nodeWidth + Math.max(0, maxLayerSize - 1) * config.nodeSpacing;
 
+  // Calculate dynamic layer heights and Y positions
+  const layerY = new Map<number, number>();
+  let currentY = config.margin;
+
+  // Create an array of depths to process them in order
+  const sortedDepths = Array.from(layers.keys()).sort((a, b) => a - b);
+
+  const layerGap = config.layerSpacing - config.nodeHeight;
+
+  for (const depth of sortedDepths) {
+    layerY.set(depth, currentY);
+
+    // Find max height in this layer
+    let maxLayerNodeHeight = 0;
+    const ids = layers.get(depth)!;
+    for (const id of ids) {
+      const h = nodeSizes.get(id)!.height;
+      if (h > maxLayerNodeHeight) {
+        maxLayerNodeHeight = h;
+      }
+    }
+
+    currentY += maxLayerNodeHeight + layerGap;
+  }
+
   for (const [depth, ids] of layers) {
     const layerWidth =
       config.nodeWidth + Math.max(0, ids.length - 1) * config.nodeSpacing;
     const startX = config.margin + (maxLayerWidth - layerWidth) / 2;
-    const y = config.margin + depth * config.layerSpacing;
+    const y = layerY.get(depth)!;
 
     for (let i = 0; i < ids.length; i++) {
       positions.set(ids[i], {
@@ -264,12 +309,15 @@ export function verticalLayout(
     }
   }
 
-  const layerCount = Math.max(1, layers.size);
   const width = maxLayerWidth + config.margin * 2;
-  const height =
-    config.nodeHeight +
-    Math.max(0, layerCount - 1) * config.layerSpacing +
-    config.margin * 2;
+  const layerCount = Math.max(1, layers.size);
+  let height;
+  if (layers.size === 0) {
+    height = config.nodeHeight + config.margin * 2;
+  } else {
+    height = currentY - layerGap + config.margin; // subtract last gap and add margin
+  }
+
 
   const edgeRouting = new Map<string, EdgeRoutingHint>();
   const spacing = 16;
@@ -326,6 +374,7 @@ export function verticalLayout(
       width: config.nodeWidth,
       height: config.nodeHeight,
     }),
+    nodeSizes: Object.freeze(nodeSizes),
     edgeRouting,
   });
 }
@@ -375,13 +424,16 @@ export function edgeEndpoints(
     sourceOffsetPx: 0, targetOffsetPx: 0, outIndex: 0, inIndex: 0, outTotal: 1, inTotal: 1
   };
 
+  const sourceSize = layout.nodeSizes?.get(edge.source) || layout.nodeSize;
+  const targetSize = layout.nodeSizes?.get(edge.target) || layout.nodeSize;
+
   const sourcePt = {
-    x: source.x + layout.nodeSize.width / 2 + routing.sourceOffsetPx,
-    y: source.y + layout.nodeSize.height,
+    x: source.x + sourceSize.width / 2 + routing.sourceOffsetPx,
+    y: source.y + sourceSize.height,
   };
 
   const targetPt = {
-    x: target.x + layout.nodeSize.width / 2 + routing.targetOffsetPx,
+    x: target.x + targetSize.width / 2 + routing.targetOffsetPx,
     y: target.y,
   };
 
@@ -421,12 +473,13 @@ function routeEdgeOrthogonal(
   const margin = 20;
 
   const obstacles: { x: number; y: number; w: number; h: number }[] = [];
-  for (const pos of layout.positions.values()) {
+  for (const [id, pos] of layout.positions.entries()) {
+    const size = layout.nodeSizes?.get(id) || layout.nodeSize;
     obstacles.push({
       x: pos.x,
       y: pos.y,
-      w: layout.nodeSize.width,
-      h: layout.nodeSize.height,
+      w: size.width,
+      h: size.height,
     });
   }
 
