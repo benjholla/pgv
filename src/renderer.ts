@@ -658,7 +658,7 @@ export class GraphView {
 
     // Restore focus to avoid interrupting typing
     if (activePlaceholder) {
-      if (activePlaceholder === "Attribute Key..." && this.#searchKeyInputRef) {
+      if (activePlaceholder.endsWith("Key...") && this.#searchKeyInputRef) {
         this.#searchKeyInputRef.focus();
         this.#searchKeyInputRef.setSelectionRange(this.#searchKeyInputRef.value.length, this.#searchKeyInputRef.value.length);
       } else if (this.#searchInputRef) {
@@ -730,6 +730,7 @@ export class GraphView {
     inputsContainer.className = "pgv-search-inputs";
 
     const isAttributeMode = ["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode);
+    const modeLabel = modes.find(m => m.value === this.#searchMode)?.label || "Everywhere";
 
     const matchCaseIcon = `Aa`;
     const matchWholeWordIcon = `<span style="text-decoration: underline; font-style: normal; font-family: monospace;">ab</span>`;
@@ -828,8 +829,8 @@ export class GraphView {
       const keyInput = document.createElement("input");
       keyInput.type = "text";
       keyInput.maxLength = 1000;
-      keyInput.setAttribute("aria-label", "Search attribute key");
-      keyInput.placeholder = "Attribute Key...";
+      keyInput.setAttribute("aria-label", `Search ${modeLabel} Key`);
+      keyInput.placeholder = `Search ${modeLabel} Key...`;
       keyInput.value = this.#searchKeyQuery;
       keyInput.addEventListener("input", (e) => {
         this.#searchKeyQuery = (e.target as HTMLInputElement).value;
@@ -872,8 +873,8 @@ export class GraphView {
     const valueInput = document.createElement("input");
     valueInput.type = "text";
     valueInput.maxLength = 1000;
-    valueInput.setAttribute("aria-label", isAttributeMode ? "Search attribute value" : "Search query");
-    valueInput.placeholder = isAttributeMode ? "Attribute Value..." : "Search...";
+    valueInput.setAttribute("aria-label", isAttributeMode ? `Search ${modeLabel} Value` : `Search ${modeLabel}`);
+    valueInput.placeholder = isAttributeMode ? `Search ${modeLabel} Value...` : `Search ${modeLabel}...`;
     valueInput.value = this.#searchQuery;
     valueInput.addEventListener("input", (e) => {
       this.#searchQuery = (e.target as HTMLInputElement).value;

@@ -280,12 +280,12 @@ describe('GraphView', () => {
     select.value = "node-attribute";
     select.dispatchEvent(new Event('change'));
 
-    const keyInput = container.querySelector('input[placeholder="Attribute Key..."]') as HTMLInputElement;
+    const keyInput = container.querySelector('input[placeholder="Search Node Attribute Key..."]') as HTMLInputElement;
     expect(keyInput).not.toBeNull();
     keyInput.value = "color";
     keyInput.dispatchEvent(new Event('input'));
 
-    const valInput = container.querySelector('input[placeholder="Attribute Value..."]') as HTMLInputElement;
+    const valInput = container.querySelector('input[placeholder="Search Node Attribute Value..."]') as HTMLInputElement;
     expect(valInput).not.toBeNull();
     valInput.value = "red";
     valInput.dispatchEvent(new Event('input'));
