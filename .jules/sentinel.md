@@ -22,3 +22,8 @@
 **Vulnerability:** An XSS filter bypass existed in `src/model.ts` inside the `sanitizeString` function. The regex used to strip inline event handlers (`/\bon[a-z]+\s*=/gi`) only accounted for standard whitespace between the handler name (e.g., `onerror`) and the equals sign.
 **Learning:** Attackers can bypass keyword-based XSS filters by inserting control characters (like the null byte `\x00` or DEL `\x7F`) between the event handler name and the equals sign (e.g., `onerror\x00=alert(1)`). Some HTML parsers will ignore these control characters and still treat the attribute as a valid event handler.
 **Prevention:** When using regular expressions to strip potentially dangerous HTML attributes or event handlers, ensure the pattern accounts for control characters in addition to whitespace. For inline event handlers, use a pattern like `/\bon[a-z]+[\s\x00-\x1F\x7F]*=/gi`.
+
+## $(date +%Y-%m-%d) - Missing input length limits on search queries
+**Vulnerability:** A missing input length limit existed on the internal search inputs (`keyInput` and `valueInput`) in `src/renderer.ts`.
+**Learning:** Without explicit bounds on input size, users or malicious integrations could paste exceptionally long strings into the search fields. Given that the search functionality supports Regular Expressions, this could lead to a Regular Expression Denial of Service (ReDoS) or cause severe UI lag and freezing from evaluating long regex patterns against all nodes and edges.
+**Prevention:** As a defense-in-depth measure, always apply reasonable `maxLength` attributes to unbounded text inputs that will be evaluated against potentially expensive operations like regex matching.
