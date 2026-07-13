@@ -156,6 +156,8 @@ export class GraphView {
   #downloadFormat: "svg" | "png" | "jpeg" | "json" = "svg";
   #downloadDropdownOpen: boolean = false;
   #downloadAbortController: AbortController | null = null;
+  #searchDropdownOpen: boolean = false;
+  #searchAbortController: AbortController | null = null;
 
   #preHistoryGraph: GraphSnapshot | null = null;
   #history: Array<{ diff: GraphDiff }> = [];
@@ -658,7 +660,7 @@ export class GraphView {
 
     // Restore focus to avoid interrupting typing
     if (activePlaceholder) {
-      if (activePlaceholder === "Attribute Key..." && this.#searchKeyInputRef) {
+      if (activePlaceholder.endsWith("Key...") && this.#searchKeyInputRef) {
         this.#searchKeyInputRef.focus();
         this.#searchKeyInputRef.setSelectionRange(this.#searchKeyInputRef.value.length, this.#searchKeyInputRef.value.length);
       } else if (this.#searchInputRef) {
@@ -685,9 +687,7 @@ export class GraphView {
     const bar = document.createElement("div");
     bar.className = "pgv-search-bar";
 
-    // Select mode
-    const select = document.createElement("select");
-    select.setAttribute("aria-label", "Search mode");
+    // Search mode dropdown
     const modes = [
       { value: "all", label: "Everywhere" },
       { value: "node-id", label: "Node Id" },
@@ -700,36 +700,131 @@ export class GraphView {
       { value: "tag", label: "Element Tag" },
       { value: "attribute", label: "Element Attribute" }
     ];
-    for (let i = 0; i < modes.length; i++) {
-      const mode = modes[i];
-      const option = document.createElement("option");
-      option.value = mode.value;
-      option.textContent = mode.label;
-      if (mode.value === this.#searchMode) option.selected = true;
-      select.appendChild(option);
+
+    const searchDropdownContainer = document.createElement("div");
+    searchDropdownContainer.className = "pgv-search-dropdown-container";
+
+    const dropdownBtn = document.createElement("button");
+    dropdownBtn.type = "button";
+    dropdownBtn.className = "pgv-search-dropdown-btn";
+    dropdownBtn.setAttribute("aria-label", "Search mode");
+    dropdownBtn.setAttribute("title", "Search mode");
+    dropdownBtn.setAttribute("aria-haspopup", "menu");
+    dropdownBtn.setAttribute("aria-expanded", this.#searchDropdownOpen ? "true" : "false");
+    const icons = { chevronDown: "M6 9l6 6 6-6" };
+    dropdownBtn.innerHTML = `
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="${icons.chevronDown}"></path>
+      </svg>
+    `;
+    searchDropdownContainer.appendChild(dropdownBtn);
+
+    const dropdownMenu = document.createElement("div");
+    dropdownMenu.className = "pgv-dropdown-menu";
+    dropdownMenu.setAttribute("role", "menu");
+    if (this.#searchDropdownOpen) {
+      dropdownMenu.classList.add("open");
     }
 
-    select.addEventListener("change", (e) => {
-      this.#searchMode = (e.target as HTMLSelectElement).value as any;
-      this.#searchResults = [];
-      this.#searchCycleIndex = -1;
-      // We need to re-render the search panel because the inputs change based on search mode
-      const parent = bar.parentElement;
-      if (parent) {
-        const newBar = this.#renderSearchControls();
-        parent.replaceChild(newBar, bar);
-        const newSelect = newBar.querySelector("select");
-        if (newSelect) {
-          newSelect.focus();
+    for (let i = 0; i < modes.length; i++) {
+      const mode = modes[i];
+      const option = document.createElement("div");
+      option.className = "pgv-dropdown-option";
+      option.setAttribute("role", "menuitem");
+      option.setAttribute("tabindex", "0");
+      if (mode.value === this.#searchMode) {
+        option.classList.add("selected");
+      }
+      option.textContent = mode.label;
+      option.dataset.value = mode.value;
+
+      option.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          option.click();
+        } else if (e.key === "ArrowDown") {
+          e.preventDefault();
+          const next = option.nextElementSibling as HTMLElement | null;
+          if (next) {
+            next.focus();
+          } else {
+            (dropdownMenu.firstElementChild as HTMLElement)?.focus();
+          }
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          const prev = option.previousElementSibling as HTMLElement | null;
+          if (prev) {
+            prev.focus();
+          } else {
+            (dropdownMenu.lastElementChild as HTMLElement)?.focus();
+          }
         }
+      });
+
+      option.addEventListener("click", () => {
+        this.#searchMode = mode.value as any;
+        this.#searchDropdownOpen = false;
+        dropdownBtn.setAttribute("aria-expanded", "false");
+        dropdownMenu.classList.remove("open");
+
+        this.#searchResults = [];
+        this.#searchCycleIndex = -1;
+
+        // Re-render
+        const parent = bar.parentElement;
+        if (parent) {
+          const newBar = this.#renderSearchControls();
+          parent.replaceChild(newBar, bar);
+          const newBtn = newBar.querySelector(".pgv-search-dropdown-btn") as HTMLElement;
+          if (newBtn) {
+            newBtn.focus();
+          }
+        }
+      });
+      dropdownMenu.appendChild(option);
+    }
+    searchDropdownContainer.appendChild(dropdownMenu);
+
+    dropdownBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.#searchDropdownOpen = !this.#searchDropdownOpen;
+      dropdownBtn.setAttribute("aria-expanded", this.#searchDropdownOpen ? "true" : "false");
+      if (this.#searchDropdownOpen) {
+        dropdownMenu.classList.add("open");
+        const firstOption = dropdownMenu.querySelector('.pgv-dropdown-option') as HTMLElement;
+        if (firstOption) {
+          firstOption.focus();
+        }
+      } else {
+        dropdownMenu.classList.remove("open");
       }
     });
+
+    dropdownMenu.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        this.#searchDropdownOpen = false;
+        dropdownBtn.setAttribute("aria-expanded", "false");
+        dropdownMenu.classList.remove("open");
+        dropdownBtn.focus();
+      }
+    });
+
+    this.#searchAbortController?.abort();
+    this.#searchAbortController = new AbortController();
+    document.addEventListener("click", () => {
+      if (this.#searchDropdownOpen) {
+        this.#searchDropdownOpen = false;
+        dropdownBtn.setAttribute("aria-expanded", "false");
+        dropdownMenu.classList.remove("open");
+      }
+    }, { signal: this.#searchAbortController.signal });
 
 
     const inputsContainer = document.createElement("div");
     inputsContainer.className = "pgv-search-inputs";
 
     const isAttributeMode = ["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode);
+    const modeLabel = modes.find(m => m.value === this.#searchMode)?.label || "Everywhere";
 
     const matchCaseIcon = `Aa`;
     const matchWholeWordIcon = `<span style="text-decoration: underline; font-style: normal; font-family: monospace;">ab</span>`;
@@ -828,8 +923,8 @@ export class GraphView {
       const keyInput = document.createElement("input");
       keyInput.type = "text";
       keyInput.maxLength = 1000;
-      keyInput.setAttribute("aria-label", "Search attribute key");
-      keyInput.placeholder = "Attribute Key...";
+      keyInput.setAttribute("aria-label", `Search ${modeLabel} Key`);
+      keyInput.placeholder = `Search ${modeLabel} Key...`;
       keyInput.value = this.#searchKeyQuery;
       keyInput.addEventListener("input", (e) => {
         this.#searchKeyQuery = (e.target as HTMLInputElement).value;
@@ -872,8 +967,8 @@ export class GraphView {
     const valueInput = document.createElement("input");
     valueInput.type = "text";
     valueInput.maxLength = 1000;
-    valueInput.setAttribute("aria-label", isAttributeMode ? "Search attribute value" : "Search query");
-    valueInput.placeholder = isAttributeMode ? "Attribute Value..." : "Search...";
+    valueInput.setAttribute("aria-label", isAttributeMode ? `Search ${modeLabel} Value` : `Search ${modeLabel}`);
+    valueInput.placeholder = isAttributeMode ? `Search ${modeLabel} Value...` : `Search ${modeLabel}...`;
     valueInput.value = this.#searchQuery;
     valueInput.addEventListener("input", (e) => {
       this.#searchQuery = (e.target as HTMLInputElement).value;
@@ -908,7 +1003,7 @@ export class GraphView {
     valueWrapper.appendChild(valueToggles);
     inputsContainer.appendChild(valueWrapper);
 
-    bar.appendChild(select);
+    bar.appendChild(searchDropdownContainer);
     bar.appendChild(inputsContainer);
 
     const actionsContainer = document.createElement("div");
@@ -1226,7 +1321,7 @@ export class GraphView {
       downloadGroup.appendChild(dropdownBtn);
 
       const dropdownMenu = document.createElement("div");
-      dropdownMenu.className = "pgv-download-dropdown-menu";
+      dropdownMenu.className = "pgv-dropdown-menu";
       dropdownMenu.setAttribute("role", "menu");
       if (this.#downloadDropdownOpen) {
         dropdownMenu.classList.add("open");
