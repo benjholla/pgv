@@ -1610,7 +1610,36 @@ export class GraphView {
     const stage = this.container.querySelector<HTMLElement>(".pgv-graph-stage");
     if (!stage || !this.#layout || !this.#graph) return;
 
-    if (this.#downloadFormat === "json") {
+    const downloadBtn = this.container.querySelector<HTMLButtonElement>(".pgv-download-action-btn");
+    const dropdownBtn = this.container.querySelector<HTMLButtonElement>(".pgv-download-dropdown-btn");
+    let originalBtnHtml = "";
+
+    if (downloadBtn && dropdownBtn) {
+      originalBtnHtml = downloadBtn.innerHTML;
+      downloadBtn.disabled = true;
+      dropdownBtn.disabled = true;
+
+      const formatLabels: Record<string, string> = { svg: " SVG", png: " PNG", jpeg: "JPEG", json: "JSON" };
+      downloadBtn.innerHTML = `
+        <svg class="pgv-spinner" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="2" x2="12" y2="6"></line>
+          <line x1="12" y1="18" x2="12" y2="22"></line>
+          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
+          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
+          <line x1="2" y1="12" x2="6" y2="12"></line>
+          <line x1="18" y1="12" x2="22" y2="12"></line>
+          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
+          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
+        </svg>
+        <span>${formatLabels[this.#downloadFormat]}</span>
+      `;
+
+      await new Promise(resolve => requestAnimationFrame(resolve));
+      await new Promise(resolve => setTimeout(resolve, 0));
+    }
+
+    try {
+      if (this.#downloadFormat === "json") {
       const json: any = graphSnapshotToJson(this.#graph);
 
       if (this.#options.selection) {
@@ -1748,12 +1777,21 @@ export class GraphView {
       console.error("Failed to download graph image:", error);
     } finally {
       // Restore original styles
-      for (const [el, style] of originalStyles) {
-        if (style === null) {
-          el.removeAttribute("style");
-        } else {
-          el.setAttribute("style", style);
+      if (typeof originalStyles !== 'undefined' && originalStyles) {
+        for (const [el, style] of originalStyles) {
+          if (style === null) {
+            el.removeAttribute("style");
+          } else {
+            el.setAttribute("style", style);
+          }
         }
+      }
+    }
+    } finally {
+      if (downloadBtn && dropdownBtn) {
+        downloadBtn.innerHTML = originalBtnHtml;
+        downloadBtn.disabled = false;
+        dropdownBtn.disabled = false;
       }
     }
   }
