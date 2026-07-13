@@ -276,9 +276,10 @@ describe('GraphView', () => {
     cycleBtn.click();
 
     // Change search mode to attribute
-    const select = container.querySelector('.pgv-search-bar select') as HTMLSelectElement;
-    select.value = "node-attribute";
-    select.dispatchEvent(new Event('change'));
+    const dropdownBtn = container.querySelector('.pgv-search-dropdown-btn') as HTMLButtonElement;
+    dropdownBtn.click(); // Open menu
+    const attrOption = container.querySelector('.pgv-dropdown-option[data-value="node-attribute"]') as HTMLElement;
+    attrOption.click();
 
     const keyInput = container.querySelector('input[placeholder="Search Node Attribute Key..."]') as HTMLInputElement;
     expect(keyInput).not.toBeNull();
