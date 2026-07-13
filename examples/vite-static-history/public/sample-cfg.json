@@ -1,0 +1,138 @@
+{
+  "nodes": [
+    {
+      "id": "entry",
+      "tags": [
+        "XCSG.ControlFlow_Node",
+        "XCSG.controlFlowRoot"
+      ],
+      "attributes": {
+        "XCSG.name": "Entry"
+      }
+    },
+    {
+      "id": "init",
+      "tags": [
+        "XCSG.ControlFlow_Node"
+      ],
+      "attributes": {
+        "line": {
+          "integer": 3
+        },
+        "XCSG.name": "Initialize i = 0"
+      }
+    },
+    {
+      "id": "condition",
+      "tags": [
+        "XCSG.ControlFlow_Node",
+        "XCSG.Loop"
+      ],
+      "attributes": {
+        "line": {
+          "integer": 4
+        },
+        "XCSG.name": "i < n?"
+      }
+    },
+    {
+      "id": "body",
+      "tags": [
+        "XCSG.ControlFlow_Node"
+      ],
+      "attributes": {
+        "line": {
+          "integer": 5
+        },
+        "XCSG.name": "sum += values[i]"
+      }
+    },
+    {
+      "id": "increment",
+      "tags": [
+        "XCSG.ControlFlow_Node"
+      ],
+      "attributes": {
+        "line": {
+          "integer": 6
+        },
+        "XCSG.name": "i++"
+      }
+    },
+    {
+      "id": "exit",
+      "tags": [
+        "XCSG.ControlFlow_Node",
+        "XCSG.controlFlowExit"
+      ],
+      "attributes": {
+        "line": {
+          "integer": 8
+        },
+        "XCSG.name": "Return sum"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-entry-init",
+      "source": "entry",
+      "target": "init",
+      "tags": [
+        "XCSG.ControlFlow_Edge"
+      ],
+      "attributes": {}
+    },
+    {
+      "id": "e-init-condition",
+      "source": "init",
+      "target": "condition",
+      "tags": [
+        "XCSG.ControlFlow_Edge"
+      ],
+      "attributes": {}
+    },
+    {
+      "id": "e-condition-body",
+      "source": "condition",
+      "target": "body",
+      "tags": [
+        "XCSG.ControlFlow_Edge"
+      ],
+      "attributes": {
+        "XCSG.conditionValue": true
+      }
+    },
+    {
+      "id": "e-body-increment",
+      "source": "body",
+      "target": "increment",
+      "tags": [
+        "XCSG.ControlFlow_Edge"
+      ],
+      "attributes": {}
+    },
+    {
+      "id": "e-increment-condition",
+      "source": "increment",
+      "target": "condition",
+      "tags": [
+        "XCSG.ControlFlow_Edge"
+      ],
+      "attributes": {
+        "XCSG.name": "next"
+      }
+    },
+    {
+      "id": "e-condition-exit",
+      "source": "condition",
+      "target": "exit",
+      "tags": [
+        "XCSG.ControlFlow_Edge"
+      ],
+      "attributes": {
+        "XCSG.conditionValue": false
+      }
+    }
+  ]
+}
