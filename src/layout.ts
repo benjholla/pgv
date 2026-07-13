@@ -605,20 +605,23 @@ function routeEdgeOrthogonal(
     if (closedSet.has(key)) continue;
     closedSet.add(key);
 
-    const dirs = [
-      { dx: 0, dy: -1 },
-      { dx: 0, dy: 1 },
-      { dx: -1, dy: 0 },
-      { dx: 1, dy: 0 },
-    ];
-
-    for (let i = 0; i < dirs.length; i++) {
-      const d = dirs[i];
-      const nxIdx = curr.xIdx + d.dx;
-      const nyIdx = curr.yIdx + d.dy;
+    for (let i = 0; i < 4; i++) {
+      let dx = 0;
+      let dy = 0;
+      if (i === 0) {
+        dy = -1;
+      } else if (i === 1) {
+        dy = 1;
+      } else if (i === 2) {
+        dx = -1;
+      } else {
+        dx = 1;
+      }
+      const nxIdx = curr.xIdx + dx;
+      const nyIdx = curr.yIdx + dy;
 
       if (nxIdx >= 0 && nxIdx < xCoords.length && nyIdx >= 0 && nyIdx < yCoords.length) {
-        if (curr.parent === null && (d.dx !== 0 || d.dy !== 1)) {
+        if (curr.parent === null && (dx !== 0 || dy !== 1)) {
             continue;
         }
 
@@ -626,7 +629,7 @@ function routeEdgeOrthogonal(
              if (curr.xIdx === nxIdx && curr.yIdx === nyIdx - 1) {
                 // OK
              } else {
-                 if (d.dx !== 0 || d.dy !== 1) continue;
+                 if (dx !== 0 || dy !== 1) continue;
              }
         }
 
@@ -639,11 +642,11 @@ function routeEdgeOrthogonal(
 
         const dist = Math.abs(x2 - x1) + Math.abs(y2 - y1);
         let penalty = 0;
-        if (curr.parent !== null && (curr.dirX !== d.dx || curr.dirY !== d.dy)) {
+        if (curr.parent !== null && (curr.dirX !== dx || curr.dirY !== dy)) {
           penalty = 50;
         }
 
-        if (d.dx !== 0) {
+        if (dx !== 0) {
           if (y1 !== allowedY1 && y1 !== allowedY2) {
             penalty += 5000;
           } else {
@@ -657,7 +660,7 @@ function routeEdgeOrthogonal(
         const h = Math.abs(xCoords[endXIdx] - x2) + Math.abs(yCoords[endYIdx] - y2);
         const f = g + h;
 
-        openList.push({ xIdx: nxIdx, yIdx: nyIdx, g, f, parent: curr, dirX: d.dx, dirY: d.dy });
+        openList.push({ xIdx: nxIdx, yIdx: nyIdx, g, f, parent: curr, dirX: dx, dirY: dy });
       }
     }
   }
