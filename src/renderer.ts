@@ -6,10 +6,12 @@ let markerIdSequence = 0;
 const PGV_VIEWPORT_CLASS = "pgv-viewport";
 
 /**
- * Represents the currently selected elements in the graph.
+ * Represents the currently selected or highlighted elements in the graph view.
  *
- * Selection is managed purely by referencing the stable producer-assigned IDs,
- * keeping interaction state decoupled from the immutable graph data.
+ * This state is intentionally decoupled from the immutable `GraphSnapshot` model.
+ * It strictly uses stable, producer-assigned IDs to track selection. This allows
+ * selection states to persist across historical undo/redo actions, animations,
+ * or when fetching entirely new backend snapshots that contain the same IDs.
  */
 export interface SelectionState {
   /**
@@ -23,11 +25,12 @@ export interface SelectionState {
 }
 
 /**
- * Configuration options for a `GraphView` instance.
+ * Configuration options used to initialize or update a `GraphView`.
  *
- * Provides hooks for customizing rendering behavior (e.g., node DOM elements),
- * enabling built-in features (pan/zoom, search, theme toggles), and listening
- * to interactive events.
+ * This interface represents the primary public API for configuring visualization behavior.
+ * It provides hooks to inject custom HTML renderers for nodes and edges, enable interactive
+ * control layers (like minimaps, panning, searching, and history), and bind event listeners
+ * to coordinate view state changes with a host application.
  */
 export interface GraphViewOptions {
   /**
@@ -85,6 +88,8 @@ export interface GraphViewOptions {
   /**
    * If true, enables a multi-mode search panel for filtering nodes and edges.
    */
+  readonly useSearch?: boolean;
+
   /**
    * Callback invoked when the user toggles the theme via the built-in control.
    */

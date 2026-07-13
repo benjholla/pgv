@@ -1,7 +1,9 @@
 import type { GraphSnapshot, GraphEdge } from "./model";
 
 /**
- * Represents a 2D coordinate point.
+ * Represents an absolute 2D coordinate point in the rendering coordinate system.
+ *
+ * Used for positioning nodes, routing edge paths, and determining layout geometry.
  */
 export interface Point {
   /**
@@ -15,7 +17,9 @@ export interface Point {
 }
 
 /**
- * Represents a 2D bounding box dimension.
+ * Represents the absolute 2D dimensions of a bounding box.
+ *
+ * Typically used to explicitly specify variable node dimensions for the layout engine.
  */
 export interface Size {
   /**
@@ -29,7 +33,10 @@ export interface Size {
 }
 
 /**
- * Routing hints for orthogonal edges to stagger overlapping paths.
+ * Routing hints used during A* orthogonal edge routing to stagger overlapping paths.
+ *
+ * It helps distribute horizontal segments evenly, preventing visually merged lines
+ * by supplying the computed horizontal offsets necessary for source and target endpoints.
  */
 export interface EdgeRoutingHint {
   /**
@@ -64,11 +71,16 @@ export interface EdgeRoutingHint {
 }
 
 /**
- * Represents the computed visual coordinates and bounding box for a graph.
+ * An immutable snapshot of a computed graph layout.
  *
- * This snapshot separates the spatial arrangement of the graph from its logical
- * structure (`GraphSnapshot`), ensuring that rendering engines can predictably
- * position elements without coupling logic to geometry.
+ * This provides the exact visual geometry for a graph (node positions, sizes, and edge routing hints)
+ * completely disconnected from the logical graph model itself.
+ *
+ * **Why it exists**:
+ * This explicit separation of layout geometry from the `GraphSnapshot` model ensures that operations
+ * like logical diffing or subgraph projection do not accidentally invalidate rendering state.
+ * It also enables trivial implementation of layout transitions, animations, and alternative views
+ * (like minimaps) by sharing or interpolating layout coordinate snapshots.
  */
 export interface LayoutSnapshot {
   /**
@@ -103,10 +115,11 @@ export interface LayoutSnapshot {
 }
 
 /**
- * Configuration options for the vertical layout algorithm.
+ * Configuration options for the built-in vertical hierarchical layout algorithm.
  *
- * Allows tuning of node dimensions and spacing layers to fit varying label sizes
- * or density preferences.
+ * Provides control over grid spacing, default node dimensions, and container margins.
+ * This is particularly useful when nodes use custom HTML rendering that requires more
+ * space than the default settings provide, or when aiming for a specific visual density.
  */
 export interface VerticalLayoutOptions {
   /**
@@ -380,7 +393,10 @@ export function verticalLayout(
 }
 
 /**
- * Result of calculating the geometric endpoints for a rendered edge.
+ * Result of calculating the geometric endpoints and orthogonal routing path for a rendered edge.
+ *
+ * This structure holds the precise start, end, and intermediate joint points necessary
+ * to draw an orthogonal line between two nodes, factoring in node bounds and staggering offsets.
  */
 export interface EdgeEndpointsResult {
   /**

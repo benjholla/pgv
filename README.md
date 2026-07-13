@@ -11,13 +11,28 @@ This project is designed to bridge the gap between complex external program-anal
 ## Architecture Overview
 The architecture is designed as a strict, unidirectional pipeline:
 
-```text
-JSON Data -> Graph Snapshot -> Projection -> Layout -> View Rendering
+```mermaid
+flowchart LR
+    JSON[JSON Data] --> Snapshot[Graph Snapshot]
+    Snapshot --> Projection[Projection]
+    Projection --> Layout[Layout]
+    Layout --> Render[View Rendering]
 ```
 - **Graph Snapshot**: Immutable storage of nodes and edges (pure data).
 - **Projection**: Derives alternate views (e.g., hiding subsets of nodes).
 - **Layout**: Assigns geometry without altering graph logic.
 - **View Rendering**: Interprets layout geometry and graph data into DOM nodes and SVG, managing its own transient view state (like pan/zoom/selection).
+
+## Public APIs
+
+The `@pgv/graph-core` package exposes several core models:
+
+- `GraphSnapshot`: An immutable snapshot of a graph (nodes and edges).
+- `LayoutSnapshot`: An immutable snapshot of computed layout geometry.
+- `GraphView`: The primary class used to render and interact with a `GraphSnapshot`.
+- `GraphDiff`: Represents an incremental change (additions and removals) between two graph states.
+
+For full details, generate the TypeDoc API reference via `pnpm run docs` or explore the exported definitions in `src/index.ts`.
 
 ## Quick Start
 
@@ -42,15 +57,21 @@ import {
 } from "@pgv/graph-core";
 import "@pgv/graph-core/style.css";
 
+// 1. Create an immutable graph snapshot from backend JSON data
 const graph = createGraphSnapshot(json as GraphSnapshotJson);
+
+// 2. Compute a layout snapshot for the graph
 const layout = verticalLayout(graph);
 
+// 3. Initialize the interactive graph view
 const view = new GraphView(document.querySelector("#graph")!, schema, {
   layout,
   usePanZoom: true,
   useThemeToggle: true,
   theme: "auto", // or "light", "dark"
 });
+
+// 4. Render the graph
 view.setGraph(graph);
 ```
 
