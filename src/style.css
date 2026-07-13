@@ -552,14 +552,19 @@
 }
 
 /* Top left containers and Search UI */
-.pgv-bottom-left-container {
+.pgv-top-container {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  right: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  flex-grow: 1;
+  pointer-events: none;
+  z-index: 10;
 }
 
-.pgv-bottom-left-container > * {
+.pgv-top-container > * {
   pointer-events: auto;
 }
 
@@ -763,6 +768,22 @@
 
   .pgv-control-split-button .pgv-download-dropdown-btn {
     width: 44px;
+  }
+}
+
+@media (max-width: 640px) {
+  .pgv-search-bar {
+    flex-wrap: wrap;
+  }
+
+  .pgv-search-inputs {
+    flex-basis: 100%;
+    flex-direction: column;
+  }
+
+  .pgv-search-actions {
+    flex-basis: 100%;
+    justify-content: flex-end;
   }
 }
 

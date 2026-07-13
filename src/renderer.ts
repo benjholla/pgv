@@ -630,10 +630,17 @@ export class GraphView {
       // Append controls *before* viewport to ensure natural tabbing sequence
       // enters controls first, and graph elements last.
 
+      const topContainer = document.createElement("div");
+      topContainer.className = "pgv-top-container";
+
+      if (this.#searchOpen) {
+        topContainer.appendChild(this.#renderSearchControls());
+        root.appendChild(topContainer);
+      }
+
       const bottomContainer = document.createElement("div");
       bottomContainer.className = "pgv-bottom-container";
 
-      bottomContainer.appendChild(this.#renderBottomLeftControls());
       bottomContainer.appendChild(this.#renderControls());
 
       if (bottomContainer.children.length > 0) {
@@ -671,17 +678,6 @@ export class GraphView {
   }
 
 
-
-  #renderBottomLeftControls(): HTMLElement {
-    const container = document.createElement("div");
-    container.className = "pgv-bottom-left-container";
-
-    if (this.#searchOpen) {
-      container.appendChild(this.#renderSearchControls());
-    }
-
-    return container;
-  }
 
   #renderSearchControls(): HTMLElement {
     const bar = document.createElement("div");
