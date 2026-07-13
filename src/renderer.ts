@@ -1585,12 +1585,13 @@ export class GraphView {
     }
 
     // Draw nodes
-    const nw = layout.nodeSize.width * scale;
-    const nh = layout.nodeSize.height * scale;
-
     for (const node of this.#graph.nodes.values()) {
       const position = layout.positions.get(node.id);
       if (!position) continue;
+
+      const nodeSize = layout.nodeSizes?.get(node.id) || layout.nodeSize;
+      const nw = nodeSize.width * scale;
+      const nh = nodeSize.height * scale;
 
       const nx = offsetX + position.x * scale;
       const ny = offsetY + position.y * scale;
