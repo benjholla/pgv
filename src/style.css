@@ -753,3 +753,16 @@
     display: none;
   }
 }
+
+@keyframes pgv-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pgv-spinner {
+  animation: pgv-spin 1s linear infinite;
+}
