@@ -1,14 +1,11 @@
 /**
  * Represents a primitive value that can be assigned to an attribute on a graph element.
- *
- * This type acts as a disjoint union to ensure unambiguous serialization and type safety
- * when transferring data from external analysis systems into the visualization layer.
- * Supported types include strings, booleans, and specific object wrappers for numbers and byte arrays.
+ * Supported types include strings, booleans, and specific object wrappers for integers, floats, and bytes.
  */
 export type AttributeValue =
   | string
   | boolean
-  /** Represents a signed integer, wrapped to avoid JavaScript floating-point ambiguity during serialization. */
+  /** Represents a signed integer to avoid JavaScript floating-point ambiguity. */
   | {
       /** The signed integer value. */
       integer: number;
@@ -18,7 +15,7 @@ export type AttributeValue =
       /** The floating-point value. */
       float: number;
     }
-  /** Represents a base64 encoded byte array for embedding raw data. */
+  /** Represents a base64 encoded byte array. */
   | {
       /** The base64 encoded byte string. */
       bytes: string;
@@ -26,10 +23,6 @@ export type AttributeValue =
 
 /**
  * An immutable key-value map representing domain-specific data attached to a graph element.
- *
- * This structure allows arbitrary metadata (e.g., source file lines, analysis weights, types)
- * to be associated with nodes and edges without interfering with the core graph topology.
- * The map is entirely immutable to guarantee predictable rendering and safe caching.
  */
 export type AttributeMap = Readonly<Record<string, AttributeValue>>;
 
@@ -289,13 +282,8 @@ export interface GraphDiffJson {
 }
 
 /**
- * Error thrown when a graph model invariant or structural constraint is violated.
- *
- * Common causes include:
- * - Duplicate element IDs.
- * - Edges referencing non-existent source or target nodes.
- * - Nodes referencing a non-existent parent node.
- * - Unsafe or excessively large string attributes triggering security constraints.
+ * Represents a violation of structural graph invariants (e.g., duplicate IDs,
+ * missing parent nodes, or dangling edges).
  */
 export class GraphModelError extends Error {
   constructor(message: string) {

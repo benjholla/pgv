@@ -6,12 +6,10 @@ let markerIdSequence = 0;
 const PGV_VIEWPORT_CLASS = "pgv-viewport";
 
 /**
- * Represents the currently selected or highlighted elements in the graph view.
+ * Represents the currently selected elements in the graph.
  *
- * This state is intentionally decoupled from the immutable `GraphSnapshot` model.
- * It strictly uses stable, producer-assigned IDs to track selection. This allows
- * selection states to persist across historical undo/redo actions, animations,
- * or when fetching entirely new backend snapshots that contain the same IDs.
+ * Selection is managed purely by referencing the stable producer-assigned IDs,
+ * keeping interaction state decoupled from the immutable graph data.
  */
 export interface SelectionState {
   /**
@@ -25,12 +23,11 @@ export interface SelectionState {
 }
 
 /**
- * Configuration options used to initialize or update a `GraphView`.
+ * Configuration options for a `GraphView` instance.
  *
- * This interface represents the primary public API for configuring visualization behavior.
- * It provides hooks to inject custom HTML renderers for nodes and edges, enable interactive
- * control layers (like minimaps, panning, searching, and history), and bind event listeners
- * to coordinate view state changes with a host application.
+ * Provides hooks for customizing rendering behavior (e.g., node DOM elements),
+ * enabling built-in features (pan/zoom, search, theme toggles), and listening
+ * to interactive events.
  */
 export interface GraphViewOptions {
   /**
@@ -88,8 +85,6 @@ export interface GraphViewOptions {
   /**
    * If true, enables a multi-mode search panel for filtering nodes and edges.
    */
-  readonly useSearch?: boolean;
-
   /**
    * Callback invoked when the user toggles the theme via the built-in control.
    */
@@ -135,7 +130,6 @@ import { type GraphDiff, applyGraphDiff, graphSnapshotToJson } from "./model";
  */
 export class GraphView {
   #clearSelectionBtn: HTMLButtonElement | null = null;
-  #collapsedNodes: Set<string> = new Set();
   /**
    * The root DOM element containing the graph visualization.
    */
@@ -208,7 +202,7 @@ export class GraphView {
       this.#currentTheme = options.theme;
     }
     this.#layout =
-      this.#options.layout ?? verticalLayout(graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes });
+      this.#options.layout ?? verticalLayout(graph, this.#options.layoutOptions);
 
     this.#render();
 
@@ -239,7 +233,7 @@ export class GraphView {
     if (options.layout !== undefined && options.layout !== oldLayout) {
       this.#layout = options.layout;
     } else if (options.layoutOptions !== undefined && options.layoutOptions !== oldLayoutOptions && this.#graph) {
-      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes }, this.#layout ?? undefined);
+      this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions, this.#layout ?? undefined);
     }
     if (this.#clearSelectionBtn) {
       this.#clearSelectionBtn.disabled = !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0);
@@ -290,7 +284,7 @@ export class GraphView {
     if (this.#historyIndex === this.#history.length - 2) { // It was at the tip before pushing
       this.#historyIndex = this.#history.length - 1;
       this.#graph = applyGraphDiff(this.#graph, diff);
-      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes }, this.#layout ?? undefined);
+      this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions, this.#layout ?? undefined);
       this.#options.onGraphChange?.(this.#graph);
       this.#render();
     } else {
@@ -554,18 +548,6 @@ export class GraphView {
     this.#render();
   }
 
-  #toggleNodeCollapse(id: string): void {
-    if (this.#collapsedNodes.has(id)) {
-      this.#collapsedNodes.delete(id);
-    } else {
-      this.#collapsedNodes.add(id);
-    }
-    if (this.#graph) {
-      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes }, this.#layout ?? undefined);
-      this.#render();
-    }
-  }
-
   /**
    * Cleans up all resources, abort controllers, observers, and removes DOM elements.
    * Must be called when the view is no longer needed to prevent memory leaks.
@@ -613,7 +595,7 @@ export class GraphView {
     // We append nodes first then edges in the DOM to ensure natural
     // keyboard tabbing order (nodes then edges) while keeping z-index
     // responsible for visual stacking.
-    stage.append(...renderNodes(graph, layout, this.#options, this.#collapsedNodes, (id) => this.#toggleNodeCollapse(id)));
+    stage.append(...renderNodes(graph, layout, this.#options));
     stage.appendChild(renderEdges(graph, layout, this.#options));
 
     if (this.#options.usePanZoom || this.#options.useThemeToggle || (this.#options.maxHistory && this.#options.maxHistory > 0)) {
@@ -1590,13 +1572,12 @@ export class GraphView {
     }
 
     // Draw nodes
+    const nw = layout.nodeSize.width * scale;
+    const nh = layout.nodeSize.height * scale;
+
     for (const node of this.#graph.nodes.values()) {
       const position = layout.positions.get(node.id);
       if (!position) continue;
-
-      const nodeSize = layout.nodeSizes?.get(node.id) || layout.nodeSize;
-      const nw = nodeSize.width * scale;
-      const nh = nodeSize.height * scale;
 
       const nx = offsetX + position.x * scale;
       const ny = offsetY + position.y * scale;
@@ -1608,178 +1589,152 @@ export class GraphView {
 
   async #downloadGraph(): Promise<void> {
     const stage = this.container.querySelector<HTMLElement>(".pgv-graph-stage");
-    const downloadBtn = this.container.querySelector<HTMLButtonElement>(".pgv-download-action-btn");
-
     if (!stage || !this.#layout || !this.#graph) return;
 
-    let originalBtnHtml = "";
-    let originalBtnDisabled = false;
+    if (this.#downloadFormat === "json") {
+      const json: any = graphSnapshotToJson(this.#graph);
 
-    if (downloadBtn) {
-      originalBtnHtml = downloadBtn.innerHTML;
-      originalBtnDisabled = downloadBtn.disabled;
-      downloadBtn.disabled = true;
-      const formatLabels: Record<string, string> = { svg: " SVG", png: " PNG", jpeg: "JPEG", json: "JSON" };
-      downloadBtn.innerHTML = `
-        <svg class="pgv-spinner" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
-          <path d="M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-7.07l-2.83 2.83M7.76 16.24l-2.83 2.83m0-14.14l2.83 2.83m8.48 8.48l2.83 2.83"></path>
-        </svg>
-        <span>${formatLabels[this.#downloadFormat]}</span>
-      `;
+      if (this.#options.selection) {
+        json.selection = {
+          nodes: Array.from(this.#options.selection.nodes),
+          edges: Array.from(this.#options.selection.edges)
+        };
+      }
+
+      const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+      const dataUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      link.download = `graph-${timestamp}.json`;
+      link.href = dataUrl;
+      link.click();
+      URL.revokeObjectURL(dataUrl);
+      return;
+    }
+
+    // We want to download the entire graph, ignoring current viewport transform
+    const width = this.#layout.width;
+    const height = this.#layout.height;
+
+    // Get the computed styles to extract the CSS variables applied by the theme
+    // We must pass these down because html-to-image clones the stage element
+    // without its parent container, losing the theme variables.
+    const containerStyle = window.getComputedStyle(this.container);
+    const themeVariables: Record<string, string> = {};
+    for (let i = 0; i < containerStyle.length; i++) {
+      const prop = containerStyle[i];
+      if (prop.startsWith("--pgv-")) {
+        themeVariables[prop] = containerStyle.getPropertyValue(prop);
+      }
+    }
+
+    const options = {
+      width,
+      height,
+      backgroundColor: themeVariables["--pgv-color-bg"] || "transparent",
+      style: {
+        ...themeVariables,
+        transform: "none", // Override the translate/scale for pan and zoom
+        transformOrigin: "top left",
+      },
+      filter: (node: HTMLElement) => {
+        // Exclude the controls from the image if we ever capture the container directly
+        if (node.classList?.contains("pgv-controls") || node.classList?.contains("pgv-history-panel")) {
+          return false;
+        }
+        return true;
+      }
+    };
+
+    // html-to-image has issues copying CSS variables down into SVG contexts properly during cloning.
+    // To ensure edges render correctly, we temporarily inline the critical stroke/fill properties
+    // on the SVG paths before exporting, and then remove them afterward.
+    const edgePaths = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge path");
+    const edgeMarkers = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge marker path");
+    const edgeLabels = stage.querySelectorAll<SVGTextElement>(".pgv-edge-label");
+
+    const edgeColor = themeVariables["--pgv-edge-color"] || "#697586";
+    const selectedColor = themeVariables["--pgv-selected-color"] || "#2563eb";
+    const labelFg = themeVariables["--pgv-edge-label-fg"] || "#445160";
+    const labelBg = themeVariables["--pgv-edge-label-bg"] || "#f9fbfd";
+
+    const originalStyles = new Map<Element, string | null>();
+
+    const applyInlineStyle = (el: Element, styleStr: string) => {
+      originalStyles.set(el, el.getAttribute("style"));
+      el.setAttribute("style", (el.getAttribute("style") || "") + ";" + styleStr);
+    };
+
+    for (let i = 0; i < edgePaths.length; i++) {
+      const path = edgePaths[i];
+      const isSelected = path.parentElement?.classList.contains("pgv-selected");
+      // Read specific path styles
+      const pathStyle = window.getComputedStyle(path);
+      const computedStroke = pathStyle.getPropertyValue("stroke");
+      const computedStrokeWidth = pathStyle.getPropertyValue("stroke-width");
+      const computedStrokeLinecap = pathStyle.getPropertyValue("stroke-linecap");
+
+      // Use specific styles if present, else fallback
+      const finalStroke = isSelected ? selectedColor : (computedStroke !== "none" && computedStroke ? computedStroke : edgeColor);
+      const finalStrokeWidth = isSelected ? "3px" : (computedStrokeWidth || "2px");
+
+      applyInlineStyle(path, `fill: transparent; stroke: ${finalStroke}; stroke-linecap: ${computedStrokeLinecap || "round"}; stroke-width: ${finalStrokeWidth};`);
+    }
+
+    for (let i = 0; i < edgeMarkers.length; i++) {
+      const path = edgeMarkers[i];
+      const isSelected = path.closest(".pgv-graph-edge")?.classList.contains("pgv-selected");
+
+      const pathStyle = window.getComputedStyle(path);
+      const computedFill = pathStyle.getPropertyValue("fill");
+
+      const finalFill = isSelected ? selectedColor : (computedFill !== "none" && computedFill ? computedFill : edgeColor);
+
+      applyInlineStyle(path, `fill: ${finalFill}; stroke: none;`);
+    }
+
+    for (let i = 0; i < edgeLabels.length; i++) {
+      const text = edgeLabels[i];
+      const textStyle = window.getComputedStyle(text);
+      const computedFill = textStyle.getPropertyValue("fill");
+      const computedStroke = textStyle.getPropertyValue("stroke");
+
+      const finalFill = computedFill !== "none" && computedFill ? computedFill : labelFg;
+      const finalStroke = computedStroke !== "none" && computedStroke ? computedStroke : labelBg;
+
+      applyInlineStyle(text, `fill: ${finalFill}; stroke: ${finalStroke}; paint-order: stroke; stroke-width: 4px; font-size: 12px; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-anchor: middle; stroke-linejoin: round; pointer-events: none;`);
     }
 
     try {
-      if (this.#downloadFormat === "json") {
-        const json: any = graphSnapshotToJson(this.#graph);
-
-        if (this.#options.selection) {
-          json.selection = {
-            nodes: Array.from(this.#options.selection.nodes),
-            edges: Array.from(this.#options.selection.edges)
-          };
-        }
-
-        const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
-        const dataUrl = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-        link.download = `graph-${timestamp}.json`;
-        link.href = dataUrl;
-        link.click();
-        URL.revokeObjectURL(dataUrl);
-        // Do not return here, we need the outer finally block to execute
-      } else {
-        // We want to download the entire graph, ignoring current viewport transform
-        const width = this.#layout.width;
-        const height = this.#layout.height;
-
-        // Get the computed styles to extract the CSS variables applied by the theme
-        // We must pass these down because html-to-image clones the stage element
-        // without its parent container, losing the theme variables.
-        const containerStyle = window.getComputedStyle(this.container);
-        const themeVariables: Record<string, string> = {};
-        for (let i = 0; i < containerStyle.length; i++) {
-          const prop = containerStyle[i];
-          if (prop.startsWith("--pgv-")) {
-            themeVariables[prop] = containerStyle.getPropertyValue(prop);
-          }
-        }
-
-        const options = {
-          width,
-          height,
-          backgroundColor: themeVariables["--pgv-color-bg"] || "transparent",
-          style: {
-            ...themeVariables,
-            transform: "none", // Override the translate/scale for pan and zoom
-            transformOrigin: "top left",
-          },
-          filter: (node: HTMLElement) => {
-            // Exclude the controls from the image if we ever capture the container directly
-            if (node.classList?.contains("pgv-controls") || node.classList?.contains("pgv-history-panel")) {
-              return false;
-            }
-            return true;
-          }
-        };
-
-        // html-to-image has issues copying CSS variables down into SVG contexts properly during cloning.
-        // To ensure edges render correctly, we temporarily inline the critical stroke/fill properties
-        // on the SVG paths before exporting, and then remove them afterward.
-        const edgePaths = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge path");
-        const edgeMarkers = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge marker path");
-        const edgeLabels = stage.querySelectorAll<SVGTextElement>(".pgv-edge-label");
-
-        const edgeColor = themeVariables["--pgv-edge-color"] || "#697586";
-        const selectedColor = themeVariables["--pgv-selected-color"] || "#2563eb";
-        const labelFg = themeVariables["--pgv-edge-label-fg"] || "#445160";
-        const labelBg = themeVariables["--pgv-edge-label-bg"] || "#f9fbfd";
-
-        const originalStyles = new Map<Element, string | null>();
-
-        const applyInlineStyle = (el: Element, styleStr: string) => {
-          originalStyles.set(el, el.getAttribute("style"));
-          el.setAttribute("style", (el.getAttribute("style") || "") + ";" + styleStr);
-        };
-
-        for (let i = 0; i < edgePaths.length; i++) {
-          const path = edgePaths[i];
-          const isSelected = path.parentElement?.classList.contains("pgv-selected");
-          // Read specific path styles
-          const pathStyle = window.getComputedStyle(path);
-          const computedStroke = pathStyle.getPropertyValue("stroke");
-          const computedStrokeWidth = pathStyle.getPropertyValue("stroke-width");
-          const computedStrokeLinecap = pathStyle.getPropertyValue("stroke-linecap");
-
-          // Use specific styles if present, else fallback
-          const finalStroke = isSelected ? selectedColor : (computedStroke !== "none" && computedStroke ? computedStroke : edgeColor);
-          const finalStrokeWidth = isSelected ? "3px" : (computedStrokeWidth || "2px");
-
-          applyInlineStyle(path, `fill: transparent; stroke: ${finalStroke}; stroke-linecap: ${computedStrokeLinecap || "round"}; stroke-width: ${finalStrokeWidth};`);
-        }
-
-        for (let i = 0; i < edgeMarkers.length; i++) {
-          const path = edgeMarkers[i];
-          const isSelected = path.closest(".pgv-graph-edge")?.classList.contains("pgv-selected");
-
-          const pathStyle = window.getComputedStyle(path);
-          const computedFill = pathStyle.getPropertyValue("fill");
-
-          const finalFill = isSelected ? selectedColor : (computedFill !== "none" && computedFill ? computedFill : edgeColor);
-
-          applyInlineStyle(path, `fill: ${finalFill}; stroke: none;`);
-        }
-
-        for (let i = 0; i < edgeLabels.length; i++) {
-          const text = edgeLabels[i];
-          const textStyle = window.getComputedStyle(text);
-          const computedFill = textStyle.getPropertyValue("fill");
-          const computedStroke = textStyle.getPropertyValue("stroke");
-
-          const finalFill = computedFill !== "none" && computedFill ? computedFill : labelFg;
-          const finalStroke = computedStroke !== "none" && computedStroke ? computedStroke : labelBg;
-
-          applyInlineStyle(text, `fill: ${finalFill}; stroke: ${finalStroke}; paint-order: stroke; stroke-width: 4px; font-size: 12px; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-anchor: middle; stroke-linejoin: round; pointer-events: none;`);
-        }
-
-        try {
-          let dataUrl: string;
-          switch (this.#downloadFormat) {
-            case "png":
-              dataUrl = await toPng(stage, options);
-              break;
-            case "jpeg":
-              dataUrl = await toJpeg(stage, options);
-              break;
-            case "svg":
-            default:
-              dataUrl = await toSvg(stage, options);
-              break;
-          }
-
-          const link = document.createElement("a");
-          const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-          link.download = `graph-${timestamp}.${this.#downloadFormat === "jpeg" ? "jpg" : this.#downloadFormat}`;
-          link.href = dataUrl;
-          link.click();
-        } catch (error) {
-          console.error("Failed to download graph image:", error);
-        } finally {
-          // Restore original styles
-          for (const [el, style] of originalStyles) {
-            if (style === null) {
-              el.removeAttribute("style");
-            } else {
-              el.setAttribute("style", style);
-            }
-          }
-        }
+      let dataUrl: string;
+      switch (this.#downloadFormat) {
+        case "png":
+          dataUrl = await toPng(stage, options);
+          break;
+        case "jpeg":
+          dataUrl = await toJpeg(stage, options);
+          break;
+        case "svg":
+        default:
+          dataUrl = await toSvg(stage, options);
+          break;
       }
+
+      const link = document.createElement("a");
+      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+      link.download = `graph-${timestamp}.${this.#downloadFormat === "jpeg" ? "jpg" : this.#downloadFormat}`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Failed to download graph image:", error);
     } finally {
-      if (downloadBtn) {
-        downloadBtn.innerHTML = originalBtnHtml;
-        downloadBtn.disabled = originalBtnDisabled;
+      // Restore original styles
+      for (const [el, style] of originalStyles) {
+        if (style === null) {
+          el.removeAttribute("style");
+        } else {
+          el.setAttribute("style", style);
+        }
       }
     }
   }
@@ -2116,8 +2071,6 @@ function renderNodes(
   graph: GraphSnapshot,
   layout: LayoutSnapshot,
   options: GraphViewOptions,
-  collapsedNodes: ReadonlySet<string> = new Set(),
-  onToggleCollapse: (id: string) => void = () => {},
 ): HTMLElement[] {
   const nodes: HTMLElement[] = [];
 
@@ -2140,59 +2093,17 @@ function renderNodes(
       className += " pgv-selected";
     }
 
-    const isCollapsed = collapsedNodes.has(node.id);
-    if (isCollapsed) {
-      className += " pgv-node-collapsed";
-    }
-
     element.className = className;
     element.dataset.nodeId = node.id;
     element.setAttribute("tabindex", "0");
     element.style.transform = `translate(${position.x}px, ${position.y}px)`;
 
-    // Explicitly set node width, let expanded nodes flow height naturally
-    const nodeSize = layout.nodeSizes?.get(node.id) || layout.nodeSize;
-    element.style.width = `${nodeSize.width}px`;
+    const content = options.nodeContent?.(node) ?? defaultNodeContent(node);
 
-    if (isCollapsed) {
-      const header = document.createElement("div");
-      header.className = "pgv-node-header-collapsed";
-
-      const title = document.createElement("div");
-      title.className = "pgv-node-title";
-      title.textContent = node.id;
-
-      const toggleBtn = document.createElement("button");
-      toggleBtn.className = "pgv-node-collapse-toggle";
-      toggleBtn.title = "Expand node";
-      toggleBtn.setAttribute("aria-label", "Expand node");
-      toggleBtn.textContent = "[+]";
-      toggleBtn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        onToggleCollapse(node.id);
-      });
-
-      header.append(title, toggleBtn);
-      element.appendChild(header);
+    if (typeof content === "string") {
+      element.textContent = content;
     } else {
-      const content = options.nodeContent?.(node) ?? defaultNodeContent(node);
-
-      if (typeof content === "string") {
-        element.textContent = content;
-      } else {
-        const toggleBtn = document.createElement("button");
-        toggleBtn.className = "pgv-node-collapse-toggle";
-        toggleBtn.title = "Collapse node";
-        toggleBtn.setAttribute("aria-label", "Collapse node");
-        toggleBtn.textContent = "[-]";
-        toggleBtn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          onToggleCollapse(node.id);
-        });
-
-        element.appendChild(content);
-        element.appendChild(toggleBtn);
-      }
+      element.appendChild(content);
     }
 
     nodes.push(element);

@@ -6,7 +6,9 @@ This directory contains utility and automation scripts for the project.
 
 ### `deploy-demo.sh`
 
-This script manually performs the same deployment actions as the CI workflow.
+**Note:** This is an interim solution.
+
+Due to GitHub Free tier restrictions on private repositories, certain GitHub Actions like deploying to GitHub Pages might not be fully supported natively. This script manually performs the same actions as `.github/workflows/deploy-demo.yml`.
 
 It will:
 1. Ensure dependencies are installed via `pnpm install`.

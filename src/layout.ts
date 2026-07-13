@@ -1,9 +1,7 @@
 import type { GraphSnapshot, GraphEdge } from "./model";
 
 /**
- * Represents an absolute 2D coordinate point in the rendering coordinate system.
- *
- * Used for positioning nodes, routing edge paths, and determining layout geometry.
+ * Represents a 2D coordinate point.
  */
 export interface Point {
   /**
@@ -17,9 +15,7 @@ export interface Point {
 }
 
 /**
- * Represents the absolute 2D dimensions of a bounding box.
- *
- * Typically used to explicitly specify variable node dimensions for the layout engine.
+ * Represents a 2D bounding box dimension.
  */
 export interface Size {
   /**
@@ -33,10 +29,7 @@ export interface Size {
 }
 
 /**
- * Routing hints used during A* orthogonal edge routing to stagger overlapping paths.
- *
- * It helps distribute horizontal segments evenly, preventing visually merged lines
- * by supplying the computed horizontal offsets necessary for source and target endpoints.
+ * Routing hints for orthogonal edges to stagger overlapping paths.
  */
 export interface EdgeRoutingHint {
   /**
@@ -71,16 +64,11 @@ export interface EdgeRoutingHint {
 }
 
 /**
- * An immutable snapshot of a computed graph layout.
+ * Represents the computed visual coordinates and bounding box for a graph.
  *
- * This provides the exact visual geometry for a graph (node positions, sizes, and edge routing hints)
- * completely disconnected from the logical graph model itself.
- *
- * **Why it exists**:
- * This explicit separation of layout geometry from the `GraphSnapshot` model ensures that operations
- * like logical diffing or subgraph projection do not accidentally invalidate rendering state.
- * It also enables trivial implementation of layout transitions, animations, and alternative views
- * (like minimaps) by sharing or interpolating layout coordinate snapshots.
+ * This snapshot separates the spatial arrangement of the graph from its logical
+ * structure (`GraphSnapshot`), ensuring that rendering engines can predictably
+ * position elements without coupling logic to geometry.
  */
 export interface LayoutSnapshot {
   /**
@@ -104,22 +92,16 @@ export interface LayoutSnapshot {
   readonly nodeSize: Size;
 
   /**
-   * Custom sizes for nodes (e.g. collapsed nodes). Fallback to nodeSize if not present.
-   */
-  readonly nodeSizes?: ReadonlyMap<string, Size>;
-
-  /**
    * Routing hints for staggering edge paths.
    */
   readonly edgeRouting?: ReadonlyMap<string, EdgeRoutingHint>;
 }
 
 /**
- * Configuration options for the built-in vertical hierarchical layout algorithm.
+ * Configuration options for the vertical layout algorithm.
  *
- * Provides control over grid spacing, default node dimensions, and container margins.
- * This is particularly useful when nodes use custom HTML rendering that requires more
- * space than the default settings provide, or when aiming for a specific visual density.
+ * Allows tuning of node dimensions and spacing layers to fit varying label sizes
+ * or density preferences.
  */
 export interface VerticalLayoutOptions {
   /**
@@ -146,11 +128,6 @@ export interface VerticalLayoutOptions {
    * The minimum margin around the outer boundary of the layout.
    */
   readonly margin?: number;
-
-  /**
-   * A set of node IDs that are currently collapsed.
-   */
-  readonly collapsedNodes?: ReadonlySet<string>;
 }
 
 const DEFAULT_VERTICAL_LAYOUT: Required<VerticalLayoutOptions> = {
@@ -159,7 +136,6 @@ const DEFAULT_VERTICAL_LAYOUT: Required<VerticalLayoutOptions> = {
   layerSpacing: 148,
   nodeSpacing: 280,
   margin: 32,
-  collapsedNodes: new Set(),
 };
 
 /**
@@ -264,15 +240,6 @@ export function verticalLayout(
 
   // Replace spread Math.max with iterative calculation to prevent Maximum Call Stack Size Exceeded
   // on very large graphs, and to avoid creating a large intermediate array.
-  const nodeSizes = new Map<string, Size>();
-  for (const id of nodeIds) {
-    const isCollapsed = config.collapsedNodes?.has(id) ?? false;
-    nodeSizes.set(id, {
-      width: config.nodeWidth,
-      height: isCollapsed ? 36 : config.nodeHeight,
-    });
-  }
-
   let maxLayerSize = 1;
   for (const ids of layers.values()) {
     if (ids.length > maxLayerSize) {
@@ -283,36 +250,11 @@ export function verticalLayout(
   const maxLayerWidth =
     config.nodeWidth + Math.max(0, maxLayerSize - 1) * config.nodeSpacing;
 
-  // Calculate dynamic layer heights and Y positions
-  const layerY = new Map<number, number>();
-  let currentY = config.margin;
-
-  // Create an array of depths to process them in order
-  const sortedDepths = Array.from(layers.keys()).sort((a, b) => a - b);
-
-  const layerGap = config.layerSpacing - config.nodeHeight;
-
-  for (const depth of sortedDepths) {
-    layerY.set(depth, currentY);
-
-    // Find max height in this layer
-    let maxLayerNodeHeight = 0;
-    const ids = layers.get(depth)!;
-    for (const id of ids) {
-      const h = nodeSizes.get(id)!.height;
-      if (h > maxLayerNodeHeight) {
-        maxLayerNodeHeight = h;
-      }
-    }
-
-    currentY += maxLayerNodeHeight + layerGap;
-  }
-
   for (const [depth, ids] of layers) {
     const layerWidth =
       config.nodeWidth + Math.max(0, ids.length - 1) * config.nodeSpacing;
     const startX = config.margin + (maxLayerWidth - layerWidth) / 2;
-    const y = layerY.get(depth)!;
+    const y = config.margin + depth * config.layerSpacing;
 
     for (let i = 0; i < ids.length; i++) {
       positions.set(ids[i], {
@@ -322,15 +264,12 @@ export function verticalLayout(
     }
   }
 
-  const width = maxLayerWidth + config.margin * 2;
   const layerCount = Math.max(1, layers.size);
-  let height;
-  if (layers.size === 0) {
-    height = config.nodeHeight + config.margin * 2;
-  } else {
-    height = currentY - layerGap + config.margin; // subtract last gap and add margin
-  }
-
+  const width = maxLayerWidth + config.margin * 2;
+  const height =
+    config.nodeHeight +
+    Math.max(0, layerCount - 1) * config.layerSpacing +
+    config.margin * 2;
 
   const edgeRouting = new Map<string, EdgeRoutingHint>();
   const spacing = 16;
@@ -387,16 +326,12 @@ export function verticalLayout(
       width: config.nodeWidth,
       height: config.nodeHeight,
     }),
-    nodeSizes: Object.freeze(nodeSizes),
     edgeRouting,
   });
 }
 
 /**
- * Result of calculating the geometric endpoints and orthogonal routing path for a rendered edge.
- *
- * This structure holds the precise start, end, and intermediate joint points necessary
- * to draw an orthogonal line between two nodes, factoring in node bounds and staggering offsets.
+ * Result of calculating the geometric endpoints for a rendered edge.
  */
 export interface EdgeEndpointsResult {
   /**
@@ -440,16 +375,13 @@ export function edgeEndpoints(
     sourceOffsetPx: 0, targetOffsetPx: 0, outIndex: 0, inIndex: 0, outTotal: 1, inTotal: 1
   };
 
-  const sourceSize = layout.nodeSizes?.get(edge.source) || layout.nodeSize;
-  const targetSize = layout.nodeSizes?.get(edge.target) || layout.nodeSize;
-
   const sourcePt = {
-    x: source.x + sourceSize.width / 2 + routing.sourceOffsetPx,
-    y: source.y + sourceSize.height,
+    x: source.x + layout.nodeSize.width / 2 + routing.sourceOffsetPx,
+    y: source.y + layout.nodeSize.height,
   };
 
   const targetPt = {
-    x: target.x + targetSize.width / 2 + routing.targetOffsetPx,
+    x: target.x + layout.nodeSize.width / 2 + routing.targetOffsetPx,
     y: target.y,
   };
 
@@ -489,13 +421,12 @@ function routeEdgeOrthogonal(
   const margin = 20;
 
   const obstacles: { x: number; y: number; w: number; h: number }[] = [];
-  for (const [id, pos] of layout.positions.entries()) {
-    const size = layout.nodeSizes?.get(id) || layout.nodeSize;
+  for (const pos of layout.positions.values()) {
     obstacles.push({
       x: pos.x,
       y: pos.y,
-      w: size.width,
-      h: size.height,
+      w: layout.nodeSize.width,
+      h: layout.nodeSize.height,
     });
   }
 
@@ -621,23 +552,20 @@ function routeEdgeOrthogonal(
     if (closedSet.has(key)) continue;
     closedSet.add(key);
 
-    for (let i = 0; i < 4; i++) {
-      let dx = 0;
-      let dy = 0;
-      if (i === 0) {
-        dy = -1;
-      } else if (i === 1) {
-        dy = 1;
-      } else if (i === 2) {
-        dx = -1;
-      } else {
-        dx = 1;
-      }
-      const nxIdx = curr.xIdx + dx;
-      const nyIdx = curr.yIdx + dy;
+    const dirs = [
+      { dx: 0, dy: -1 },
+      { dx: 0, dy: 1 },
+      { dx: -1, dy: 0 },
+      { dx: 1, dy: 0 },
+    ];
+
+    for (let i = 0; i < dirs.length; i++) {
+      const d = dirs[i];
+      const nxIdx = curr.xIdx + d.dx;
+      const nyIdx = curr.yIdx + d.dy;
 
       if (nxIdx >= 0 && nxIdx < xCoords.length && nyIdx >= 0 && nyIdx < yCoords.length) {
-        if (curr.parent === null && (dx !== 0 || dy !== 1)) {
+        if (curr.parent === null && (d.dx !== 0 || d.dy !== 1)) {
             continue;
         }
 
@@ -645,7 +573,7 @@ function routeEdgeOrthogonal(
              if (curr.xIdx === nxIdx && curr.yIdx === nyIdx - 1) {
                 // OK
              } else {
-                 if (dx !== 0 || dy !== 1) continue;
+                 if (d.dx !== 0 || d.dy !== 1) continue;
              }
         }
 
@@ -658,11 +586,11 @@ function routeEdgeOrthogonal(
 
         const dist = Math.abs(x2 - x1) + Math.abs(y2 - y1);
         let penalty = 0;
-        if (curr.parent !== null && (curr.dirX !== dx || curr.dirY !== dy)) {
+        if (curr.parent !== null && (curr.dirX !== d.dx || curr.dirY !== d.dy)) {
           penalty = 50;
         }
 
-        if (dx !== 0) {
+        if (d.dx !== 0) {
           if (y1 !== allowedY1 && y1 !== allowedY2) {
             penalty += 5000;
           } else {
@@ -676,7 +604,7 @@ function routeEdgeOrthogonal(
         const h = Math.abs(xCoords[endXIdx] - x2) + Math.abs(yCoords[endYIdx] - y2);
         const f = g + h;
 
-        openList.push({ xIdx: nxIdx, yIdx: nyIdx, g, f, parent: curr, dirX: dx, dirY: dy });
+        openList.push({ xIdx: nxIdx, yIdx: nyIdx, g, f, parent: curr, dirX: d.dx, dirY: d.dy });
       }
     }
   }
@@ -787,29 +715,25 @@ function assignVerticalDepths(
   let currentMaxDepth = -1;
   let qIdx = 0;
 
-  const processQueue = () => {
-    while (qIdx < queue.length) {
-      const u = queue[qIdx++];
-      const d = depths.get(u)!;
-      if (d > currentMaxDepth) currentMaxDepth = d;
+  while (qIdx < queue.length) {
+    const u = queue[qIdx++];
+    const d = depths.get(u)!;
+    if (d > currentMaxDepth) currentMaxDepth = d;
 
-      for (const v of acyclicOutgoing.get(u)!) {
-        const newD = d + 1;
-        const currentVD = depths.get(v);
-        if (currentVD === undefined || newD > currentVD) {
-          depths.set(v, newD);
-        }
+    for (const v of acyclicOutgoing.get(u)!) {
+      const newD = d + 1;
+      const currentVD = depths.get(v);
+      if (currentVD === undefined || newD > currentVD) {
+        depths.set(v, newD);
+      }
 
-        const inDeg = dagIncoming.get(v)! - 1;
-        dagIncoming.set(v, inDeg);
-        if (inDeg === 0) {
-          queue.push(v);
-        }
+      const inDeg = dagIncoming.get(v)! - 1;
+      dagIncoming.set(v, inDeg);
+      if (inDeg === 0) {
+        queue.push(v);
       }
     }
-  };
-
-  processQueue();
+  }
 
   let nextDepth = currentMaxDepth + 1;
   for (const id of fakeRoots) {
@@ -819,7 +743,25 @@ function assignVerticalDepths(
     }
   }
 
-  processQueue();
+  while (qIdx < queue.length) {
+    const u = queue[qIdx++];
+    const d = depths.get(u)!;
+    if (d > currentMaxDepth) currentMaxDepth = d;
+
+    for (const v of acyclicOutgoing.get(u)!) {
+      const newD = d + 1;
+      const currentVD = depths.get(v);
+      if (currentVD === undefined || newD > currentVD) {
+        depths.set(v, newD);
+      }
+
+      const inDeg = dagIncoming.get(v)! - 1;
+      dagIncoming.set(v, inDeg);
+      if (inDeg === 0) {
+        queue.push(v);
+      }
+    }
+  }
 
   return depths;
 }

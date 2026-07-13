@@ -5,6 +5,3 @@
 ## 2026-07-12 - String Matching Optimization
 **Learning:** Using `RegExp.test()` for simple case-insensitive substring searches is noticeably slower (~1.6x) than explicitly calling `.toLowerCase().includes(queryLower)`.
 **Action:** For simple case-insensitive searches where regular expression semantics are not needed, convert the query to lowercase ahead of time and use `text.toLowerCase().includes(queryLower)` instead of dynamically compiling and testing a `RegExp` with the `'i'` flag.
-## 2025-02-12 - Inline orthogonal layout direction checks
-**Learning:** In A* pathfinding (like edge orthogonal layout routing), allocating intermediate objects inside hot loops `const dirs = [{dx:0, dy:-1}, ...]` causes GC churn and slower execution, even when loop bounds are small.
-**Action:** Replace dynamically allocated object array loops with explicitly unrolled iterations or simple scalar loops using `if-else` branches when the number of directions is known and fixed.
