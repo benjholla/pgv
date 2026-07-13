@@ -38,7 +38,10 @@
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
     "bench": "vitest bench",
-    "docs": "typedoc src/index.ts --out docs"
+    "docs": "typedoc src/index.ts --out docs",
+    "dev:static-history": "vite --config examples/vite-static-history/vite.config.ts --host 127.0.0.1",
+    "build:demo-history": "vite build --config examples/vite-static-history/vite.config.ts",
+    "preview:demo-history": "vite preview --config examples/vite-static-history/vite.config.ts --host 127.0.0.1"
   },
   "keywords": [
     "graph",

@@ -1209,17 +1209,23 @@ export class GraphView {
       searchToggleBtn.setAttribute("aria-expanded", this.#searchOpen ? "true" : "false");
       topButtonsContainer.appendChild(searchToggleBtn);
 
-      const historyToggleBtn = this.#createControlButton({
-        icon: icons.history,
-        action: () => {
-          this.#historyOpen = !this.#historyOpen;
-          this.#render();
-        },
-        label: "Toggle History Navigation",
-      });
+      if (this.#options.maxHistory && this.#options.maxHistory > 0) {
+        const historyToggleBtn = this.#createControlButton({
+          icon: icons.history,
+          action: () => {
+            this.#historyOpen = !this.#historyOpen;
+            this.#render();
+          },
+          label: "Toggle History Navigation",
+        });
 
-      historyToggleBtn.setAttribute("aria-expanded", this.#historyOpen ? "true" : "false");
-      topButtonsContainer.appendChild(historyToggleBtn);
+        historyToggleBtn.setAttribute("aria-expanded", this.#historyOpen ? "true" : "false");
+        topButtonsContainer.appendChild(historyToggleBtn);
+      } else {
+        const ph = this.#createControlButton({ icon: icons.placeholder, action: () => {}, label: "" });
+        ph.style.visibility = "hidden";
+        topButtonsContainer.appendChild(ph);
+      }
 
       if (this.#options.usePanZoom) {
         const minimapToggleBtn = this.#createControlButton({
