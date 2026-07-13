@@ -827,6 +827,7 @@ export class GraphView {
 
       const keyInput = document.createElement("input");
       keyInput.type = "text";
+      keyInput.maxLength = 1000;
       keyInput.setAttribute("aria-label", "Search attribute key");
       keyInput.placeholder = "Attribute Key...";
       keyInput.value = this.#searchKeyQuery;
@@ -870,6 +871,7 @@ export class GraphView {
 
     const valueInput = document.createElement("input");
     valueInput.type = "text";
+    valueInput.maxLength = 1000;
     valueInput.setAttribute("aria-label", isAttributeMode ? "Search attribute value" : "Search query");
     valueInput.placeholder = isAttributeMode ? "Attribute Value..." : "Search...";
     valueInput.value = this.#searchQuery;
