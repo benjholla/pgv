@@ -1254,6 +1254,22 @@ export class GraphView {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             option.click();
+          } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            const next = option.nextElementSibling as HTMLElement | null;
+            if (next) {
+              next.focus();
+            } else {
+              (dropdownMenu.firstElementChild as HTMLElement)?.focus();
+            }
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            const prev = option.previousElementSibling as HTMLElement | null;
+            if (prev) {
+              prev.focus();
+            } else {
+              (dropdownMenu.lastElementChild as HTMLElement)?.focus();
+            }
           }
         });
         option.addEventListener("click", () => {
