@@ -5,5 +5,9 @@
     "notDocumented": true,
     "invalidLink": true,
     "notExported": true
-  }
+  },
+  "markdownItOptions": {
+    "html": true
+  },
+  "highlightLanguages": ["bash", "typescript", "text", "mermaid", "ts", "js"]
 }

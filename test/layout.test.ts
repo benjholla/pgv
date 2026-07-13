@@ -2,6 +2,46 @@ import { describe, it, expect } from "vitest";
 import { verticalLayout, edgeEndpoints, type VerticalLayoutOptions } from "../src/layout";
 import { createGraphSnapshot, type GraphSnapshot } from "../src/model";
 
+class PRNG {
+  private seed: number;
+  constructor(seed: number) {
+    this.seed = seed;
+  }
+  next(): number {
+    this.seed = (1664525 * this.seed + 1013904223) % 4294967296;
+    return this.seed / 4294967296;
+  }
+  nextInt(min: number, max: number): number {
+    return Math.floor(this.next() * (max - min)) + min;
+  }
+}
+
+function generateRandomGraph(seed: number, numNodes: number, edgeDensity: number): GraphSnapshot {
+  const rng = new PRNG(seed);
+  const nodes = [];
+  const edges = [];
+
+  for (let i = 0; i < numNodes; i++) {
+    nodes.push({ id: `n${i}` });
+  }
+
+  let edgeId = 0;
+  for (let i = 0; i < numNodes; i++) {
+    for (let j = 0; j < numNodes; j++) {
+      if (i !== j && rng.next() < edgeDensity) {
+        edges.push({ id: `e${edgeId++}`, source: `n${i}`, target: `n${j}` });
+      }
+    }
+  }
+
+  return createGraphSnapshot({
+    graphId: `rand-${seed}`,
+    version: 1,
+    nodes,
+    edges,
+  });
+}
+
 describe("layout", () => {
 
   describe("Edge Routing Orthogonality and Visual Cleanness", () => {
@@ -138,6 +178,47 @@ describe("layout", () => {
     });
 
     describe("Property and Edge Case Tests", () => {
+      it("Layout Stability: passing a previousLayout strictly preserves the relative horizontal ordering of existing nodes within the same layer", () => {
+        // Base graph
+        const baseGraph = createGraphSnapshot({
+          nodes: [{ id: "A" }, { id: "B" }, { id: "C" }],
+          edges: [
+            { id: "e1", source: "A", target: "B" },
+            { id: "e2", source: "A", target: "C" }
+          ]
+        });
+
+        const baseLayout = verticalLayout(baseGraph);
+        const posB1 = baseLayout.positions.get("B")!;
+        const posC1 = baseLayout.positions.get("C")!;
+
+        // Assert initial relative ordering (either B is left of C, or C is left of B)
+        const isBLeftOfC = posB1.x < posC1.x;
+
+        // Next graph adds new nodes and edges that might normally disrupt the layout
+        const nextGraph = createGraphSnapshot({
+          nodes: [{ id: "A" }, { id: "B" }, { id: "C" }, { id: "D" }, { id: "E" }],
+          edges: [
+            { id: "e1", source: "A", target: "B" },
+            { id: "e2", source: "A", target: "C" },
+            // Add new nodes that fall into the same layer as B and C
+            { id: "e3", source: "A", target: "D" },
+            { id: "e4", source: "A", target: "E" }
+          ]
+        });
+
+        const nextLayout = verticalLayout(nextGraph, { previousLayout: baseLayout });
+        const posB2 = nextLayout.positions.get("B")!;
+        const posC2 = nextLayout.positions.get("C")!;
+
+        // The relative horizontal order of B and C must be strictly preserved
+        expect(posB2.x < posC2.x).toBe(isBLeftOfC);
+
+        // Also verify that they share the same depth layer (Y coordinate) in both layouts
+        expect(posB1.y).toBe(posC1.y);
+        expect(posB2.y).toBe(posC2.y);
+      });
+
       it("Determinism: layouts are identical regardless of input iteration order", () => {
         // Construct identical graphs but insert nodes/edges in different orders
         const nodes1 = [{id: "A"}, {id: "B"}, {id: "C"}];
@@ -170,6 +251,25 @@ describe("layout", () => {
 
         expect(layout.positions.size).toBe(1);
         expect(layout.positions.has("A")).toBe(true);
+      });
+
+      it("Degenerate Geometry: gracefully handles nodes configured with zero width and zero height", () => {
+        const graph = createGraphSnapshot({
+          nodes: [{ id: "A" }, { id: "B" }],
+          edges: [{ id: "e1", source: "A", target: "B" }]
+        });
+
+        const layout = verticalLayout(graph, {
+          nodeWidth: 0,
+          nodeHeight: 0
+        });
+
+        expect(layout.nodeSize).toEqual({ width: 0, height: 0 });
+        expect(layout.positions.size).toBe(2);
+
+        const endpoints = edgeEndpoints(graph.edges.get("e1")!, layout);
+        expect(endpoints).not.toBeNull();
+        expect(endpoints!.path.length).toBeGreaterThanOrEqual(2);
       });
     });
 
@@ -407,95 +507,50 @@ describe("layout", () => {
 
   describe("edgeEndpoints", () => {
     describe("Property and Edge Case Tests", () => {
-      it("Orthogonality: path segments strictly align horizontally or vertically", () => {
-        const graph = createGraphSnapshot({
-          nodes: [{ id: "A" }, { id: "B" }, { id: "C" }],
-          edges: [
-            { id: "e1", source: "A", target: "B" },
-            { id: "e2", source: "A", target: "C" },
-            { id: "e3", source: "B", target: "C" },
-          ],
-        });
+      it("Edge Routing Invariants: Paths are orthogonal, avoid obstacles, and connect endpoints", () => {
+        const seeds = [42, 1337, 2023, 9999, 12345]; // Deterministic test cases
 
-        const layout = verticalLayout(graph);
-        for (const edge of graph.edges.values()) {
-          const endpoints = edgeEndpoints(edge, layout);
-          expect(endpoints).not.toBeNull();
+        for (const seed of seeds) {
+          const graph = generateRandomGraph(seed, 10, 0.2); // Generate a 10-node graph with 20% edge density
+          const layout = verticalLayout(graph);
 
-          const path = endpoints!.path;
-          for (let i = 0; i < path.length - 1; i++) {
-            const p1 = path[i];
-            const p2 = path[i + 1];
-            // Segment must be either perfectly horizontal or perfectly vertical
-            const isOrthogonal = (p1.x === p2.x) || (p1.y === p2.y);
-            expect(isOrthogonal).toBe(true);
-          }
-        }
-      });
+          const nodeBoxes = Array.from(layout.positions.values()).map(p => ({
+            left: p.x,
+            right: p.x + layout.nodeSize.width,
+            top: p.y,
+            bottom: p.y + layout.nodeSize.height,
+          }));
 
-      it("Obstacle Avoidance: path segments strictly do not intersect node bounding boxes", () => {
-        const graph = createGraphSnapshot({
-          nodes: [{ id: "A" }, { id: "B" }, { id: "C" }],
-          edges: [
-            { id: "e1", source: "A", target: "B" },
-            { id: "e2", source: "A", target: "C" },
-            { id: "e3", source: "B", target: "C" },
-          ],
-        });
+          for (const edge of graph.edges.values()) {
+            const endpoints = edgeEndpoints(edge, layout);
+            expect(endpoints).not.toBeNull();
+            const path = endpoints!.path;
 
-        const layout = verticalLayout(graph);
-        const nodeBoxes = Array.from(layout.positions.values()).map(p => ({
-          left: p.x,
-          right: p.x + layout.nodeSize.width,
-          top: p.y,
-          bottom: p.y + layout.nodeSize.height,
-        }));
+            // Invariant 1: Endpoint Consistency
+            expect(path.length).toBeGreaterThanOrEqual(2);
+            expect(path[0]).toEqual(endpoints!.source);
+            expect(path[path.length - 1]).toEqual(endpoints!.target);
 
-        for (const edge of graph.edges.values()) {
-          const endpoints = edgeEndpoints(edge, layout);
-          expect(endpoints).not.toBeNull();
+            for (let i = 0; i < path.length - 1; i++) {
+              const p1 = path[i];
+              const p2 = path[i + 1];
 
-          const path = endpoints!.path;
-          for (let i = 0; i < path.length - 1; i++) {
-            const p1 = path[i];
-            const p2 = path[i + 1];
+              // Invariant 2: Orthogonality
+              const isOrthogonal = (p1.x === p2.x) || (p1.y === p2.y);
+              expect(isOrthogonal).toBe(true);
 
-            const minX = Math.min(p1.x, p2.x);
-            const maxX = Math.max(p1.x, p2.x);
-            const minY = Math.min(p1.y, p2.y);
-            const maxY = Math.max(p1.y, p2.y);
+              // Invariant 3: Obstacle Avoidance
+              const minX = Math.min(p1.x, p2.x);
+              const maxX = Math.max(p1.x, p2.x);
+              const minY = Math.min(p1.y, p2.y);
+              const maxY = Math.max(p1.y, p2.y);
 
-            for (const box of nodeBoxes) {
-              const intersects = minX < box.right && maxX > box.left && minY < box.bottom && maxY > box.top;
-              expect(intersects).toBe(false);
+              for (const box of nodeBoxes) {
+                const intersects = minX < box.right && maxX > box.left && minY < box.bottom && maxY > box.top;
+                expect(intersects).toBe(false);
+              }
             }
           }
-        }
-      });
-
-      it("Endpoint Consistency: first and last path points exactly match source and target endpoints", () => {
-        const graph = createGraphSnapshot({
-          nodes: [{ id: "A" }, { id: "B" }, { id: "C" }],
-          edges: [
-            { id: "e1", source: "A", target: "B" },
-            { id: "e2", source: "A", target: "C" },
-            { id: "e3", source: "B", target: "C" },
-          ],
-        });
-
-        const layout = verticalLayout(graph);
-        for (const edge of graph.edges.values()) {
-          const endpoints = edgeEndpoints(edge, layout);
-          expect(endpoints).not.toBeNull();
-
-          const path = endpoints!.path;
-          expect(path.length).toBeGreaterThanOrEqual(2);
-
-          const firstPoint = path[0];
-          const lastPoint = path[path.length - 1];
-
-          expect(firstPoint).toEqual(endpoints!.source);
-          expect(lastPoint).toEqual(endpoints!.target);
         }
       });
     });

@@ -6,10 +6,12 @@ let markerIdSequence = 0;
 const PGV_VIEWPORT_CLASS = "pgv-viewport";
 
 /**
- * Represents the currently selected elements in the graph.
+ * Represents the currently selected or highlighted elements in the graph view.
  *
- * Selection is managed purely by referencing the stable producer-assigned IDs,
- * keeping interaction state decoupled from the immutable graph data.
+ * This state is intentionally decoupled from the immutable `GraphSnapshot` model.
+ * It strictly uses stable, producer-assigned IDs to track selection. This allows
+ * selection states to persist across historical undo/redo actions, animations,
+ * or when fetching entirely new backend snapshots that contain the same IDs.
  */
 export interface SelectionState {
   /**
@@ -23,11 +25,12 @@ export interface SelectionState {
 }
 
 /**
- * Configuration options for a `GraphView` instance.
+ * Configuration options used to initialize or update a `GraphView`.
  *
- * Provides hooks for customizing rendering behavior (e.g., node DOM elements),
- * enabling built-in features (pan/zoom, search, theme toggles), and listening
- * to interactive events.
+ * This interface represents the primary public API for configuring visualization behavior.
+ * It provides hooks to inject custom HTML renderers for nodes and edges, enable interactive
+ * control layers (like minimaps, panning, searching, and history), and bind event listeners
+ * to coordinate view state changes with a host application.
  */
 export interface GraphViewOptions {
   /**
@@ -85,6 +88,8 @@ export interface GraphViewOptions {
   /**
    * If true, enables a multi-mode search panel for filtering nodes and edges.
    */
+  readonly useSearch?: boolean;
+
   /**
    * Callback invoked when the user toggles the theme via the built-in control.
    */
@@ -130,6 +135,7 @@ import { type GraphDiff, applyGraphDiff, graphSnapshotToJson } from "./model";
  */
 export class GraphView {
   #clearSelectionBtn: HTMLButtonElement | null = null;
+  #collapsedNodes: Set<string> = new Set();
   /**
    * The root DOM element containing the graph visualization.
    */
@@ -202,7 +208,7 @@ export class GraphView {
       this.#currentTheme = options.theme;
     }
     this.#layout =
-      this.#options.layout ?? verticalLayout(graph, this.#options.layoutOptions);
+      this.#options.layout ?? verticalLayout(graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes });
 
     this.#render();
 
@@ -233,7 +239,7 @@ export class GraphView {
     if (options.layout !== undefined && options.layout !== oldLayout) {
       this.#layout = options.layout;
     } else if (options.layoutOptions !== undefined && options.layoutOptions !== oldLayoutOptions && this.#graph) {
-      this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions, this.#layout ?? undefined);
+      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes }, this.#layout ?? undefined);
     }
     if (this.#clearSelectionBtn) {
       this.#clearSelectionBtn.disabled = !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0);
@@ -284,7 +290,7 @@ export class GraphView {
     if (this.#historyIndex === this.#history.length - 2) { // It was at the tip before pushing
       this.#historyIndex = this.#history.length - 1;
       this.#graph = applyGraphDiff(this.#graph, diff);
-      this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions, this.#layout ?? undefined);
+      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes }, this.#layout ?? undefined);
       this.#options.onGraphChange?.(this.#graph);
       this.#render();
     } else {
@@ -548,6 +554,18 @@ export class GraphView {
     this.#render();
   }
 
+  #toggleNodeCollapse(id: string): void {
+    if (this.#collapsedNodes.has(id)) {
+      this.#collapsedNodes.delete(id);
+    } else {
+      this.#collapsedNodes.add(id);
+    }
+    if (this.#graph) {
+      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes }, this.#layout ?? undefined);
+      this.#render();
+    }
+  }
+
   /**
    * Cleans up all resources, abort controllers, observers, and removes DOM elements.
    * Must be called when the view is no longer needed to prevent memory leaks.
@@ -595,7 +613,7 @@ export class GraphView {
     // We append nodes first then edges in the DOM to ensure natural
     // keyboard tabbing order (nodes then edges) while keeping z-index
     // responsible for visual stacking.
-    stage.append(...renderNodes(graph, layout, this.#options));
+    stage.append(...renderNodes(graph, layout, this.#options, this.#collapsedNodes, (id) => this.#toggleNodeCollapse(id)));
     stage.appendChild(renderEdges(graph, layout, this.#options));
 
     if (this.#options.usePanZoom || this.#options.useThemeToggle || (this.#options.maxHistory && this.#options.maxHistory > 0)) {
@@ -1572,12 +1590,13 @@ export class GraphView {
     }
 
     // Draw nodes
-    const nw = layout.nodeSize.width * scale;
-    const nh = layout.nodeSize.height * scale;
-
     for (const node of this.#graph.nodes.values()) {
       const position = layout.positions.get(node.id);
       if (!position) continue;
+
+      const nodeSize = layout.nodeSizes?.get(node.id) || layout.nodeSize;
+      const nw = nodeSize.width * scale;
+      const nh = nodeSize.height * scale;
 
       const nx = offsetX + position.x * scale;
       const ny = offsetY + position.y * scale;
@@ -2097,6 +2116,8 @@ function renderNodes(
   graph: GraphSnapshot,
   layout: LayoutSnapshot,
   options: GraphViewOptions,
+  collapsedNodes: ReadonlySet<string> = new Set(),
+  onToggleCollapse: (id: string) => void = () => {},
 ): HTMLElement[] {
   const nodes: HTMLElement[] = [];
 
@@ -2119,17 +2140,59 @@ function renderNodes(
       className += " pgv-selected";
     }
 
+    const isCollapsed = collapsedNodes.has(node.id);
+    if (isCollapsed) {
+      className += " pgv-node-collapsed";
+    }
+
     element.className = className;
     element.dataset.nodeId = node.id;
     element.setAttribute("tabindex", "0");
     element.style.transform = `translate(${position.x}px, ${position.y}px)`;
 
-    const content = options.nodeContent?.(node) ?? defaultNodeContent(node);
+    // Explicitly set node width, let expanded nodes flow height naturally
+    const nodeSize = layout.nodeSizes?.get(node.id) || layout.nodeSize;
+    element.style.width = `${nodeSize.width}px`;
 
-    if (typeof content === "string") {
-      element.textContent = content;
+    if (isCollapsed) {
+      const header = document.createElement("div");
+      header.className = "pgv-node-header-collapsed";
+
+      const title = document.createElement("div");
+      title.className = "pgv-node-title";
+      title.textContent = node.id;
+
+      const toggleBtn = document.createElement("button");
+      toggleBtn.className = "pgv-node-collapse-toggle";
+      toggleBtn.title = "Expand node";
+      toggleBtn.setAttribute("aria-label", "Expand node");
+      toggleBtn.textContent = "[+]";
+      toggleBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onToggleCollapse(node.id);
+      });
+
+      header.append(title, toggleBtn);
+      element.appendChild(header);
     } else {
-      element.appendChild(content);
+      const content = options.nodeContent?.(node) ?? defaultNodeContent(node);
+
+      if (typeof content === "string") {
+        element.textContent = content;
+      } else {
+        const toggleBtn = document.createElement("button");
+        toggleBtn.className = "pgv-node-collapse-toggle";
+        toggleBtn.title = "Collapse node";
+        toggleBtn.setAttribute("aria-label", "Collapse node");
+        toggleBtn.textContent = "[-]";
+        toggleBtn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          onToggleCollapse(node.id);
+        });
+
+        element.appendChild(content);
+        element.appendChild(toggleBtn);
+      }
     }
 
     nodes.push(element);
