@@ -484,4 +484,33 @@ describe('GraphView', () => {
       view.destroy();
     });
   });
+  describe("Graph Selection Highlight Rendering", () => {
+    it("applies pgv-selected class to selected nodes and edges", () => {
+      const graph = createGraphSnapshot({
+        nodes: [{ id: "A" }, { id: "B" }],
+        edges: [{ id: "e1", source: "A", target: "B" }]
+      });
+
+      const container = document.createElement("div");
+      const schema = { tags: {}, edgeAttributes: {}, nodeAttributes: {} };
+      const view = new GraphView(container, schema);
+
+      view.setGraph(graph, {
+        selection: {
+          nodes: new Set(["A"]),
+          edges: new Set(["e1"])
+        }
+      });
+
+      const nodeA = container.querySelector(".graph-node[data-node-id='A']");
+      const nodeB = container.querySelector(".graph-node[data-node-id='B']");
+      const edge = container.querySelector(".graph-edge");
+
+      expect(nodeA?.getAttribute("class")).toContain("pgv-selected");
+      expect(nodeB?.getAttribute("class")).not.toContain("pgv-selected");
+      expect(edge?.getAttribute("class")).toContain("pgv-selected");
+
+      view.destroy();
+    });
+  });
 });
