@@ -188,7 +188,12 @@ export function verticalLayout(
 ): LayoutSnapshot {
   const config = { ...DEFAULT_VERTICAL_LAYOUT, ...options };
   // Sort node IDs to guarantee determinism in layout regardless of input map iteration order
-  const nodeIds = Array.from(graph.nodes.keys()).sort();
+  const nodeIds = new Array<string>(graph.nodes.size);
+  let nIdx = 0;
+  for (const id of graph.nodes.keys()) {
+    nodeIds[nIdx++] = id;
+  }
+  nodeIds.sort();
   const outgoing = new Map<string, string[]>();
   const incoming = new Map<string, string[]>();
   const edgeOutgoing = new Map<string, string[]>();
@@ -313,7 +318,12 @@ export function verticalLayout(
   let currentY = config.margin;
 
   // Create an array of depths to process them in order
-  const sortedDepths = Array.from(layers.keys()).sort((a, b) => a - b);
+  const sortedDepths = new Array<number>(layers.size);
+  let dIdx = 0;
+  for (const depth of layers.keys()) {
+    sortedDepths[dIdx++] = depth;
+  }
+  sortedDepths.sort((a, b) => a - b);
 
   const layerGap = config.layerSpacing - config.nodeHeight;
 
@@ -562,8 +572,19 @@ function routeEdgeOrthogonal(
   ySet.add(-margin);
   ySet.add(layout.height + margin);
 
-  const xCoords = Array.from(xSet).sort((a, b) => a - b);
-  const yCoords = Array.from(ySet).sort((a, b) => a - b);
+  const xCoords = new Array<number>(xSet.size);
+  let xIdx = 0;
+  for (const val of xSet) {
+    xCoords[xIdx++] = val;
+  }
+  xCoords.sort((a, b) => a - b);
+
+  const yCoords = new Array<number>(ySet.size);
+  let yIdx = 0;
+  for (const val of ySet) {
+    yCoords[yIdx++] = val;
+  }
+  yCoords.sort((a, b) => a - b);
 
   type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number };
 
@@ -849,5 +870,12 @@ function groupByDepth(
     layers.set(depth, layer);
   }
 
-  return new Map(Array.from(layers.entries()).sort(([a], [b]) => a - b));
+  const entries = new Array<[number, readonly string[]]>(layers.size);
+  let eIdx = 0;
+  for (const entry of layers.entries()) {
+    entries[eIdx++] = entry;
+  }
+  entries.sort(([a], [b]) => a - b);
+
+  return new Map(entries);
 }
