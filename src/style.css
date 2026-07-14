@@ -152,6 +152,7 @@
   gap: 12px;
   padding: 8px;
   flex-shrink: 0;
+  touch-action: none;
 }
 
 .pgv-controls-buttons {
@@ -225,6 +226,7 @@
   border: 1px solid var(--pgv-controls-border);
   border-radius: 6px;
   box-sizing: border-box;
+  touch-action: none;
 }
 
 .pgv-history-panel.pgv-history-panel-open {
@@ -585,6 +587,7 @@
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   width: 100%;
   box-sizing: border-box;
+  touch-action: none;
 }
 
 .pgv-search-bar input {
