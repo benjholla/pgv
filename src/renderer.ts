@@ -1221,10 +1221,6 @@ export class GraphView {
 
         historyToggleBtn.setAttribute("aria-expanded", this.#historyOpen ? "true" : "false");
         topButtonsContainer.appendChild(historyToggleBtn);
-      } else {
-        const ph = this.#createControlButton({ icon: icons.placeholder, action: () => {}, label: "" });
-        ph.style.visibility = "hidden";
-        topButtonsContainer.appendChild(ph);
       }
 
       if (this.#options.usePanZoom) {
@@ -1235,10 +1231,14 @@ export class GraphView {
         });
         minimapToggleBtn.setAttribute("aria-expanded", this.#minimapOpen ? "true" : "false");
         topButtonsContainer.appendChild(minimapToggleBtn);
-      } else {
-        const ph = this.#createControlButton({ icon: icons.placeholder, action: () => {}, label: "" });
-        ph.style.visibility = "hidden";
-        topButtonsContainer.appendChild(ph);
+
+        const mobileResetBtn = this.#createControlButton({
+          icon: icons.reset,
+          action: () => this.#reset(),
+          label: "Reset View",
+        });
+        mobileResetBtn.classList.add("pgv-mobile-reset-btn");
+        topButtonsContainer.appendChild(mobileResetBtn);
       }
 
       // Row 2: Clear, Theme, Future Placeholder
@@ -1264,16 +1264,7 @@ export class GraphView {
           action: () => this.#toggleTheme(),
           label: themeLabel,
         }));
-      } else {
-        const ph = this.#createControlButton({ icon: icons.placeholder, action: () => {}, label: "" });
-        ph.style.visibility = "hidden";
-        topButtonsContainer.appendChild(ph);
       }
-
-      // Space for a future misc button
-      const futureBtn = this.#createControlButton({ icon: icons.placeholder, action: () => {}, label: "" });
-      futureBtn.style.visibility = "hidden";
-      topButtonsContainer.appendChild(futureBtn);
 
 
       miscGroup.appendChild(topButtonsContainer);

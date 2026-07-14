@@ -175,6 +175,10 @@
   justify-content: flex-end;
 }
 
+.pgv-mobile-reset-btn {
+  display: none !important;
+}
+
 .pgv-minimap {
   touch-action: none;
   position: relative;
@@ -788,18 +792,13 @@
 }
 
 @media (pointer: coarse) and (max-width: 640px) {
-  .pgv-zoom-group {
-    display: none;
-  }
-
+  .pgv-zoom-group,
   .pgv-pan-group {
-    grid-template-areas: "reset";
-    grid-template-columns: 44px;
-    grid-template-rows: 44px;
+    display: none;
   }
 
-  .pgv-pan-group button:not(.pgv-btn-reset) {
-    display: none;
+  .pgv-mobile-reset-btn {
+    display: flex !important;
   }
 }
 
