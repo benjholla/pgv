@@ -1,3 +1,9 @@
+/**
+ * @module
+ * @packageDocumentation
+ * Interactive graph view and rendering logic using DOM and SVG.
+ */
+
 import { edgeEndpoints, verticalLayout, type LayoutSnapshot, type VerticalLayoutOptions } from "./layout";
 import type { AttributeValue, GraphEdge, GraphNode, GraphSchema, GraphSnapshot } from "./model";
 import { toSvg, toPng, toJpeg } from "html-to-image";
