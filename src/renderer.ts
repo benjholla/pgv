@@ -1150,8 +1150,8 @@ export class GraphView {
       chevronDown: "M6 9l6 6 6-6",
       search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
       history: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
-      collapse: "M9 9L4 4m5 5v-4m0 4H5m6 6l5 5m-5-5v4m0-4h4", // implosion (inward arrows)
-      expand: "M15 9l5-5m-5 5V5m0 4h4M9 15l-5 5m5-5v4m0-4H5",   // explosion (outward arrows)
+      collapse: "M10 10L4 4M10 10V5M10 10H5M14 14l6 6M14 14v5M14 14h5", // implosion (inward arrows)
+      expand: "M20 4L14 10M20 4v5M20 4h-5M4 20l6-6M4 20v-5M4 20h5",   // explosion (outward arrows)
       placeholder: ""
     };
 
