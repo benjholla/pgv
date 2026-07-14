@@ -834,8 +834,7 @@ export class GraphView {
       btn.setAttribute("aria-label", label);
       btn.setAttribute("aria-pressed", active ? "true" : "false");
       btn.innerHTML = iconHtml;
-      btn.style.width = "20px";
-      btn.style.height = "20px";
+      // We remove the inline style for width/height so CSS can manage the sizes and media queries
       btn.addEventListener("click", () => {
         onClick();
         btn.classList.toggle("active");
