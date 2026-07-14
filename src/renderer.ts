@@ -169,6 +169,8 @@ export class GraphView {
   #history: Array<{ diff: GraphDiff }> = [];
   #historyIndex: number = -1;
 
+  #controlsCollapsed: boolean = false;
+
   #searchOpen: boolean = false;
   #searchMode: "all" | "id" | "node-id" | "edge-id" | "node-tag" | "node-attribute" | "edge-tag" | "edge-attribute" | "tag" | "attribute" = "all";
   #searchQuery: string = "";
@@ -1148,8 +1150,23 @@ export class GraphView {
       chevronDown: "M6 9l6 6 6-6",
       search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
       history: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+      collapse: "M10 10L4 4M10 10V5M10 10H5M14 14l6 6M14 14v5M14 14h5", // implosion (inward arrows)
+      expand: "M20 4L14 10M20 4v5M20 4h-5M4 20l6-6M4 20v-5M4 20h5",   // explosion (outward arrows)
       placeholder: ""
     };
+
+    if (this.#controlsCollapsed) {
+      const expandBtn = this.#createControlButton({
+        icon: icons.expand,
+        action: () => {
+          this.#controlsCollapsed = false;
+          this.#render();
+        },
+        label: "Expand Controls",
+      });
+      controls.appendChild(expandBtn);
+      return controls;
+    }
 
     const buttonsContainer = document.createElement("div");
     buttonsContainer.className = "pgv-controls-buttons";
@@ -1271,6 +1288,16 @@ export class GraphView {
         }));
       }
 
+      // Add collapse button
+      const collapseBtn = this.#createControlButton({
+        icon: icons.collapse,
+        action: () => {
+          this.#controlsCollapsed = true;
+          this.#render();
+        },
+        label: "Collapse Controls",
+      });
+      topButtonsContainer.appendChild(collapseBtn);
 
       miscGroup.appendChild(topButtonsContainer);
 
