@@ -792,14 +792,26 @@
     flex-wrap: wrap;
   }
 
-  .pgv-search-inputs {
-    flex-basis: 100%;
-    flex-direction: column;
+  .pgv-search-dropdown-container {
+    order: 1;
   }
 
   .pgv-search-actions {
+    order: 2;
+    flex-basis: auto;
+    flex-grow: 1;
+    justify-content: flex-start;
+  }
+
+  .pgv-search-inputs {
+    order: 3;
     flex-basis: 100%;
-    justify-content: flex-end;
+    flex-direction: column;
+    margin-top: 8px;
+  }
+
+  .pgv-search-actions button:last-child {
+    margin-left: auto;
   }
 }
 

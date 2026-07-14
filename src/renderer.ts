@@ -1012,9 +1012,9 @@ export class GraphView {
       }
     });
 
-    actionsContainer.appendChild(info);
     actionsContainer.appendChild(searchBtn);
     actionsContainer.appendChild(cycleBtn);
+    actionsContainer.appendChild(info);
 
     // Add a close button
     const closeBtn = document.createElement("button");
