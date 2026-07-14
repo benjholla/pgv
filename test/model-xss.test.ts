@@ -13,4 +13,14 @@ describe("sanitizeString XSS named entities bypass", () => {
     expect(sanitizeString("javascr<script>ipt:alert(1)")).toBe("#blocked-uri");
     expect(sanitizeString("java<script>script&colon;alert(1)")).toBe("#blocked-uri");
   });
+
+  it("blocks javascript URIs when obfuscated using zero-width characters", () => {
+    expect(sanitizeString("java\u200Bscript:alert(1)")).toBe("#blocked-uri");
+    expect(sanitizeString("java\u200Cscript:alert(1)")).toBe("#blocked-uri");
+    expect(sanitizeString("java\u200Dscript:alert(1)")).toBe("#blocked-uri");
+    expect(sanitizeString("java\u200Escript:alert(1)")).toBe("#blocked-uri");
+    expect(sanitizeString("java\u200Fscript:alert(1)")).toBe("#blocked-uri");
+    expect(sanitizeString("java\u202Ascript:alert(1)")).toBe("#blocked-uri");
+    expect(sanitizeString("java\u202Escript:alert(1)")).toBe("#blocked-uri");
+  });
 });
