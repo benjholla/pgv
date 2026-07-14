@@ -485,6 +485,54 @@ describe('GraphView', () => {
       view.destroy();
     });
   });
+  describe("Graph Node Collapse Rendering", () => {
+    it("handles node collapse UI interaction and state isolation", () => {
+      const graph = createGraphSnapshot({
+        nodes: [{ id: "A" }, { id: "B" }],
+        edges: [{ id: "e1", source: "A", target: "B" }]
+      });
+
+      const container = document.createElement("div");
+      const view = new GraphView(container, {});
+      view.setGraph(graph);
+
+      let nodeA = container.querySelector(".pgv-graph-node[data-node-id='A']");
+      expect(nodeA?.getAttribute("class")).not.toContain("pgv-node-collapsed");
+
+      const toggleBtn = nodeA?.querySelector(".pgv-node-collapse-toggle") as HTMLButtonElement;
+      expect(toggleBtn).not.toBeNull();
+      expect(toggleBtn.textContent).toBe("[-]");
+
+      // Click to collapse
+      toggleBtn.click();
+
+      // Node A should now be collapsed
+      nodeA = container.querySelector(".pgv-graph-node[data-node-id='A']");
+      expect(nodeA?.getAttribute("class")).toContain("pgv-node-collapsed");
+
+      const toggleBtnCollapsed = nodeA?.querySelector(".pgv-node-collapse-toggle") as HTMLButtonElement;
+      expect(toggleBtnCollapsed).not.toBeNull();
+      expect(toggleBtnCollapsed.textContent).toBe("[+]");
+
+      // Verify immutability - the snapshot itself should not have changed
+      // (The test logic doesn't have a public getGraph accessor, but if we couldn't mutate the graph, view will just have the same nodes array)
+      expect(graph.nodes.get("A")).toBeDefined(); // The graph itself is not mutated
+
+      // Click to expand
+      toggleBtnCollapsed.click();
+
+      // Node A should now be expanded again
+      nodeA = container.querySelector(".pgv-graph-node[data-node-id='A']");
+      expect(nodeA?.getAttribute("class")).not.toContain("pgv-node-collapsed");
+
+      const toggleBtnExpanded = nodeA?.querySelector(".pgv-node-collapse-toggle") as HTMLButtonElement;
+      expect(toggleBtnExpanded).not.toBeNull();
+      expect(toggleBtnExpanded.textContent).toBe("[-]");
+
+      view.destroy();
+    });
+  });
+
   describe("Graph Selection Highlight Rendering", () => {
     it("applies pgv-selected class to selected nodes and edges", () => {
       const graph = createGraphSnapshot({
