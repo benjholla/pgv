@@ -734,10 +734,13 @@ export class GraphView {
       const mode = modes[i];
       const option = document.createElement("div");
       option.className = "pgv-dropdown-option";
-      option.setAttribute("role", "menuitem");
+      option.setAttribute("role", "menuitemradio");
       option.setAttribute("tabindex", "0");
       if (mode.value === this.#searchMode) {
         option.classList.add("selected");
+        option.setAttribute("aria-checked", "true");
+      } else {
+        option.setAttribute("aria-checked", "false");
       }
       option.textContent = mode.label;
       option.dataset.value = mode.value;
@@ -1164,6 +1167,7 @@ export class GraphView {
         },
         label: "Expand Controls",
       });
+      expandBtn.setAttribute("aria-expanded", "false");
       controls.appendChild(expandBtn);
       return controls;
     }
@@ -1297,6 +1301,7 @@ export class GraphView {
         },
         label: "Collapse Controls",
       });
+      collapseBtn.setAttribute("aria-expanded", "true");
       topButtonsContainer.appendChild(collapseBtn);
 
       miscGroup.appendChild(topButtonsContainer);
@@ -1364,10 +1369,13 @@ export class GraphView {
         const format = formats[i];
         const option = document.createElement("div");
         option.className = "pgv-dropdown-option";
-        option.setAttribute("role", "menuitem");
+        option.setAttribute("role", "menuitemradio");
         option.setAttribute("tabindex", "0");
         if (format === this.#downloadFormat) {
           option.classList.add("selected");
+          option.setAttribute("aria-checked", "true");
+        } else {
+          option.setAttribute("aria-checked", "false");
         }
         option.textContent = formatLabels[format];
         option.addEventListener("keydown", (e) => {
@@ -1403,8 +1411,10 @@ export class GraphView {
             const opt = opts[i];
             if (opt.textContent === formatLabels[format]) {
               opt.classList.add("selected");
+              opt.setAttribute("aria-checked", "true");
             } else {
               opt.classList.remove("selected");
+              opt.setAttribute("aria-checked", "false");
             }
           }
           dropdownBtn.focus();
@@ -2316,6 +2326,7 @@ function renderNodes(
       toggleBtn.className = "pgv-node-collapse-toggle";
       toggleBtn.title = "Expand node";
       toggleBtn.setAttribute("aria-label", "Expand node");
+      toggleBtn.setAttribute("aria-expanded", "false");
       toggleBtn.textContent = "[+]";
       toggleBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -2334,6 +2345,7 @@ function renderNodes(
         toggleBtn.className = "pgv-node-collapse-toggle";
         toggleBtn.title = "Collapse node";
         toggleBtn.setAttribute("aria-label", "Collapse node");
+        toggleBtn.setAttribute("aria-expanded", "true");
         toggleBtn.textContent = "[-]";
         toggleBtn.addEventListener("click", (e) => {
           e.stopPropagation();
