@@ -1,3 +1,9 @@
+/**
+ * @module
+ * @packageDocumentation
+ * Frontend-owned vertical layout and geometric routing calculations.
+ */
+
 import type { GraphSnapshot, GraphEdge } from "./model";
 
 /**

@@ -1,4 +1,10 @@
 /**
+ * @module
+ * @packageDocumentation
+ * Core immutable models for representing graphs and their differences.
+ */
+
+/**
  * Represents a primitive value that can be assigned to an attribute on a graph element.
  *
  * This type acts as a disjoint union to ensure unambiguous serialization and type safety

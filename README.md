@@ -42,10 +42,6 @@ For full details, generate the TypeDoc API reference via `pnpm run docs` or expl
 pnpm install @pgv/graph-core
 ```
 
-### Contributing
-
-Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, development environment setup, and the process for submitting pull requests to us.
-
 ### Basic Usage
 
 ```ts
@@ -75,6 +71,11 @@ const view = new GraphView(document.querySelector("#graph")!, schema, {
 view.setGraph(graph);
 ```
 
+<details>
+<summary><b>Contributing & Development</b></summary>
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, development environment setup, and the process for submitting pull requests to us.
+
 ## Development & Examples
 
 | Command | Description |
@@ -86,14 +87,19 @@ view.setGraph(graph);
 
 After starting the backend, fetch from: `http://localhost:8080/api/graphs/cfg-main`
 
-## Features
+</details>
+
+<details>
+<summary><b>Features</b></summary>
 
 - **Pan and Zoom**: Interactive exploration with mouse or touch.
 - **Theming**: Built-in support for light, dark, and system themes.
 - **Customizable**: Control layers for zooming, panning, and theme toggling.
 - **Graph History**: Navigate backwards and forwards through snapshots via GraphDiffs.
+</details>
 
-## Project Layout
+<details>
+<summary><b>Project Layout</b></summary>
 
 ```text
 src/
@@ -107,6 +113,7 @@ examples/
   vite-dynamic/             Dynamic demo fetching from backend
   spring-boot-producer/     Backend JSON producer demo
 ```
+</details>
 
 ## Package Notes
 
