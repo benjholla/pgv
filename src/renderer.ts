@@ -840,8 +840,7 @@ export class GraphView {
       btn.setAttribute("aria-label", label);
       btn.setAttribute("aria-pressed", active ? "true" : "false");
       btn.innerHTML = iconHtml;
-      btn.style.width = "20px";
-      btn.style.height = "20px";
+      // We remove the inline style for width/height so CSS can manage the sizes and media queries
       btn.addEventListener("click", () => {
         onClick();
         btn.classList.toggle("active");
@@ -1019,9 +1018,9 @@ export class GraphView {
       }
     });
 
-    actionsContainer.appendChild(info);
     actionsContainer.appendChild(searchBtn);
     actionsContainer.appendChild(cycleBtn);
+    actionsContainer.appendChild(info);
 
     // Add a close button
     const closeBtn = document.createElement("button");
