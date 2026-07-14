@@ -464,6 +464,37 @@ describe("layout", () => {
       expect(posA.y).toBe(posC.y);
     });
 
+    it("lays out collapsed nodes with reduced height and shifts subsequent nodes up", () => {
+      const graph = createGraphSnapshot({
+        graphId: "test",
+        version: 1,
+        nodes: [{ id: "A" }, { id: "B" }],
+        edges: [{ id: "e1", source: "A", target: "B" }],
+      });
+
+      const normalLayout = verticalLayout(graph);
+      const collapsedLayout = verticalLayout(graph, { collapsedNodes: new Set(["A"]) });
+
+      const normalPosA = normalLayout.positions.get("A")!;
+      const normalPosB = normalLayout.positions.get("B")!;
+
+      const collapsedPosA = collapsedLayout.positions.get("A")!;
+      const collapsedPosB = collapsedLayout.positions.get("B")!;
+
+      // A's position should be the same
+      expect(collapsedPosA.y).toBe(normalPosA.y);
+
+      // But A's size should be smaller (specifically 36 based on config)
+      const normalSizeA = normalLayout.nodeSizes.get("A") ?? normalLayout.nodeSize;
+      const collapsedSizeA = collapsedLayout.nodeSizes.get("A") ?? collapsedLayout.nodeSize;
+
+      expect(collapsedSizeA.height).toBeLessThan(normalSizeA.height);
+      expect(collapsedSizeA.height).toBe(36);
+
+      // B should be shifted up due to A being smaller
+      expect(collapsedPosB.y).toBeLessThan(normalPosB.y);
+    });
+
     it("respects custom layout options", () => {
       const graph = createGraphSnapshot({
         graphId: "test",
