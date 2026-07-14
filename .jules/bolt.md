@@ -8,3 +8,6 @@
 ## 2025-02-12 - Inline orthogonal layout direction checks
 **Learning:** In A* pathfinding (like edge orthogonal layout routing), allocating intermediate objects inside hot loops `const dirs = [{dx:0, dy:-1}, ...]` causes GC churn and slower execution, even when loop bounds are small.
 **Action:** Replace dynamically allocated object array loops with explicitly unrolled iterations or simple scalar loops using `if-else` branches when the number of directions is known and fixed.
+## $(date +%Y-%m-%d) - Optimize Array.from usages
+**Learning:** `Array.from()` on Maps or Sets is noticeably slower than creating a pre-allocated array (e.g. `new Array(map.size)`) and populating it with a simple `for...of` loop in this codebase.
+**Action:** When working in hot paths (like layout algorithms) that need to transform iterables into arrays before sorting, manually pre-allocate the array for a measurable performance gain.
