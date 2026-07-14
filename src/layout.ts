@@ -184,28 +184,45 @@ export function verticalLayout(
   // Sort node IDs to guarantee determinism in layout regardless of input map iteration order
   const nodeIds = Array.from(graph.nodes.keys()).sort();
   const outgoing = new Map<string, string[]>();
-  const incomingCounts = new Map<string, number>();
+  const incoming = new Map<string, string[]>();
+  const edgeOutgoing = new Map<string, string[]>();
+  const edgeIncoming = new Map<string, string[]>();
 
   for (const id of nodeIds) {
     outgoing.set(id, []);
-    incomingCounts.set(id, 0);
+    incoming.set(id, []);
+    edgeOutgoing.set(id, []);
+    edgeIncoming.set(id, []);
   }
 
   for (const edge of graph.edges.values()) {
+    // Note: We always need to add to edgeOutgoing and edgeIncoming even if nodes are missing
+    // or if it's a self loop, to maintain behavior of staggering calculation later.
+    if (!edgeOutgoing.has(edge.source)) edgeOutgoing.set(edge.source, []);
+    if (!edgeIncoming.has(edge.target)) edgeIncoming.set(edge.target, []);
+    edgeOutgoing.get(edge.source)!.push(edge.id);
+    edgeIncoming.get(edge.target)!.push(edge.id);
+
     if (!graph.nodes.has(edge.source) || !graph.nodes.has(edge.target)) {
       continue;
     }
 
     outgoing.get(edge.source)!.push(edge.target);
-    incomingCounts.set(edge.target, incomingCounts.get(edge.target)! + 1);
+    incoming.get(edge.target)!.push(edge.source);
   }
 
   // Sort outgoing edges to guarantee deterministic traversal
   for (const neighbors of outgoing.values()) {
     neighbors.sort();
   }
+  for (const list of edgeOutgoing.values()) {
+    list.sort();
+  }
+  for (const list of edgeIncoming.values()) {
+    list.sort();
+  }
 
-  const depths = assignVerticalDepths(nodeIds, outgoing, incomingCounts);
+  const depths = assignVerticalDepths(nodeIds, outgoing, incoming);
   const layers = groupByDepth(nodeIds, depths);
 
   if (previousLayout) {
@@ -220,9 +237,10 @@ export function verticalLayout(
           let sumIn = 0;
           let countIn = 0;
 
-          for (const edge of graph.edges.values()) {
-            if (edge.target === id && previousLayout.positions.has(edge.source)) {
-              sumIn += previousLayout.positions.get(edge.source)!.x;
+          const inNeighbors = incoming.get(id) || [];
+          for (const source of inNeighbors) {
+            if (previousLayout.positions.has(source)) {
+              sumIn += previousLayout.positions.get(source)!.x;
               countIn++;
             }
           }
@@ -233,9 +251,10 @@ export function verticalLayout(
             // Fall back to outgoing neighbors
             let sumOut = 0;
             let countOut = 0;
-            for (const edge of graph.edges.values()) {
-              if (edge.source === id && previousLayout.positions.has(edge.target)) {
-                sumOut += previousLayout.positions.get(edge.target)!.x;
+            const outNeighbors = outgoing.get(id) || [];
+            for (const target of outNeighbors) {
+              if (previousLayout.positions.has(target)) {
+                sumOut += previousLayout.positions.get(target)!.x;
                 countOut++;
               }
             }
@@ -335,20 +354,6 @@ export function verticalLayout(
   const edgeRouting = new Map<string, EdgeRoutingHint>();
   const spacing = 16;
   const maxOffset = config.nodeWidth / 2 - 8;
-
-  // We need to re-compute outgoing edges sorted by edge ID so that staggering is deterministic
-  const edgeOutgoing = new Map<string, string[]>();
-  const edgeIncoming = new Map<string, string[]>();
-
-  for (const edge of graph.edges.values()) {
-    if (!edgeOutgoing.has(edge.source)) edgeOutgoing.set(edge.source, []);
-    if (!edgeIncoming.has(edge.target)) edgeIncoming.set(edge.target, []);
-    edgeOutgoing.get(edge.source)!.push(edge.id);
-    edgeIncoming.get(edge.target)!.push(edge.id);
-  }
-
-  for (const list of edgeOutgoing.values()) list.sort();
-  for (const list of edgeIncoming.values()) list.sort();
 
   for (const edge of graph.edges.values()) {
     const outList = edgeOutgoing.get(edge.source) || [];
@@ -705,7 +710,7 @@ function routeEdgeOrthogonal(
 function assignVerticalDepths(
   nodeIds: readonly string[],
   outgoing: ReadonlyMap<string, readonly string[]>,
-  incomingCounts: ReadonlyMap<string, number>,
+  incoming: ReadonlyMap<string, readonly string[]>,
 ): ReadonlyMap<string, number> {
   const acyclicOutgoing = new Map<string, string[]>();
   for (const id of nodeIds) acyclicOutgoing.set(id, []);
@@ -743,7 +748,7 @@ function assignVerticalDepths(
     }
   }
 
-  const roots = nodeIds.filter((id) => incomingCounts.get(id) === 0);
+  const roots = nodeIds.filter((id) => incoming.get(id)!.length === 0);
   for (const id of roots) {
     if (state.get(id) !== "visited") {
       dfsBreakCyclesIterative(id);
@@ -771,7 +776,7 @@ function assignVerticalDepths(
 
   for (const id of nodeIds) {
     if (dagIncoming.get(id) === 0) {
-      if (incomingCounts.get(id) === 0) {
+      if (incoming.get(id)!.length === 0) {
         trueRoots.push(id);
       } else {
         fakeRoots.push(id);
