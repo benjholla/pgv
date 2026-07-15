@@ -635,9 +635,19 @@ function routeEdgeOrthogonal(
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    // PERF(Bolt): Sort descending and pop (O(1)) instead of shift (O(N))
-    openList.sort((a, b) => b.f - a.f);
-    const curr = openList.pop()!;
+    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
+    let minIdx = 0;
+    let minF = openList[0].f;
+    for (let i = 1; i < openList.length; i++) {
+      if (openList[i].f < minF) {
+        minF = openList[i].f;
+        minIdx = i;
+      }
+    }
+    const lastIdx = openList.length - 1;
+    const curr = openList[minIdx];
+    openList[minIdx] = openList[lastIdx];
+    openList.pop();
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];

@@ -11,3 +11,7 @@
 ## $(date +%Y-%m-%d) - Optimize Array.from usages
 **Learning:** `Array.from()` on Maps or Sets is noticeably slower than creating a pre-allocated array (e.g. `new Array(map.size)`) and populating it with a simple `for...of` loop in this codebase.
 **Action:** When working in hot paths (like layout algorithms) that need to transform iterables into arrays before sorting, manually pre-allocate the array for a measurable performance gain.
+
+## 2024-07-15 - A* Priority Queue Array Scan
+**Learning:** In hot loops like A* pathfinding (`routeEdgeOrthogonal`), using `Array.prototype.sort()` inside the loop to find the minimum element is significantly slower than doing a simple O(N) linear scan to find the minimum, swapping it with the last element, and popping it. Sorting is O(N log N) on every iteration, whereas the scan-swap-pop approach is O(N) without array shifting overhead.
+**Action:** Replace `Array.sort().pop()` with a linear scan, swap, and pop in priority-queue implementations inside hot loops.
