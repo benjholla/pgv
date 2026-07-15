@@ -628,7 +628,7 @@ export class GraphView {
     // keyboard tabbing order (nodes then edges) while keeping z-index
     // responsible for visual stacking.
     stage.append(...renderNodes(graph, layout, this.#options, this.#collapsedNodes, (id) => this.#toggleNodeCollapse(id)));
-    stage.appendChild(renderEdges(graph, layout, this.#options));
+    stage.appendChild(renderEdges(graph, layout, this.#options, this.#schema));
 
     if (this.#options.usePanZoom || this.#options.useThemeToggle || (this.#options.maxHistory && this.#options.maxHistory > 0)) {
       const viewport = document.createElement("div");
@@ -2198,6 +2198,7 @@ function renderEdges(
   graph: GraphSnapshot,
   layout: LayoutSnapshot,
   options: GraphViewOptions,
+  schema: GraphSchema,
 ): SVGSVGElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   const edgeLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -2215,6 +2216,19 @@ function renderEdges(
   edgeLayer.classList.add("pgv-edge-layer-inner");
   svg.appendChild(edgeLayer);
   for (const edge of graph.edges.values()) {
+    let isContainment = false;
+    if (schema.containment) {
+      for (let i = 0; i < edge.tags.length; i++) {
+        if (schema.containment.includes(edge.tags[i])) {
+          isContainment = true;
+          break;
+        }
+      }
+    }
+    if (isContainment) {
+      continue;
+    }
+
     const endpoints = edgeEndpoints(edge, layout);
 
     if (!endpoints) {

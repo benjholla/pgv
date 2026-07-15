@@ -71,6 +71,15 @@
         },
         "XCSG.name": "Return sum"
       }
+    },
+    {
+      "id": "Foo",
+      "tags": [
+        "XCSG.Function"
+      ],
+      "attributes": {
+        "XCSG.name": "Foo"
+      }
     }
   ],
   "edges": [
@@ -133,6 +142,60 @@
       "attributes": {
         "XCSG.conditionValue": false
       }
+    },
+    {
+      "id": "e-Foo-entry-contains",
+      "source": "Foo",
+      "target": "entry",
+      "tags": [
+        "XCSG.Contains"
+      ],
+      "attributes": {}
+    },
+    {
+      "id": "e-Foo-init-contains",
+      "source": "Foo",
+      "target": "init",
+      "tags": [
+        "XCSG.Contains"
+      ],
+      "attributes": {}
+    },
+    {
+      "id": "e-Foo-condition-contains",
+      "source": "Foo",
+      "target": "condition",
+      "tags": [
+        "XCSG.Contains"
+      ],
+      "attributes": {}
+    },
+    {
+      "id": "e-Foo-body-contains",
+      "source": "Foo",
+      "target": "body",
+      "tags": [
+        "XCSG.Contains"
+      ],
+      "attributes": {}
+    },
+    {
+      "id": "e-Foo-increment-contains",
+      "source": "Foo",
+      "target": "increment",
+      "tags": [
+        "XCSG.Contains"
+      ],
+      "attributes": {}
+    },
+    {
+      "id": "e-Foo-exit-contains",
+      "source": "Foo",
+      "target": "exit",
+      "tags": [
+        "XCSG.Contains"
+      ],
+      "attributes": {}
     }
   ]
 }
