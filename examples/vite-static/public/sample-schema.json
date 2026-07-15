@@ -1,3 +1,5 @@
 {
-  "containment": ["contains"]
+  "containment": [
+    "XCSG.Contains"
+  ]
 }

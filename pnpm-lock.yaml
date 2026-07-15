@@ -11,6 +11,9 @@ importers:
       html-to-image:
         specifier: ^1.11.13
         version: 1.11.13
+      pnpm:
+        specifier: ^11.13.0
+        version: 11.13.0
     devDependencies:
       '@playwright/test':
         specifier: ^1.61.1
@@ -601,6 +604,11 @@ packages:
   playwright@1.61.1:
     resolution: {integrity: sha512-DWnY5o3YbLWK4GovuAVwpqL+1VwGNdUGrRr++8j8PtQQzvAVZUIMjKQ90fY689sEJZJBbZVw1rXaOKSTitkzPQ==}
     engines: {node: '>=18'}
+    hasBin: true
+
+  pnpm@11.13.0:
+    resolution: {integrity: sha512-iNlHJNjy5sGGdEpVhMblnsrIaex7oV6ctM1ijo3HBmggskgdjuO1HqjaMjpzeAaKpYxVajcg0yt8IKBR0Ig2Og==}
+    engines: {node: '>=22.13'}
     hasBin: true
 
   postcss@8.5.16:
@@ -1318,6 +1326,8 @@ snapshots:
       playwright-core: 1.61.1
     optionalDependencies:
       fsevents: 2.3.2
+
+  pnpm@11.13.0: {}
 
   postcss@8.5.16:
     dependencies:
