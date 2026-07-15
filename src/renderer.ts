@@ -147,7 +147,6 @@ export class GraphView {
    */
   readonly container: HTMLElement;
 
-  readonly #schema: GraphSchema;
   #options: GraphViewOptions;
   #graph: GraphSnapshot | null = null;
   #layout: LayoutSnapshot | null = null;
@@ -192,12 +191,10 @@ export class GraphView {
    * Initializes a new interactive graph visualization within the given DOM container.
    *
    * @param container The root DOM element where the graph view will be mounted.
-   * @param schema Groundwork for future graph presentation details (e.g., semantic containment relationships).
    * @param options Optional configuration overrides to customize layout, behavior, and styling.
    */
-  constructor(container: HTMLElement, schema: GraphSchema, options: GraphViewOptions = {}) {
+  constructor(container: HTMLElement, options: GraphViewOptions = {}) {
     this.container = container;
-    this.#schema = schema;
     this.#options = options;
     this.#currentTheme = options.theme ?? "auto";
   }

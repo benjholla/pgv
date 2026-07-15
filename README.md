@@ -60,7 +60,7 @@ const graph = createGraphSnapshot(json as GraphSnapshotJson);
 const layout = verticalLayout(graph);
 
 // 3. Initialize the interactive graph view
-const view = new GraphView(document.querySelector("#graph")!, schema, {
+const view = new GraphView(document.querySelector("#graph")!, {
   layout,
   usePanZoom: true,
   useThemeToggle: true,
@@ -110,8 +110,10 @@ src/
 
 examples/
   vite-static/              Static TypeScript frontend demo
+  vite-static-history/      Static demo showcasing graph diff history navigation
   vite-dynamic/             Dynamic demo fetching from backend
   spring-boot-producer/     Backend JSON producer demo
+  static-tester/            Internal tool for UI layout testing
 ```
 </details>
 
