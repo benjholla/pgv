@@ -1765,11 +1765,21 @@ export class GraphView {
     const downloadBtn = this.container.querySelector<HTMLButtonElement>(".pgv-download-action-btn");
     const dropdownBtn = this.container.querySelector<HTMLButtonElement>(".pgv-download-dropdown-btn");
     let originalBtnHtml = "";
+    let originalDownloadTitle = "";
+    let originalDropdownTitle = "";
 
     if (downloadBtn && dropdownBtn) {
       originalBtnHtml = downloadBtn.innerHTML;
+      originalDownloadTitle = downloadBtn.title;
+      originalDropdownTitle = dropdownBtn.title;
+
       downloadBtn.disabled = true;
       dropdownBtn.disabled = true;
+
+      downloadBtn.title = "Downloading graph...";
+      downloadBtn.setAttribute("aria-label", downloadBtn.title);
+      dropdownBtn.title = "Download in progress";
+      dropdownBtn.setAttribute("aria-label", dropdownBtn.title);
 
       const formatLabels: Record<string, string> = { svg: " SVG", png: " PNG", jpeg: "JPEG", json: "JSON" };
       downloadBtn.innerHTML = `
@@ -1944,6 +1954,10 @@ export class GraphView {
         downloadBtn.innerHTML = originalBtnHtml;
         downloadBtn.disabled = false;
         dropdownBtn.disabled = false;
+        downloadBtn.title = originalDownloadTitle;
+        downloadBtn.setAttribute("aria-label", originalDownloadTitle);
+        dropdownBtn.title = originalDropdownTitle;
+        dropdownBtn.setAttribute("aria-label", originalDropdownTitle);
       }
     }
   }
