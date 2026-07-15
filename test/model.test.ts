@@ -111,6 +111,37 @@ describe("model", () => {
       })).toThrow(/references missing source/);
     });
 
+    it("throws on self-parenting containment cycle", () => {
+      const json = {
+        nodes: [{ id: "n1", parent: "n1" }],
+        edges: []
+      };
+      expect(() => createGraphSnapshot(json as any)).toThrow(/containment cycle/i);
+    });
+
+    it("throws on mutual containment cycle", () => {
+      const json = {
+        nodes: [
+          { id: "n1", parent: "n2" },
+          { id: "n2", parent: "n1" }
+        ],
+        edges: []
+      };
+      expect(() => createGraphSnapshot(json as any)).toThrow(/containment cycle/i);
+    });
+
+    it("throws on deep containment cycle", () => {
+      const json = {
+        nodes: [
+          { id: "n1", parent: "n2" },
+          { id: "n2", parent: "n3" },
+          { id: "n3", parent: "n1" }
+        ],
+        edges: []
+      };
+      expect(() => createGraphSnapshot(json as any)).toThrow(/containment cycle/i);
+    });
+
     it("throws on duplicate edge ID", () => {
       const json: GraphSnapshotJson = {
         nodes: [{ id: "n1" }, { id: "n2" }],
@@ -599,6 +630,16 @@ describe("model", () => {
     it("throws when removing a node leaves an orphaned child node", () => {
       const diff = createGraphDiff({ removedNodes: ["n1"], removedEdges: ["e1"] }); // n2 has parent n1
       expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/references missing parent/);
+    });
+
+    it("throws when applying a diff introduces a containment cycle", () => {
+      // baseSnapshot has n2 parented to n1.
+      // diff parents n1 to n2.
+      const diff = createGraphDiff({
+        removedNodes: ["n1"],
+        addedNodes: [{ id: "n1", parent: "n2" }]
+      });
+      expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/containment cycle/i);
     });
 
     it("allows adding a node and edge simultaneously", () => {
