@@ -320,6 +320,34 @@ export class GraphModelError extends Error {
  * @returns A frozen, validated `GraphSnapshot`.
  * @throws {GraphModelError} If duplicate IDs are found, or references (edges, parents) are invalid.
  */
+function validateContainmentAcyclic(nodes: Map<string, GraphNode>) {
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+
+  for (const startId of nodes.keys()) {
+    if (visited.has(startId)) continue;
+
+    let currentId: string | undefined = startId;
+    const path = [];
+
+    while (currentId !== undefined && !visited.has(currentId)) {
+      if (visiting.has(currentId)) {
+        throw new GraphModelError(`Containment cycle detected involving node "${currentId}".`);
+      }
+      visiting.add(currentId);
+      path.push(currentId);
+
+      const node = nodes.get(currentId);
+      currentId = node?.parent;
+    }
+
+    for (const id of path) {
+      visiting.delete(id);
+      visited.add(id);
+    }
+  }
+}
+
 export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
   const nodes = new Map<string, GraphNode>();
   const edges = new Map<string, GraphEdge>();
@@ -341,6 +369,8 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
       );
     }
   }
+
+  validateContainmentAcyclic(nodes);
 
   for (const edge of input.edges) {
     const normalized = normalizeEdge(edge);
@@ -593,6 +623,8 @@ export function applyGraphDiff(
       );
     }
   }
+
+  validateContainmentAcyclic(nodes);
 
   for (const edge of edges.values()) {
     if (!nodes.has(edge.source)) {
