@@ -63,7 +63,6 @@
     "vitest": "^4.1.9"
   },
   "dependencies": {
-    "html-to-image": "^1.11.13",
-    "pnpm": "^11.13.0"
+    "html-to-image": "^1.11.13"
   }
 }
