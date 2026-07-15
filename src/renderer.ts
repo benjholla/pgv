@@ -11,6 +11,10 @@ import { toSvg, toPng, toJpeg } from "html-to-image";
 let markerIdSequence = 0;
 const PGV_VIEWPORT_CLASS = "pgv-viewport";
 
+const ATTRIBUTE_SEARCH_MODES = new Set(["node-attribute", "edge-attribute", "attribute"]);
+const NODE_SEARCH_MODES = new Set(["all", "id", "node-id", "node-tag", "node-attribute", "tag", "attribute"]);
+const EDGE_SEARCH_MODES = new Set(["all", "id", "edge-id", "edge-tag", "edge-attribute", "tag", "attribute"]);
+
 /**
  * Represents the currently selected or highlighted elements in the graph view.
  *
@@ -393,7 +397,7 @@ export class GraphView {
   #getPreviewCount(): number {
     if (!this.#graph) return 0;
 
-    const isAttributeMode = ["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode);
+    const isAttributeMode = ATTRIBUTE_SEARCH_MODES.has(this.#searchMode);
     if (!isAttributeMode && !this.#searchQuery) return 0;
     if (isAttributeMode && !this.#searchKeyQuery && !this.#searchQuery) return 0;
 
@@ -401,8 +405,8 @@ export class GraphView {
     const keyMatcher = this.#compileMatcher(this.#searchKeyQuery, this.#searchExactKey, this.#searchCaseSensitiveKey, this.#searchRegexKey);
 
     let count = 0;
-    const searchNodes = ["all", "id", "node-id", "node-tag", "node-attribute", "tag", "attribute"].includes(this.#searchMode);
-    const searchEdges = ["all", "id", "edge-id", "edge-tag", "edge-attribute", "tag", "attribute"].includes(this.#searchMode);
+    const searchNodes = NODE_SEARCH_MODES.has(this.#searchMode);
+    const searchEdges = EDGE_SEARCH_MODES.has(this.#searchMode);
 
     if (searchNodes) {
       for (const node of this.#graph.nodes.values()) {
@@ -422,7 +426,7 @@ export class GraphView {
   #executeSearch(): void {
     if (!this.#graph) return;
 
-    const isAttributeMode = ["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode);
+    const isAttributeMode = ATTRIBUTE_SEARCH_MODES.has(this.#searchMode);
 
     // If not attribute mode and query is empty, or attribute mode and BOTH are empty, clear
     if (!isAttributeMode && !this.#searchQuery) {
@@ -449,8 +453,8 @@ export class GraphView {
     const matchedEdges = new Set<string>();
     this.#searchResults = [];
 
-    const searchNodes = ["all", "id", "node-id", "node-tag", "node-attribute", "tag", "attribute"].includes(this.#searchMode);
-    const searchEdges = ["all", "id", "edge-id", "edge-tag", "edge-attribute", "tag", "attribute"].includes(this.#searchMode);
+    const searchNodes = NODE_SEARCH_MODES.has(this.#searchMode);
+    const searchEdges = EDGE_SEARCH_MODES.has(this.#searchMode);
 
     if (searchNodes) {
       for (const node of this.#graph.nodes.values()) {
@@ -830,7 +834,7 @@ export class GraphView {
     const inputsContainer = document.createElement("div");
     inputsContainer.className = "pgv-search-inputs";
 
-    const isAttributeMode = ["node-attribute", "edge-attribute", "attribute"].includes(this.#searchMode);
+    const isAttributeMode = ATTRIBUTE_SEARCH_MODES.has(this.#searchMode);
     const modeLabel = modes.find(m => m.value === this.#searchMode)?.label || "Everywhere";
 
     const matchCaseIcon = `Aa`;
