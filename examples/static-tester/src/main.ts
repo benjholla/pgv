@@ -30,7 +30,7 @@ function updateGraph(): void {
   };
 
   if (!graphView) {
-    graphView = new GraphView(graphElement, options);
+    graphView = new GraphView(graphElement, {}, options);
     graphView.setGraph(currentGraph);
   } else {
     graphView.setGraph(currentGraph);

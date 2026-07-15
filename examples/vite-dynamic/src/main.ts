@@ -105,7 +105,7 @@ function updateGraph(): void {
   };
 
   if (!graphView) {
-    graphView = new GraphView(graphElement, options);
+    graphView = new GraphView(graphElement, currentSchema, options);
     graphView.setGraph(currentGraph);
   } else {
     graphView.updateOptions(options);

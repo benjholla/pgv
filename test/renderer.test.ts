@@ -110,7 +110,7 @@ describe('GraphView', () => {
     };
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
-    const view = new GraphView(container, { layout });
+    const view = new GraphView(container, {}, { layout });
     view.setGraph(snapshot);
 
     expect(view).toBeInstanceOf(GraphView);
@@ -136,7 +136,7 @@ describe('GraphView', () => {
     };
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
-    const view = new GraphView(container, { layout, usePanZoom: true });
+    const view = new GraphView(container, {}, { layout, usePanZoom: true });
     view.setGraph(snapshot);
 
     const viewport = container.querySelector('.pgv-viewport') as HTMLElement;
@@ -169,7 +169,7 @@ describe('GraphView', () => {
     };
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
-    const view = new GraphView(container, { layout, usePanZoom: true });
+    const view = new GraphView(container, {}, { layout, usePanZoom: true });
     view.setGraph(snapshot);
 
     const viewport = container.querySelector('.pgv-viewport') as HTMLElement;
@@ -196,7 +196,7 @@ describe('GraphView', () => {
     };
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
-    const view = new GraphView(container, { layout, usePanZoom: true, useThemeToggle: true });
+    const view = new GraphView(container, {}, { layout, usePanZoom: true, useThemeToggle: true });
     view.setGraph(snapshot);
 
     const minimapBtn = container.querySelector('button[aria-label="Toggle Minimap"]') || container.querySelector('button[title="Toggle Minimap"]') as HTMLButtonElement;
@@ -239,7 +239,7 @@ describe('GraphView', () => {
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
 
-    const view = new GraphView(container, { layout, usePanZoom: true });
+    const view = new GraphView(container, {}, { layout, usePanZoom: true });
     view.setGraph(snapshot);
 
     // Wait for the render queue to empty
@@ -316,7 +316,7 @@ describe('GraphView', () => {
     };
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
-    const view = new GraphView(container, { layout, useThemeToggle: true, usePanZoom: true });
+    const view = new GraphView(container, {}, { layout, useThemeToggle: true, usePanZoom: true });
     view.setGraph(snapshot);
 
     await new Promise(resolve => setTimeout(resolve, 50));
@@ -362,7 +362,7 @@ describe('GraphView', () => {
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
 
-    const view = new GraphView(container, { layout, maxHistory: 10 });
+    const view = new GraphView(container, {}, { layout, maxHistory: 10 });
     view.setGraph(snapshot);
 
     expect(container.querySelectorAll('.pgv-graph-node').length).toBe(1);
@@ -420,7 +420,7 @@ describe('GraphView', () => {
         edges: [{ id: "e1", source: "n1", target: "n2", attributes: { label: "myLabel" } }]
       };
       const snap = createGraphSnapshot(json);
-      const view = new GraphView(container, {
+      const view = new GraphView(container, snap.schema || {}, {
         edgeLabel: (e) => e.attributes.label as string
       });
       view.setGraph(snap);
@@ -439,7 +439,7 @@ describe('GraphView', () => {
         edges: []
       };
       const snap = createGraphSnapshot(json);
-      const view = new GraphView(container, {
+      const view = new GraphView(container, snap.schema || {}, {
         nodeContent: (n) => {
           if (n.id === "n1") return "string-content";
           const div = document.createElement("div");
@@ -470,7 +470,7 @@ describe('GraphView', () => {
         edges: []
       };
       const snap = createGraphSnapshot(json);
-      const view = new GraphView(container);
+      const view = new GraphView(container, snap.schema || {});
       view.setGraph(snap);
 
       const dl = container.querySelector("dl.pgv-node-attributes");
@@ -493,7 +493,7 @@ describe('GraphView', () => {
       });
 
       const container = document.createElement("div");
-      const view = new GraphView(container);
+      const view = new GraphView(container, {});
       view.setGraph(graph);
 
       let nodeA = container.querySelector(".pgv-graph-node[data-node-id='A']");
@@ -542,7 +542,7 @@ describe('GraphView', () => {
 
       const container = document.createElement("div");
       const schema = { tags: {}, edgeAttributes: {}, nodeAttributes: {} };
-      const view = new GraphView(container);
+      const view = new GraphView(container, schema);
 
       view.setGraph(graph, {
         selection: {

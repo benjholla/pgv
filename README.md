@@ -60,7 +60,7 @@ const graph = createGraphSnapshot(json as GraphSnapshotJson);
 const layout = verticalLayout(graph);
 
 // 3. Initialize the interactive graph view
-const view = new GraphView(document.querySelector("#graph")!, {
+const view = new GraphView(document.querySelector("#graph")!, schema, {
   layout,
   usePanZoom: true,
   useThemeToggle: true,
