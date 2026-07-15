@@ -311,14 +311,10 @@ export class GraphModelError extends Error {
 }
 
 /**
- * Creates an immutable `GraphSnapshot` from a JSON payload, validating all structural invariants.
+ * Validates that the node containment hierarchy does not contain cycles.
  *
- * This function enforces uniqueness of IDs, verifies that all edge endpoints point to valid
- * nodes, and checks that parent nodes exist. It also sanitizes string attributes.
- *
- * @param input The JSON payload representing the graph.
- * @returns A frozen, validated `GraphSnapshot`.
- * @throws {GraphModelError} If duplicate IDs are found, or references (edges, parents) are invalid.
+ * @param nodes A map of graph nodes to validate.
+ * @throws {GraphModelError} If a containment cycle is detected.
  */
 function validateContainmentAcyclic(nodes: Map<string, GraphNode>) {
   const visited = new Set<string>();
@@ -348,6 +344,16 @@ function validateContainmentAcyclic(nodes: Map<string, GraphNode>) {
   }
 }
 
+/**
+ * Creates an immutable `GraphSnapshot` from a JSON payload, validating all structural invariants.
+ *
+ * This function enforces uniqueness of IDs, verifies that all edge endpoints point to valid
+ * nodes, and checks that parent nodes exist. It also sanitizes string attributes.
+ *
+ * @param input The JSON payload representing the graph.
+ * @returns A frozen, validated `GraphSnapshot`.
+ * @throws {GraphModelError} If duplicate IDs are found, or references (edges, parents) are invalid.
+ */
 export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
   const nodes = new Map<string, GraphNode>();
   const edges = new Map<string, GraphEdge>();
