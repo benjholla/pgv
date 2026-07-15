@@ -43,3 +43,6 @@
 ## 2024-07-13 - Add Arrow Up/Down navigation to ARIA menu dropdowns
 **Learning:** Components marked with `role="menu"` require explicit `ArrowUp` and `ArrowDown` keyboard event handling to support navigation between their `role="menuitem"` children, as standard `Tab` navigation behaves differently inside menubar/menu widgets according to WAI-ARIA authoring practices.
 **Action:** When creating custom dropdown menus or context menus with `role="menu"`, explicitly add `keydown` listeners handling `ArrowUp` and `ArrowDown` to shift `.focus()` to the `previousElementSibling` and `nextElementSibling` respectively, including logic to wrap around the list boundaries.
+## 2024-07-06 - Disabled States Tooltips for Async Actions
+**Learning:** When async actions (like downloading a graph) take time, setting `disabled=true` is good, but without updating the tooltip and `aria-label`, screen readers only announce the original action name (e.g., "Download Graph") as disabled. This can be confusing, as the user doesn't know *why* it's disabled or that the action is currently in progress.
+**Action:** When temporarily disabling a button during an async operation, temporarily update the `title` and `aria-label` to provide context (e.g., "Downloading graph..."), and restore them in the `finally` block.
