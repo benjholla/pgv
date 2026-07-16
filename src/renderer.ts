@@ -142,6 +142,20 @@ import { type GraphDiff, applyGraphDiff, graphSnapshotToJson } from "./model";
  * (pan/zoom), control panels (minimap, search), and event listeners.
  *
  * **Important**: Be sure to call `destroy()` when removing the view to prevent memory leaks.
+ *
+ * @example
+ * ```typescript
+ * const container = document.getElementById("graph-container");
+ * const view = new GraphView(container, { containment: ["contains"] }, {
+ *   usePanZoom: true,
+ *   theme: "light",
+ *   onNodeClick: (nodeId) => console.log(`Clicked node ${nodeId}`)
+ * });
+ * view.setGraph(snapshot);
+ *
+ * // Later, when navigating away or unmounting:
+ * // view.destroy();
+ * ```
  */
 export class GraphView {
   #clearSelectionBtn: HTMLButtonElement | null = null;
