@@ -214,11 +214,22 @@ export function verticalLayout(
   previousLayout?: LayoutSnapshot,
 ): LayoutSnapshot {
   const config = { ...DEFAULT_VERTICAL_LAYOUT, ...options };
+  const parentNodes = new Set<string>();
+  for (const edge of graph.edges.values()) {
+    for (let i = 0; i < edge.tags.length; i++) {
+      if (config.containmentTags.has(edge.tags[i])) {
+        parentNodes.add(edge.source);
+        break;
+      }
+    }
+  }
+
   // Sort node IDs to guarantee determinism in layout regardless of input map iteration order
-  const nodeIds = new Array<string>(graph.nodes.size);
-  let nIdx = 0;
+  const nodeIds = [];
   for (const id of graph.nodes.keys()) {
-    nodeIds[nIdx++] = id;
+    if (!parentNodes.has(id)) {
+      nodeIds.push(id);
+    }
   }
   nodeIds.sort();
   const outgoing = new Map<string, string[]>();
@@ -252,7 +263,7 @@ export function verticalLayout(
     edgeOutgoing.get(edge.source)!.push(edge.id);
     edgeIncoming.get(edge.target)!.push(edge.id);
 
-    if (!graph.nodes.has(edge.source) || !graph.nodes.has(edge.target)) {
+    if (!graph.nodes.has(edge.source) || !graph.nodes.has(edge.target) || parentNodes.has(edge.source) || parentNodes.has(edge.target)) {
       continue;
     }
 
