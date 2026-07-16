@@ -176,6 +176,17 @@ const DEFAULT_VERTICAL_LAYOUT: Required<VerticalLayoutOptions> = {
  * If a `previousLayout` is provided, the algorithm will attempt to preserve the relative topological order and visual locality of nodes within layers, minimizing context shifts and jumping during re-renders.
  * Later in the rendering pipeline, edges are individually routed between these laid-out nodes using an A* shortest-path algorithm (via `edgeEndpoints`) to compute orthogonal lines that avoid intersecting node bounding boxes.
  *
+ * @example
+ * ```typescript
+ * const layout = verticalLayout(snapshot, {
+ *   nodeWidth: 150,
+ *   nodeHeight: 50,
+ *   layerSpacing: 100
+ * });
+ * const nodePos = layout.positions.get("A");
+ * console.log(`Node A is at (${nodePos?.x}, ${nodePos?.y})`);
+ * ```
+ *
  * @param graph The logical graph to lay out.
  * @param options Dimensions and spacing parameters.
  * @param previousLayout An optional previous layout to use as an ordering hint for nodes.

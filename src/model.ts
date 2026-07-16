@@ -350,6 +350,20 @@ function validateContainmentAcyclic(nodes: Map<string, GraphNode>) {
  * This function enforces uniqueness of IDs, verifies that all edge endpoints point to valid
  * nodes, and checks that parent nodes exist. It also sanitizes string attributes.
  *
+ * @example
+ * ```typescript
+ * const snapshot = createGraphSnapshot({
+ *   nodes: [
+ *     { id: "A", tags: ["start"], attributes: { label: "Start Node" } },
+ *     { id: "B", tags: ["end"] }
+ *   ],
+ *   edges: [
+ *     { id: "e1", source: "A", target: "B" }
+ *   ]
+ * });
+ * console.log(snapshot.nodes.get("A")?.attributes.label); // "Start Node"
+ * ```
+ *
  * @param input The JSON payload representing the graph.
  * @returns A frozen, validated `GraphSnapshot`.
  * @throws {GraphModelError} If duplicate IDs are found, or references (edges, parents) are invalid.
@@ -465,6 +479,19 @@ export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson 
 
 /**
  * Validates and freezes a JSON representation of a graph difference.
+ *
+ * @example
+ * ```typescript
+ * const diff = createGraphDiff({
+ *   addedNodes: [{ id: "C", tags: ["middle"] }],
+ *   removedEdges: ["e1"],
+ *   addedEdges: [
+ *     { id: "e2", source: "A", target: "C" },
+ *     { id: "e3", source: "C", target: "B" }
+ *   ]
+ * });
+ * console.log(diff.addedNodes.length); // 1
+ * ```
  *
  * @param input The JSON payload representing the diff.
  * @returns An immutable `GraphDiff`.
@@ -585,6 +612,13 @@ export function graphDiffToJson(diff: GraphDiff): GraphDiffJson {
  * returning a new, immutable `GraphSnapshot`.
  *
  * This operation is functional; it does not mutate the original snapshot.
+ *
+ * @example
+ * ```typescript
+ * const nextSnapshot = applyGraphDiff(snapshot, diff);
+ * console.log(nextSnapshot.nodes.has("C")); // true
+ * console.log(nextSnapshot.edges.has("e1")); // false
+ * ```
  *
  * @param snapshot The starting graph state.
  * @param diff The incremental changes to apply (removals happen before additions).
