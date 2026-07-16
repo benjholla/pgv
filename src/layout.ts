@@ -187,39 +187,107 @@ export function verticalLayout(
   previousLayout?: LayoutSnapshot,
 ): LayoutSnapshot {
   const config = { ...DEFAULT_VERTICAL_LAYOUT, ...options };
-  // Sort node IDs to guarantee determinism in layout regardless of input map iteration order
-  const nodeIds = new Array<string>(graph.nodes.size);
-  let nIdx = 0;
-  for (const id of graph.nodes.keys()) {
-    nodeIds[nIdx++] = id;
+
+  // Identify nodes hidden inside collapsed parents
+  const hiddenNodes = new Set<string>();
+  const activeCollapsedAncestors = new Map<string, string>(); // hidden node -> visible collapsed ancestor
+
+  const collapsedNodes = config.collapsedNodes || new Set<string>();
+
+  // DFS to find hidden nodes
+  for (const [id, node] of graph.nodes) {
+    let current = node.parent;
+    let collapsedAncestor: string | null = null;
+    while (current) {
+      if (collapsedNodes.has(current)) {
+        collapsedAncestor = current;
+        // Don't break immediately, find the highest collapsed ancestor?
+        // Actually, any collapsed ancestor makes it hidden.
+        // Highest is better for lifting edges.
+      }
+      current = graph.nodes.get(current)?.parent;
+    }
+
+    if (collapsedAncestor) {
+      hiddenNodes.add(id);
+      activeCollapsedAncestors.set(id, collapsedAncestor);
+    }
   }
-  nodeIds.sort();
+
+  // Filter out expanded parents from grid layout (they get bounds bottom-up)
+  const isExpandedParent = new Set<string>();
+  for (const [id, node] of graph.nodes) {
+    if (node.parent && !collapsedNodes.has(node.parent) && !hiddenNodes.has(node.parent)) {
+      isExpandedParent.add(node.parent);
+    }
+  }
+
+  // Active nodes are leaf nodes and collapsed parents (not hidden)
+  const layoutNodeIds: string[] = [];
+  for (const id of graph.nodes.keys()) {
+    if (!hiddenNodes.has(id) && !isExpandedParent.has(id)) {
+      layoutNodeIds.push(id);
+    }
+  }
+  layoutNodeIds.sort();
+
   const outgoing = new Map<string, string[]>();
   const incoming = new Map<string, string[]>();
   const edgeOutgoing = new Map<string, string[]>();
   const edgeIncoming = new Map<string, string[]>();
 
-  for (const id of nodeIds) {
+  // Initialize only for active grid layout nodes
+  for (const id of layoutNodeIds) {
     outgoing.set(id, []);
     incoming.set(id, []);
+  }
+
+  // Keep edge tracking for all nodes to support original staggered edge calculation later
+  for (const id of graph.nodes.keys()) {
     edgeOutgoing.set(id, []);
     edgeIncoming.set(id, []);
   }
 
-  for (const edge of graph.edges.values()) {
-    // Note: We always need to add to edgeOutgoing and edgeIncoming even if nodes are missing
-    // or if it's a self loop, to maintain behavior of staggering calculation later.
-    if (!edgeOutgoing.has(edge.source)) edgeOutgoing.set(edge.source, []);
-    if (!edgeIncoming.has(edge.target)) edgeIncoming.set(edge.target, []);
-    edgeOutgoing.get(edge.source)!.push(edge.id);
-    edgeIncoming.get(edge.target)!.push(edge.id);
+  // We filter containment edges. We can find them from schema.
+  const containmentTags = new Set(graph.schema?.containment ?? []);
 
-    if (!graph.nodes.has(edge.source) || !graph.nodes.has(edge.target)) {
+  for (const edge of graph.edges.values()) {
+    // Lift edges to collapsed ancestors
+    const effectiveSource = activeCollapsedAncestors.get(edge.source) || edge.source;
+    const effectiveTarget = activeCollapsedAncestors.get(edge.target) || edge.target;
+
+    // Skip containment edges completely for geometric grid
+    let isContainment = false;
+    for (const tag of edge.tags) {
+      if (containmentTags.has(tag)) {
+        isContainment = true;
+        break;
+      }
+    }
+
+    // For edge stagger calculation, we use original source/target, but maybe we shouldn't draw it if hidden
+    // Keep edge staggering for now, only stagger if both endpoints are visible?
+    if (!hiddenNodes.has(edge.source) && edgeOutgoing.has(edge.source)) {
+      edgeOutgoing.get(edge.source)!.push(edge.id);
+    }
+    if (!hiddenNodes.has(edge.target) && edgeIncoming.has(edge.target)) {
+      edgeIncoming.get(edge.target)!.push(edge.id);
+    }
+
+    if (isContainment) continue;
+
+    if (!graph.nodes.has(effectiveSource) || !graph.nodes.has(effectiveTarget)) {
       continue;
     }
 
-    outgoing.get(edge.source)!.push(edge.target);
-    incoming.get(edge.target)!.push(edge.source);
+    // Only add to grid adjacency if both are grid layout participants (not expanded parents)
+    // Wait, if an edge connects to an expanded parent, we shouldn't route it to the parent in the grid
+    // We should route it to the closest layout child, or maybe we just ignore it in the grid topological sort?
+    // Let's only add to adjacency if both are layoutNodeIds (this effectively ignores edges to/from expanded parents for grid sorting)
+    if (outgoing.has(effectiveSource) && incoming.has(effectiveTarget) && effectiveSource !== effectiveTarget) {
+      outgoing.get(effectiveSource)!.push(effectiveTarget);
+      incoming.get(effectiveTarget)!.push(effectiveSource);
+    }
   }
 
   // Sort outgoing edges to guarantee deterministic traversal
@@ -233,8 +301,8 @@ export function verticalLayout(
     list.sort();
   }
 
-  const depths = assignVerticalDepths(nodeIds, outgoing, incoming);
-  const layers = groupByDepth(nodeIds, depths);
+  const depths = assignVerticalDepths(layoutNodeIds, outgoing, incoming);
+  const layers = groupByDepth(layoutNodeIds, depths);
 
   if (previousLayout) {
     for (const ids of layers.values()) {
@@ -281,6 +349,24 @@ export function verticalLayout(
 
       // Sort nodes in this layer by hintX, falling back to ID for determinism
       (ids as string[]).sort((a, b) => {
+        const getParentChain = (id: string) => {
+          let curr = graph.nodes.get(id)?.parent;
+          if (!curr) return "";
+          const chain: string[] = [];
+          while (curr) {
+            chain.unshift(curr); // root parent first
+            curr = graph.nodes.get(curr)?.parent;
+          }
+          return chain.join(":");
+        };
+
+        const chainA = getParentChain(a);
+        const chainB = getParentChain(b);
+
+        if (chainA !== chainB) {
+          return chainA.localeCompare(chainB);
+        }
+
         const diff = hintX.get(a)! - hintX.get(b)!;
         if (diff === 0) {
           return a.localeCompare(b);
@@ -288,14 +374,42 @@ export function verticalLayout(
         return diff;
       });
     }
+  } else {
+    // If no previous layout, still sort by parent chain to ensure grouping
+    for (const ids of layers.values()) {
+      (ids as string[]).sort((a, b) => {
+        const getParentChain = (id: string) => {
+          let curr = graph.nodes.get(id)?.parent;
+          if (!curr) return "";
+          const chain: string[] = [];
+          while (curr) {
+            chain.unshift(curr); // root parent first
+            curr = graph.nodes.get(curr)?.parent;
+          }
+          return chain.join(":");
+        };
+
+        const chainA = getParentChain(a);
+        const chainB = getParentChain(b);
+
+        if (chainA !== chainB) {
+          return chainA.localeCompare(chainB);
+        }
+
+        return a.localeCompare(b);
+      });
+    }
   }
+
+  // Wait, if we just do a new pass with a sort, we can use a stable sort.
+  // We can just embed this in the original sort. Let's do that cleanly.
 
   const positions = new Map<string, Point>();
 
   // Replace spread Math.max with iterative calculation to prevent Maximum Call Stack Size Exceeded
   // on very large graphs, and to avoid creating a large intermediate array.
   const nodeSizes = new Map<string, Size>();
-  for (const id of nodeIds) {
+  for (const id of layoutNodeIds) {
     const isCollapsed = config.collapsedNodes?.has(id) ?? false;
     nodeSizes.set(id, {
       width: config.nodeWidth,
@@ -357,14 +471,102 @@ export function verticalLayout(
     }
   }
 
-  const width = maxLayerWidth + config.margin * 2;
-  const layerCount = Math.max(1, layers.size);
-  let height;
-  if (layers.size === 0) {
-    height = config.nodeHeight + config.margin * 2;
-  } else {
-    height = currentY - layerGap + config.margin; // subtract last gap and add margin
+  // Bottom-up computation of bounding boxes for expanded parents
+  if (isExpandedParent.size > 0) {
+    // Topologically sort parent hierarchy (bottom-up)
+    // We can do this by collecting all parents, finding their depth in the parent tree, and sorting descending.
+    const parentDepths = new Map<string, number>();
+    for (const id of isExpandedParent) {
+      let d = 0;
+      let curr = graph.nodes.get(id)?.parent;
+      while (curr) {
+        d++;
+        curr = graph.nodes.get(curr)?.parent;
+      }
+      parentDepths.set(id, d);
+    }
+
+    const sortedParents = Array.from(isExpandedParent).sort((a, b) => parentDepths.get(b)! - parentDepths.get(a)!);
+
+    const paddingX = 20;
+    const paddingTop = 40;
+    const paddingBottom = 20;
+
+    for (const parentId of sortedParents) {
+      let minX = Infinity;
+      let minY = Infinity;
+      let maxX = -Infinity;
+      let maxY = -Infinity;
+      let hasChildren = false;
+
+      // Find all immediate children of this parent
+      for (const [childId, childNode] of graph.nodes) {
+        if (childNode.parent === parentId && positions.has(childId)) {
+          hasChildren = true;
+          const pos = positions.get(childId)!;
+          const size = nodeSizes.get(childId) || { width: config.nodeWidth, height: config.nodeHeight };
+
+          if (pos.x < minX) minX = pos.x;
+          if (pos.y < minY) minY = pos.y;
+          if (pos.x + size.width > maxX) maxX = pos.x + size.width;
+          if (pos.y + size.height > maxY) maxY = pos.y + size.height;
+        }
+      }
+
+      if (hasChildren) {
+        // Compute bounding box incorporating padding
+        positions.set(parentId, {
+          x: minX - paddingX,
+          y: minY - paddingTop,
+        });
+        nodeSizes.set(parentId, {
+          width: (maxX - minX) + paddingX * 2,
+          height: (maxY - minY) + paddingTop + paddingBottom,
+        });
+      } else {
+        // Fallback for expanded parent with no children
+        positions.set(parentId, { x: 0, y: 0 });
+        nodeSizes.set(parentId, { width: config.nodeWidth, height: config.nodeHeight });
+      }
+    }
   }
+
+  // Adjust total graph width/height to account for new parent bounding boxes
+  let totalMinX = Infinity;
+  let totalMinY = Infinity;
+  let totalMaxX = -Infinity;
+  let totalMaxY = -Infinity;
+
+  if (positions.size === 0) {
+    totalMinX = 0;
+    totalMinY = 0;
+    totalMaxX = config.nodeWidth;
+    totalMaxY = config.nodeHeight;
+  } else {
+    for (const [id, pos] of positions) {
+      const size = nodeSizes.get(id) || { width: config.nodeWidth, height: config.nodeHeight };
+      if (pos.x < totalMinX) totalMinX = pos.x;
+      if (pos.y < totalMinY) totalMinY = pos.y;
+      if (pos.x + size.width > totalMaxX) totalMaxX = pos.x + size.width;
+      if (pos.y + size.height > totalMaxY) totalMaxY = pos.y + size.height;
+    }
+  }
+
+  // Ensure positive origins and scale up dimensions accordingly
+  const offsetX = totalMinX < config.margin ? config.margin - totalMinX : 0;
+  const offsetY = totalMinY < config.margin ? config.margin - totalMinY : 0;
+
+  if (offsetX > 0 || offsetY > 0) {
+    for (const id of positions.keys()) {
+      const p = positions.get(id)!;
+      positions.set(id, { x: p.x + offsetX, y: p.y + offsetY });
+    }
+    totalMaxX += offsetX;
+    totalMaxY += offsetY;
+  }
+
+  const width = totalMaxX + config.margin;
+  const height = totalMaxY + config.margin;
 
 
   const edgeRouting = new Map<string, EdgeRoutingHint>();
@@ -739,18 +941,18 @@ function routeEdgeOrthogonal(
  * Kahn's algorithm then processes the nodes to assign depths based on the
  * longest path from a root, positioning them appropriately in the vertical hierarchy.
  *
- * @param nodeIds A list of all node IDs in the graph.
+ * @param layoutNodeIds A list of all node IDs in the graph.
  * @param outgoing A map of outgoing edges for each node.
  * @param incomingCounts A map of the number of incoming edges for each node.
  * @returns A map associating each node ID with its calculated depth level.
  */
 function assignVerticalDepths(
-  nodeIds: readonly string[],
+  layoutNodeIds: readonly string[],
   outgoing: ReadonlyMap<string, readonly string[]>,
   incoming: ReadonlyMap<string, readonly string[]>,
 ): ReadonlyMap<string, number> {
   const acyclicOutgoing = new Map<string, string[]>();
-  for (const id of nodeIds) acyclicOutgoing.set(id, []);
+  for (const id of layoutNodeIds) acyclicOutgoing.set(id, []);
 
   const state = new Map<string, "visiting" | "visited">();
 
@@ -785,20 +987,20 @@ function assignVerticalDepths(
     }
   }
 
-  const roots = nodeIds.filter((id) => incoming.get(id)!.length === 0);
+  const roots = layoutNodeIds.filter((id) => incoming.get(id)!.length === 0);
   for (const id of roots) {
     if (state.get(id) !== "visited") {
       dfsBreakCyclesIterative(id);
     }
   }
-  for (const id of nodeIds) {
+  for (const id of layoutNodeIds) {
     if (state.get(id) !== "visited") {
       dfsBreakCyclesIterative(id);
     }
   }
 
   const dagIncoming = new Map<string, number>();
-  for (const id of nodeIds) dagIncoming.set(id, 0);
+  for (const id of layoutNodeIds) dagIncoming.set(id, 0);
   for (const neighbors of acyclicOutgoing.values()) {
     for (const v of neighbors) {
       dagIncoming.set(v, dagIncoming.get(v)! + 1);
@@ -811,7 +1013,7 @@ function assignVerticalDepths(
   const trueRoots: string[] = [];
   const fakeRoots: string[] = [];
 
-  for (const id of nodeIds) {
+  for (const id of layoutNodeIds) {
     if (dagIncoming.get(id) === 0) {
       if (incoming.get(id)!.length === 0) {
         trueRoots.push(id);
@@ -867,12 +1069,12 @@ function assignVerticalDepths(
 }
 
 function groupByDepth(
-  nodeIds: readonly string[],
+  layoutNodeIds: readonly string[],
   depths: ReadonlyMap<string, number>,
 ): ReadonlyMap<number, readonly string[]> {
   const layers = new Map<number, string[]>();
 
-  for (const id of nodeIds) {
+  for (const id of layoutNodeIds) {
     const depth = depths.get(id)!;
     const layer = layers.get(depth) ?? [];
 

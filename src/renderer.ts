@@ -1723,7 +1723,17 @@ export class GraphView {
     const selectedColor = computedStyle.getPropertyValue("--pgv-minimap-selected-color").trim() || "#d97706";
     // Draw edges
     ctx.lineWidth = 1;
+    const containmentTags = new Set(this.#schema.containment ?? []);
     for (const edge of this.#graph.edges.values()) {
+      let isContainment = false;
+      for (let i = 0; i < edge.tags.length; i++) {
+        if (containmentTags.has(edge.tags[i])) {
+          isContainment = true;
+          break;
+        }
+      }
+      if (isContainment) continue;
+
       const endpoints = edgeEndpoints(edge, layout);
       if (!endpoints) continue;
 
@@ -2214,7 +2224,20 @@ function renderEdges(
   svg.appendChild(createArrowMarker(markerId));
   edgeLayer.classList.add("pgv-edge-layer-inner");
   svg.appendChild(edgeLayer);
+
+  const containmentTags = new Set(graph.schema?.containment ?? []);
+
   for (const edge of graph.edges.values()) {
+    // Skip containment edges explicitly from rendering
+    let isContainment = false;
+    for (let i = 0; i < edge.tags.length; i++) {
+      if (containmentTags.has(edge.tags[i])) {
+        isContainment = true;
+        break;
+      }
+    }
+    if (isContainment) continue;
+
     const endpoints = edgeEndpoints(edge, layout);
 
     if (!endpoints) {
@@ -2298,17 +2321,30 @@ function renderNodes(
   onToggleCollapse: (id: string) => void = () => {},
 ): HTMLElement[] {
   const nodes: HTMLElement[] = [];
+  const elementsMap = new Map<string, HTMLElement>();
 
-  for (const node of graph.nodes.values()) {
-    const position = layout.positions.get(node.id);
-
-    if (!position) {
-      continue;
+  // Determine hidden nodes
+  const hiddenNodes = new Set<string>();
+  for (const [id, node] of graph.nodes) {
+    let current = node.parent;
+    while (current) {
+      if (collapsedNodes.has(current)) {
+        hiddenNodes.add(id);
+        break;
+      }
+      current = graph.nodes.get(current)?.parent;
     }
+  }
+
+  // First pass: Create DOM elements for visible nodes
+  for (const node of graph.nodes.values()) {
+    if (hiddenNodes.has(node.id)) continue;
+
+    const position = layout.positions.get(node.id);
+    if (!position) continue;
 
     const element = document.createElement("div");
 
-    // Optimized string builder: avoids array allocations and .map() inside the hot loop.
     let className = "graph-node pgv-graph-node";
     for (let i = 0; i < node.tags.length; i++) {
       className += " " + tagToClassName(node.tags[i]);
@@ -2326,11 +2362,15 @@ function renderNodes(
     element.className = className;
     element.dataset.nodeId = node.id;
     element.setAttribute("tabindex", "0");
+
+    // Position using transform, but we will make it relative to parent later
+    // Actually, if we nest DOM nodes, position should be relative to parent.
+    // Let's store absolute position for now, and fix it in pass two.
     element.style.transform = `translate(${position.x}px, ${position.y}px)`;
 
-    // Explicitly set node width, let expanded nodes flow height naturally
     const nodeSize = layout.nodeSizes?.get(node.id) || layout.nodeSize;
     element.style.width = `${nodeSize.width}px`;
+    element.style.height = `${nodeSize.height}px`;
 
     if (isCollapsed) {
       const header = document.createElement("div");
@@ -2375,7 +2415,33 @@ function renderNodes(
       }
     }
 
-    nodes.push(element);
+    elementsMap.set(node.id, element);
+  }
+
+  // Second pass: Assemble hierarchy and adjust positions to be relative
+  for (const node of graph.nodes.values()) {
+    if (hiddenNodes.has(node.id)) continue;
+
+    const element = elementsMap.get(node.id);
+    if (!element) continue;
+
+    const parentId = node.parent;
+    if (parentId && !hiddenNodes.has(parentId) && elementsMap.has(parentId) && !collapsedNodes.has(parentId)) {
+      const parentElement = elementsMap.get(parentId)!;
+      const parentPosition = layout.positions.get(parentId)!;
+      const position = layout.positions.get(node.id)!;
+
+      // Adjust to relative coordinates
+      element.style.transform = `translate(${position.x - parentPosition.x}px, ${position.y - parentPosition.y}px)`;
+
+      // We must append to the parent, but wait, the parent might have arbitrary content replacing it.
+      // Usually expanded parent content shouldn't obscure children or we need a container.
+      // For now we just append directly to the parent element
+      parentElement.appendChild(element);
+    } else {
+      // Top level node
+      nodes.push(element);
+    }
   }
 
   return nodes;
