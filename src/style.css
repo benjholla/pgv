@@ -891,3 +891,14 @@
   outline: 2px solid var(--pgv-selected-color);
   opacity: 1;
 }
+
+@keyframes pgv-spin {
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.pgv-spinner {
+  animation: pgv-spin 1s linear infinite;
+  transform-origin: center;
+}

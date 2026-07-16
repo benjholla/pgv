@@ -46,3 +46,6 @@
 ## 2024-07-06 - Disabled States Tooltips for Async Actions
 **Learning:** When async actions (like downloading a graph) take time, setting `disabled=true` is good, but without updating the tooltip and `aria-label`, screen readers only announce the original action name (e.g., "Download Graph") as disabled. This can be confusing, as the user doesn't know *why* it's disabled or that the action is currently in progress.
 **Action:** When temporarily disabling a button during an async operation, temporarily update the `title` and `aria-label` to provide context (e.g., "Downloading graph..."), and restore them in the `finally` block.
+## 2024-05-19 - Added CSS animation for loading spinner
+**Learning:** Added a loading spinner SVG class `.pgv-spinner` in the DOM but omitted the CSS keyframes, causing a frozen loading state during heavy async operations like image generation. Static visual feedback can make the user think the UI has locked up.
+**Action:** Always verify that newly introduced utility classes (like spinners) have corresponding CSS defined in the stylesheet, and rely on standard CSS keyframes for rotation to avoid relying on external libraries.
