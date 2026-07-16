@@ -631,7 +631,7 @@ export class GraphView {
     // We append nodes first then edges in the DOM to ensure natural
     // keyboard tabbing order (nodes then edges) while keeping z-index
     // responsible for visual stacking.
-    stage.append(...renderNodes(graph, layout, this.#options, this.#collapsedNodes, (id) => this.#toggleNodeCollapse(id)));
+    stage.append(...renderNodes(graph, layout, this.#options, this.#collapsedNodes, this.#schema, (id) => this.#toggleNodeCollapse(id)));
     stage.appendChild(renderEdges(graph, layout, this.#options, this.#schema));
 
     if (this.#options.usePanZoom || this.#options.useThemeToggle || (this.#options.maxHistory && this.#options.maxHistory > 0)) {
@@ -2313,11 +2313,35 @@ function renderNodes(
   layout: LayoutSnapshot,
   options: GraphViewOptions,
   collapsedNodes: ReadonlySet<string> = new Set(),
+  schema?: GraphSchema,
   onToggleCollapse: (id: string) => void = () => {},
 ): HTMLElement[] {
   const nodes: HTMLElement[] = [];
 
+  // Temporary change: Calculate nodes that act as parents in containment relationships
+  // so we can omit rendering them.
+  const parentNodes = new Set<string>();
+  if (schema?.containment) {
+    for (const edge of graph.edges.values()) {
+      let isContainment = false;
+      for (let i = 0; i < edge.tags.length; i++) {
+        if (schema.containment.includes(edge.tags[i])) {
+          isContainment = true;
+          break;
+        }
+      }
+      if (isContainment) {
+        parentNodes.add(edge.source);
+      }
+    }
+  }
+
   for (const node of graph.nodes.values()) {
+    // Temporary change: skip rendering nodes that have children
+    if (parentNodes.has(node.id)) {
+      continue;
+    }
+
     const position = layout.positions.get(node.id);
 
     if (!position) {

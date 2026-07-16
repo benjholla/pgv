@@ -42,11 +42,7 @@ export type AttributeMap = Readonly<Record<string, AttributeValue>>;
 /**
  * Represents a single node within a graph.
  *
- * Nodes are the primary entities in a graph. The `parent` property allows nodes
- * to represent hierarchical containment (compound graphs).
- *
- * **Invariants**:
- * - If `parent` is defined, it must refer to a valid node ID existing in the same graph.
+ * Nodes are the primary entities in a graph.
  */
 export interface GraphNode {
   /**
@@ -65,12 +61,6 @@ export interface GraphNode {
    * Domain-specific metadata attached to this node.
    */
   readonly attributes: AttributeMap;
-
-  /**
-   * The optional ID of a parent node, used for representing hierarchical containment
-   * in compound graphs.
-   */
-  readonly parent?: string;
 }
 
 /**
@@ -177,11 +167,6 @@ export interface GraphNodeJson {
    * Optional domain-specific metadata.
    */
   readonly attributes?: Readonly<Record<string, AttributeValue>>;
-
-  /**
-   * The optional ID of the parent node.
-   */
-  readonly parent?: string;
 }
 
 /**
@@ -300,7 +285,6 @@ export interface GraphDiffJson {
  * Common causes include:
  * - Duplicate element IDs.
  * - Edges referencing non-existent source or target nodes.
- * - Nodes referencing a non-existent parent node.
  * - Unsafe or excessively large string attributes triggering security constraints.
  */
 export class GraphModelError extends Error {
@@ -318,43 +302,12 @@ export class GraphModelError extends Error {
  */
 function validateStructuralInvariants(
   nodes: Map<string, GraphNode>,
-  edges: IterableIterator<GraphEdge>
+  edges: IterableIterator<GraphEdge>,
+  schema?: GraphSchema | GraphSchemaJson
 ) {
-  for (const node of nodes.values()) {
-    if (node.parent !== undefined && !nodes.has(node.parent)) {
-      throw new GraphModelError(
-        `Node "${node.id}" references missing parent "${node.parent}".`,
-      );
-    }
-  }
+  const edgeList = Array.from(edges);
 
-  const visited = new Set<string>();
-  const visiting = new Set<string>();
-
-  for (const startId of nodes.keys()) {
-    if (visited.has(startId)) continue;
-
-    let currentId: string | undefined = startId;
-    const path = [];
-
-    while (currentId !== undefined && !visited.has(currentId)) {
-      if (visiting.has(currentId)) {
-        throw new GraphModelError(`Containment cycle detected involving node "${currentId}".`);
-      }
-      visiting.add(currentId);
-      path.push(currentId);
-
-      const node = nodes.get(currentId);
-      currentId = node?.parent;
-    }
-
-    for (const id of path) {
-      visiting.delete(id);
-      visited.add(id);
-    }
-  }
-
-  for (const edge of edges) {
+  for (const edge of edgeList) {
     if (!nodes.has(edge.source)) {
       throw new GraphModelError(`Edge "${edge.id}" references missing source "${edge.source}".`);
     }
@@ -362,13 +315,60 @@ function validateStructuralInvariants(
       throw new GraphModelError(`Edge "${edge.id}" references missing target "${edge.target}".`);
     }
   }
+
+  // Build adjacency list for containment edges
+  const containmentAdjacency = new Map<string, string[]>();
+  for (const nodeId of nodes.keys()) {
+    containmentAdjacency.set(nodeId, []);
+  }
+
+  if (schema?.containment) {
+    for (const edge of edgeList) {
+      let isContainment = false;
+      for (let i = 0; i < edge.tags.length; i++) {
+        if (schema.containment.includes(edge.tags[i])) {
+          isContainment = true;
+          break;
+        }
+      }
+      if (isContainment) {
+        containmentAdjacency.get(edge.source)!.push(edge.target);
+      }
+    }
+  }
+
+  const visited = new Set<string>();
+  const visiting = new Set<string>();
+
+  function dfs(nodeId: string) {
+    if (visiting.has(nodeId)) {
+      throw new GraphModelError(`Containment cycle detected involving node "${nodeId}".`);
+    }
+    if (visited.has(nodeId)) return;
+
+    visiting.add(nodeId);
+
+    const children = containmentAdjacency.get(nodeId);
+    if (children) {
+      for (const childId of children) {
+        dfs(childId);
+      }
+    }
+
+    visiting.delete(nodeId);
+    visited.add(nodeId);
+  }
+
+  for (const startId of nodes.keys()) {
+    dfs(startId);
+  }
 }
 
 /**
  * Creates an immutable `GraphSnapshot` from a JSON payload, validating all structural invariants.
  *
  * This function enforces uniqueness of IDs, verifies that all edge endpoints point to valid
- * nodes, and checks that parent nodes exist. It also sanitizes string attributes.
+ * nodes. It also sanitizes string attributes.
  *
  * @example
  * ```typescript
@@ -386,7 +386,7 @@ function validateStructuralInvariants(
  *
  * @param input The JSON payload representing the graph.
  * @returns A frozen, validated `GraphSnapshot`.
- * @throws {GraphModelError} If duplicate IDs are found, or references (edges, parents) are invalid.
+ * @throws {GraphModelError} If duplicate IDs are found, or references (edges) are invalid.
  */
 export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
   const nodes = new Map<string, GraphNode>();
@@ -412,7 +412,7 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
     edges.set(normalized.id, normalized);
   }
 
-  validateStructuralInvariants(nodes, edges.values());
+  validateStructuralInvariants(nodes, edges.values(), input.schema);
 
   const base: any = {
     nodes,
@@ -579,14 +579,11 @@ function nodeToJson(node: GraphNode): GraphNodeJson {
   // PERF(Bolt): Replaced object spread syntax (...(condition ? { key: val } : {}))
   // with explicit assignment to avoid excessive object allocations and GC churn
   // when processing a large number of nodes.
-  const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>>; parent?: string } = {
+  const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>> } = {
     id: node.id,
     tags: node.tags,
     attributes: node.attributes,
   };
-  if (node.parent !== undefined) {
-    n.parent = node.parent;
-  }
   return n as GraphNodeJson;
 }
 
@@ -649,7 +646,7 @@ export function applyGraphDiff(
 
   // Validate structural invariants across the ENTIRE new graph state,
   // not just the newly added elements. This ensures removals didn't orphan anything.
-  validateStructuralInvariants(nodes, edges.values());
+  validateStructuralInvariants(nodes, edges.values(), snapshot.schema);
 
   const base: any = {
     nodes,
@@ -665,13 +662,8 @@ export function applyGraphDiff(
 function normalizeNode(node: GraphNodeJson): GraphNode {
   assertNonEmptyString(node.id, "node.id");
 
-  if (node.parent !== undefined) {
-    assertNonEmptyString(node.parent, `node "${node.id}" parent`);
-  }
-
   return Object.freeze({
     id: node.id,
-    parent: node.parent,
     tags: freezeTags(node.tags),
     attributes: freezeAttributes(node.attributes),
   });
