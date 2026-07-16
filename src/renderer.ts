@@ -236,7 +236,7 @@ export class GraphView {
       this.#currentTheme = options.theme;
     }
     this.#layout =
-      this.#options.layout ?? verticalLayout(graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes });
+      this.#options.layout ?? verticalLayout(graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) });
 
     this.#render();
 
@@ -267,7 +267,7 @@ export class GraphView {
     if (options.layout !== undefined && options.layout !== oldLayout) {
       this.#layout = options.layout;
     } else if (options.layoutOptions !== undefined && options.layoutOptions !== oldLayoutOptions && this.#graph) {
-      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes }, this.#layout ?? undefined);
+      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined);
     }
     if (this.#clearSelectionBtn) {
       this.#clearSelectionBtn.disabled = !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0);
@@ -318,7 +318,7 @@ export class GraphView {
     if (this.#historyIndex === this.#history.length - 2) { // It was at the tip before pushing
       this.#historyIndex = this.#history.length - 1;
       this.#graph = applyGraphDiff(this.#graph, diff);
-      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes }, this.#layout ?? undefined);
+      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined);
       this.#options.onGraphChange?.(this.#graph);
       this.#render();
     } else {
@@ -567,7 +567,7 @@ export class GraphView {
     }
 
     this.#graph = current;
-    this.#layout = verticalLayout(this.#graph, this.#options.layoutOptions, this.#layout ?? undefined);
+    this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined);
     this.#options.onGraphChange?.(this.#graph);
     this.#render();
   }
@@ -579,7 +579,7 @@ export class GraphView {
       this.#collapsedNodes.add(id);
     }
     if (this.#graph) {
-      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes }, this.#layout ?? undefined);
+      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined);
       this.#render();
     }
   }
