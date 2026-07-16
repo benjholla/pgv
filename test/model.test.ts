@@ -51,7 +51,7 @@ describe("model", () => {
         version: "v1",
         nodes: [
           { id: "n1", tags: ["A"], attributes: { val: { integer: 1 } } },
-          { id: "n2", parent: "n1", attributes: { active: true } }
+          { id: "n2", attributes: { active: true } }
         ],
         edges: [
           { id: "e1", source: "n1", target: "n2", tags: ["link"] }
@@ -90,15 +90,6 @@ describe("model", () => {
       expect(() => createGraphSnapshot(json)).toThrow(/Duplicate node id/);
     });
 
-    it("throws on missing parent node reference", () => {
-      const json: GraphSnapshotJson = {
-        nodes: [{ id: "n1", parent: "missing" }],
-        edges: []
-      };
-      expect(() => createGraphSnapshot(json)).toThrow(GraphModelError);
-      expect(() => createGraphSnapshot(json)).toThrow(/references missing parent/);
-    });
-
     it("throws on missing source or target node reference", () => {
       expect(() => createGraphSnapshot({
         nodes: [{ id: "n1" }],
@@ -111,33 +102,36 @@ describe("model", () => {
       })).toThrow(/references missing source/);
     });
 
-    it("throws on self-parenting containment cycle", () => {
+    it("throws on self-containment cycle", () => {
       const json = {
-        nodes: [{ id: "n1", parent: "n1" }],
-        edges: []
+        schema: { containment: ["contains"] },
+        nodes: [{ id: "n1" }],
+        edges: [{ id: "e1", source: "n1", target: "n1", tags: ["contains"] }]
       };
       expect(() => createGraphSnapshot(json as any)).toThrow(/containment cycle/i);
     });
 
     it("throws on mutual containment cycle", () => {
       const json = {
-        nodes: [
-          { id: "n1", parent: "n2" },
-          { id: "n2", parent: "n1" }
-        ],
-        edges: []
+        schema: { containment: ["contains"] },
+        nodes: [{ id: "n1" }, { id: "n2" }],
+        edges: [
+          { id: "e1", source: "n1", target: "n2", tags: ["contains"] },
+          { id: "e2", source: "n2", target: "n1", tags: ["contains"] }
+        ]
       };
       expect(() => createGraphSnapshot(json as any)).toThrow(/containment cycle/i);
     });
 
     it("throws on deep containment cycle", () => {
       const json = {
-        nodes: [
-          { id: "n1", parent: "n2" },
-          { id: "n2", parent: "n3" },
-          { id: "n3", parent: "n1" }
-        ],
-        edges: []
+        schema: { containment: ["contains"] },
+        nodes: [{ id: "n1" }, { id: "n2" }, { id: "n3" }],
+        edges: [
+          { id: "e1", source: "n1", target: "n2", tags: ["contains"] },
+          { id: "e2", source: "n2", target: "n3", tags: ["contains"] },
+          { id: "e3", source: "n3", target: "n1", tags: ["contains"] }
+        ]
       };
       expect(() => createGraphSnapshot(json as any)).toThrow(/containment cycle/i);
     });
@@ -326,7 +320,7 @@ describe("model", () => {
     const baseSnapshot = createGraphSnapshot({
       nodes: [
         { id: "n1", tags: ["A"], attributes: { val: { integer: 1 } } },
-        { id: "n2", parent: "n1", tags: [], attributes: {} }
+        { id: "n2", tags: [], attributes: {} }
       ],
       edges: [
         { id: "e1", source: "n1", target: "n2", tags: ["E"], attributes: {} }
@@ -453,7 +447,7 @@ describe("model", () => {
       const originalJson: GraphSnapshotJson = {
         nodes: [
           { id: "n1", tags: ["A"], attributes: { a: { integer: 1 }, b: "string", c: true } },
-          { id: "n2", parent: "n1", tags: [], attributes: {} }
+          { id: "n2", tags: [], attributes: {} }
         ],
         edges: [
           { id: "e1", source: "n1", target: "n2", tags: ["E"], attributes: {} }
@@ -493,19 +487,6 @@ describe("model", () => {
       expect(diffOut).toEqual(diffJson);
     });
 
-    it("round-trips GraphDiffJson for nodes with parent field", () => {
-      const diffJson: GraphDiffJson = {
-        addedNodes: [{ id: "n3", parent: "n1", tags: ["C"], attributes: {} }],
-        addedEdges: [],
-        removedNodes: [],
-        removedEdges: []
-      };
-
-      const diff = createGraphDiff(diffJson);
-      const diffOut = graphDiffToJson(diff);
-
-      expect(diffOut).toEqual(diffJson);
-    });
 
     it("correctly validates and parses float, integer, and bytes", () => {
       const validJson: GraphSnapshotJson = {
@@ -561,10 +542,10 @@ describe("model", () => {
       schema: { containment: ["folder"] },
       nodes: [
         { id: "n1" },
-        { id: "n2", parent: "n1" }
+        { id: "n2" }
       ],
       edges: [
-        { id: "e1", source: "n1", target: "n2" }
+        { id: "e1", source: "n1", target: "n2", tags: ["folder"] }
       ]
     });
 
@@ -607,11 +588,6 @@ describe("model", () => {
       expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/duplicate edge id/);
     });
 
-    it("throws when adding a node with missing parent", () => {
-      const diff = createGraphDiff({ addedNodes: [{ id: "n3", parent: "missing" }] });
-      expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/references missing parent/);
-    });
-
     it("throws when adding an edge with missing source or target", () => {
       expect(() => applyGraphDiff(baseSnapshot, createGraphDiff({
         addedEdges: [{ id: "e2", source: "missing", target: "n1" }]
@@ -627,19 +603,16 @@ describe("model", () => {
       expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/references missing target/);
     });
 
-    it("throws when removing a node leaves an orphaned child node", () => {
-      const diff = createGraphDiff({ removedNodes: ["n1"], removedEdges: ["e1"] }); // n2 has parent n1
-      expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/references missing parent/);
-    });
-
     it("throws when applying a diff introduces a containment cycle", () => {
-      // baseSnapshot has n2 parented to n1.
-      // diff parents n1 to n2.
-      const diff = createGraphDiff({
-        removedNodes: ["n1"],
-        addedNodes: [{ id: "n1", parent: "n2" }]
+      const baseSchemaSnapshot = createGraphSnapshot({
+        schema: { containment: ["contains"] },
+        nodes: [{ id: "n1" }, { id: "n2" }],
+        edges: [{ id: "e1", source: "n1", target: "n2", tags: ["contains"] }]
       });
-      expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/containment cycle/i);
+      const diff = createGraphDiff({
+        addedEdges: [{ id: "e2", source: "n2", target: "n1", tags: ["contains"] }]
+      });
+      expect(() => applyGraphDiff(baseSchemaSnapshot, diff)).toThrow(/containment cycle/i);
     });
 
     it("allows adding a node and edge simultaneously", () => {
