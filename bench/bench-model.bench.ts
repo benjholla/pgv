@@ -32,7 +32,7 @@ describe("model performance", () => {
   });
 
   bench("applyGraphDiff (on 10k/20k graph)", () => {
-    applyGraphDiff(largeSnapshot, diff, 2);
+    applyGraphDiff(largeSnapshot, diff);
   });
 
   bench("graphSnapshotToJson (on 10k/20k graph)", () => {

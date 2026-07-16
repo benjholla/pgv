@@ -316,7 +316,18 @@ export class GraphModelError extends Error {
  * @param nodes A map of graph nodes to validate.
  * @throws {GraphModelError} If a containment cycle is detected.
  */
-function validateContainmentAcyclic(nodes: Map<string, GraphNode>) {
+function validateStructuralInvariants(
+  nodes: Map<string, GraphNode>,
+  edges: IterableIterator<GraphEdge>
+) {
+  for (const node of nodes.values()) {
+    if (node.parent !== undefined && !nodes.has(node.parent)) {
+      throw new GraphModelError(
+        `Node "${node.id}" references missing parent "${node.parent}".`,
+      );
+    }
+  }
+
   const visited = new Set<string>();
   const visiting = new Set<string>();
 
@@ -340,6 +351,15 @@ function validateContainmentAcyclic(nodes: Map<string, GraphNode>) {
     for (const id of path) {
       visiting.delete(id);
       visited.add(id);
+    }
+  }
+
+  for (const edge of edges) {
+    if (!nodes.has(edge.source)) {
+      throw new GraphModelError(`Edge "${edge.id}" references missing source "${edge.source}".`);
+    }
+    if (!nodes.has(edge.target)) {
+      throw new GraphModelError(`Edge "${edge.id}" references missing target "${edge.target}".`);
     }
   }
 }
@@ -382,16 +402,6 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
     nodes.set(normalized.id, normalized);
   }
 
-  for (const node of nodes.values()) {
-    if (node.parent !== undefined && !nodes.has(node.parent)) {
-      throw new GraphModelError(
-        `Node "${node.id}" references missing parent "${node.parent}".`,
-      );
-    }
-  }
-
-  validateContainmentAcyclic(nodes);
-
   for (const edge of input.edges) {
     const normalized = normalizeEdge(edge);
 
@@ -399,20 +409,10 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
       throw new GraphModelError(`Duplicate edge id "${normalized.id}".`);
     }
 
-    if (!nodes.has(normalized.source)) {
-      throw new GraphModelError(
-        `Edge "${normalized.id}" references missing source "${normalized.source}".`,
-      );
-    }
-
-    if (!nodes.has(normalized.target)) {
-      throw new GraphModelError(
-        `Edge "${normalized.id}" references missing target "${normalized.target}".`,
-      );
-    }
-
     edges.set(normalized.id, normalized);
   }
+
+  validateStructuralInvariants(nodes, edges.values());
 
   const base: any = {
     nodes,
@@ -444,16 +444,7 @@ export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson 
   const nodes = new Array(snapshot.nodes.size);
   let i = 0;
   for (const node of snapshot.nodes.values()) {
-    // We use a mutable type here to avoid spread operator allocations, then it gets implicitly cast.
-    const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>>; parent?: string } = {
-      id: node.id,
-      tags: node.tags,
-      attributes: node.attributes,
-    };
-    if (node.parent !== undefined) {
-      n.parent = node.parent;
-    }
-    nodes[i++] = n as GraphNodeJson;
+    nodes[i++] = nodeToJson(node);
   }
   // Sort deterministically
   nodes.sort((a, b) => a.id.localeCompare(b.id));
@@ -462,13 +453,7 @@ export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson 
   const edges = new Array(snapshot.edges.size);
   let j = 0;
   for (const edge of snapshot.edges.values()) {
-    edges[j++] = {
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      tags: edge.tags,
-      attributes: edge.attributes,
-    };
+    edges[j++] = edgeToJson(edge);
   }
   // Sort deterministically
   edges.sort((a, b) => a.id.localeCompare(b.id));
@@ -570,30 +555,13 @@ export function graphDiffToJson(diff: GraphDiff): GraphDiffJson {
   const addedNodes: GraphNodeJson[] = [];
   for (let i = 0; i < diff.addedNodes.length; i++) {
     const node = diff.addedNodes[i];
-    // PERF(Bolt): Replaced object spread syntax (...(condition ? { key: val } : {}))
-    // with explicit assignment to avoid excessive object allocations and GC churn
-    // when processing a large number of nodes.
-    const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>>; parent?: string } = {
-      id: node.id,
-      tags: node.tags,
-      attributes: node.attributes,
-    };
-    if (node.parent !== undefined) {
-      n.parent = node.parent;
-    }
-    addedNodes.push(n as GraphNodeJson);
+    addedNodes.push(nodeToJson(node));
   }
 
   const addedEdges: GraphEdgeJson[] = [];
   for (let i = 0; i < diff.addedEdges.length; i++) {
     const edge = diff.addedEdges[i];
-    addedEdges.push({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      tags: edge.tags,
-      attributes: edge.attributes,
-    });
+    addedEdges.push(edgeToJson(edge));
   }
 
   addedNodes.sort((a, b) => a.id.localeCompare(b.id));
@@ -604,6 +572,31 @@ export function graphDiffToJson(diff: GraphDiff): GraphDiffJson {
     addedEdges,
     removedNodes: [...diff.removedNodes].sort((a, b) => a.localeCompare(b)),
     removedEdges: [...diff.removedEdges].sort((a, b) => a.localeCompare(b)),
+  };
+}
+
+function nodeToJson(node: GraphNode): GraphNodeJson {
+  // PERF(Bolt): Replaced object spread syntax (...(condition ? { key: val } : {}))
+  // with explicit assignment to avoid excessive object allocations and GC churn
+  // when processing a large number of nodes.
+  const n: { id: string; tags: readonly string[]; attributes: Readonly<Record<string, unknown>>; parent?: string } = {
+    id: node.id,
+    tags: node.tags,
+    attributes: node.attributes,
+  };
+  if (node.parent !== undefined) {
+    n.parent = node.parent;
+  }
+  return n as GraphNodeJson;
+}
+
+function edgeToJson(edge: GraphEdge): GraphEdgeJson {
+  return {
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    tags: edge.tags,
+    attributes: edge.attributes,
   };
 }
 
@@ -656,24 +649,7 @@ export function applyGraphDiff(
 
   // Validate structural invariants across the ENTIRE new graph state,
   // not just the newly added elements. This ensures removals didn't orphan anything.
-  for (const node of nodes.values()) {
-    if (node.parent !== undefined && !nodes.has(node.parent)) {
-      throw new GraphModelError(
-        `Node "${node.id}" references missing parent "${node.parent}".`,
-      );
-    }
-  }
-
-  validateContainmentAcyclic(nodes);
-
-  for (const edge of edges.values()) {
-    if (!nodes.has(edge.source)) {
-      throw new GraphModelError(`Edge "${edge.id}" references missing source "${edge.source}".`);
-    }
-    if (!nodes.has(edge.target)) {
-      throw new GraphModelError(`Edge "${edge.id}" references missing target "${edge.target}".`);
-    }
-  }
+  validateStructuralInvariants(nodes, edges.values());
 
   const base: any = {
     nodes,
