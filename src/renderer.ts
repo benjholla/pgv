@@ -2373,7 +2373,7 @@ function renderNodes(
 
        const title = document.createElement("div");
        title.className = "pgv-node-title";
-       title.textContent = node.id;
+       title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
 
        const toggleBtn = document.createElement("button");
        toggleBtn.className = "pgv-node-collapse-toggle";
@@ -2399,7 +2399,7 @@ function renderNodes(
 
       const title = document.createElement("div");
       title.className = "pgv-node-title";
-      title.textContent = node.id;
+      title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
 
       const toggleBtn = document.createElement("button");
       toggleBtn.className = "pgv-node-collapse-toggle";
@@ -2468,7 +2468,7 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
 
   content.className = "pgv-node-content";
   title.className = "pgv-node-title";
-  title.textContent = node.id;
+  title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
   id.className = "pgv-node-id";
   id.textContent = node.id;
 
