@@ -487,6 +487,9 @@
 }
 
 .graph-node {
+  position: absolute;
+  top: 0;
+  left: 0;
   z-index: 1; /* ensure nodes are visually above edges even if appended earlier */
   align-items: stretch;
   background: var(--pgv-node-bg);

@@ -672,10 +672,11 @@ function routeEdgeOrthogonal(
 ): readonly Point[] {
   const margin = 20;
 
-  const obstacles: { x: number; y: number; w: number; h: number }[] = [];
+  const obstacles: { id: string; x: number; y: number; w: number; h: number }[] = [];
   for (const [id, pos] of layout.positions.entries()) {
     const size = layout.nodeSizes?.get(id) || layout.nodeSize;
     obstacles.push({
+      id,
       x: pos.x,
       y: pos.y,
       w: size.width,
@@ -770,13 +771,21 @@ function routeEdgeOrthogonal(
   const endYIdx = getIdx(yCoords, targetPt.y);
 
   const isSegmentValid = (x1: number, y1: number, x2: number, y2: number) => {
-    const minX = Math.min(x1, x2);
-    const maxX = Math.max(x1, x2);
-    const minY = Math.min(y1, y2);
-    const maxY = Math.max(y1, y2);
+    // Add small epsilon to allow edges to route exactly on the boundary of nodes (or ports)
+    const minX = Math.min(x1, x2) + 0.1;
+    const maxX = Math.max(x1, x2) - 0.1;
+    const minY = Math.min(y1, y2) + 0.1;
+    const maxY = Math.max(y1, y2) - 0.1;
 
     for (let i = 0; i < obstacles.length; i++) {
       const obs = obstacles[i];
+
+      // If this obstacle is a compound node container, it shouldn't block edge routing
+      // traversing through it to connect to its inner children.
+      if (layout.hierarchy?.has(obs.id) && layout.hierarchy.get(obs.id)!.children.length > 0) {
+        continue;
+      }
+
       if (
         minX < obs.x + obs.w &&
         maxX > obs.x &&
