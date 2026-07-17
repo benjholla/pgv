@@ -15,7 +15,7 @@ function binarySearch(arr: readonly string[], target: string): number {
  * Frontend-owned vertical layout and geometric routing calculations.
  */
 
-import type { GraphSnapshot, GraphEdge } from "./model";
+import type { GraphSnapshot, GraphEdge , GraphSchema} from "./model";
 
 /**
  * Represents an absolute 2D coordinate point in the rendering coordinate system.
@@ -100,6 +100,15 @@ export interface EdgeRoutingHint {
  * (like minimaps) by sharing or interpolating layout coordinate snapshots.
  */
 export interface LayoutSnapshot {
+  /**
+   * The hierarchical containment structure representing parent-child relationships.
+   */
+  readonly hierarchy?: ReadonlyMap<string, {
+    /** The parent node ID, or null if it's a root node. */
+    parent: string | null;
+    /** The list of child node IDs. */
+    children: string[]
+  }>;
   /**
    * A map of node IDs to their absolute visual coordinates.
    */
@@ -208,10 +217,227 @@ const DEFAULT_VERTICAL_LAYOUT: Required<VerticalLayoutOptions> = {
  * @param previousLayout An optional previous layout to use as an ordering hint for nodes.
  * @returns A computed `LayoutSnapshot` containing absolute coordinates for all nodes.
  */
+function buildHierarchy(graph: GraphSnapshot, config: Required<VerticalLayoutOptions>) {
+  const hierarchy = new Map<string, { parent: string | null; children: string[] }>();
+  for (const id of graph.nodes.keys()) {
+    hierarchy.set(id, { children: [], parent: null });
+  }
+
+  for (const edge of graph.edges.values()) {
+    let isContainment = false;
+    if (config.containmentTags) {
+       for (let i = 0; i < edge.tags.length; i++) {
+         if (config.containmentTags.has(edge.tags[i])) {
+           isContainment = true;
+           break;
+         }
+       }
+    }
+    if (isContainment) {
+      if (hierarchy.has(edge.source) && hierarchy.has(edge.target)) {
+        hierarchy.get(edge.source)!.children.push(edge.target);
+        hierarchy.get(edge.target)!.parent = edge.source;
+      }
+    }
+  }
+
+  for (const node of hierarchy.values()) {
+    node.children.sort();
+  }
+
+  return hierarchy;
+}
+
+function computeLocalLayout(
+  graph: GraphSnapshot,
+  config: Required<VerticalLayoutOptions>,
+  hierarchy: Map<string, { parent: string | null; children: string[] }>,
+  nodeId: string | null,
+  globalSizes: Map<string, Size>
+): { width: number; height: number; positions: Map<string, Point> } {
+  const childrenIds = nodeId === null
+    ? Array.from(hierarchy.entries()).filter(([_, n]) => n.parent === null).map(([id]) => id).sort()
+    : hierarchy.get(nodeId)!.children;
+
+  if (childrenIds.length === 0) {
+    const isCollapsed = nodeId ? (config.collapsedNodes?.has(nodeId) ?? false) : false;
+    const w = config.nodeWidth;
+    const h = isCollapsed ? 36 : config.nodeHeight;
+    return {
+      width: nodeId === null ? w + config.margin * 2 : w,
+      height: nodeId === null ? h + config.margin * 2 : h,
+      positions: new Map()
+    };
+  }
+
+  const localLayouts = new Map<string, ReturnType<typeof computeLocalLayout>>();
+  for (const childId of childrenIds) {
+    const childLayout = computeLocalLayout(graph, config, hierarchy, childId, globalSizes);
+    localLayouts.set(childId, childLayout);
+    globalSizes.set(childId, { width: childLayout.width, height: childLayout.height });
+  }
+
+  const outgoing = new Map<string, string[]>();
+  const incoming = new Map<string, string[]>();
+
+  for (const childId of childrenIds) {
+    outgoing.set(childId, []);
+    incoming.set(childId, []);
+  }
+
+  for (const edge of graph.edges.values()) {
+    let isContainment = false;
+    if (config.containmentTags) {
+        for (let i = 0; i < edge.tags.length; i++) {
+          if (config.containmentTags.has(edge.tags[i])) {
+            isContainment = true;
+            break;
+          }
+        }
+    }
+    if (isContainment) continue;
+
+    let sAncestor: string | null = edge.source;
+    while (sAncestor && hierarchy.get(sAncestor)?.parent !== nodeId) {
+      sAncestor = hierarchy.get(sAncestor)?.parent || null;
+    }
+
+    let tAncestor: string | null = edge.target;
+    while (tAncestor && hierarchy.get(tAncestor)?.parent !== nodeId) {
+      tAncestor = hierarchy.get(tAncestor)?.parent || null;
+    }
+
+    if (sAncestor && tAncestor && sAncestor !== tAncestor && childrenIds.includes(sAncestor) && childrenIds.includes(tAncestor)) {
+      outgoing.get(sAncestor)!.push(tAncestor);
+      incoming.get(tAncestor)!.push(sAncestor);
+    }
+  }
+
+  for (const neighbors of outgoing.values()) neighbors.sort();
+  for (const list of incoming.values()) list.sort();
+
+  const sortedChildrenIds = [...childrenIds].sort();
+  const depths = assignVerticalDepths(sortedChildrenIds, outgoing, incoming);
+  const layers = groupByDepth(sortedChildrenIds, depths);
+
+  const layerWidths = new Map<number, number>();
+  let maxLayerWidth = 0;
+  for (const [depth, ids] of layers) {
+    let w = 0;
+    for (let i = 0; i < ids.length; i++) {
+      w += globalSizes.get(ids[i])!.width;
+      if (i > 0) w += config.nodeSpacing;
+    }
+    layerWidths.set(depth, w);
+    if (w > maxLayerWidth) maxLayerWidth = w;
+  }
+
+  const layerY = new Map<number, number>();
+  let currentY = config.margin;
+
+  if (nodeId !== null) {
+    currentY += 40;
+  }
+
+  const sortedDepths = new Array<number>(layers.size);
+  let dIdx = 0;
+  for (const depth of layers.keys()) sortedDepths[dIdx++] = depth;
+  sortedDepths.sort((a, b) => a - b);
+
+  const layerGap = config.layerSpacing - config.nodeHeight;
+
+  for (const depth of sortedDepths) {
+    layerY.set(depth, currentY);
+
+    let maxLayerNodeHeight = 0;
+    const ids = layers.get(depth)!;
+    for (const id of ids) {
+      const h = globalSizes.get(id)!.height;
+      if (h > maxLayerNodeHeight) {
+        maxLayerNodeHeight = h;
+      }
+    }
+    currentY += maxLayerNodeHeight + layerGap;
+  }
+
+  const positions = new Map<string, Point>();
+  for (const [depth, ids] of layers) {
+    const lw = layerWidths.get(depth)!;
+    let startX = config.margin + (maxLayerWidth - lw) / 2;
+    const y = layerY.get(depth)!;
+
+    for (let i = 0; i < ids.length; i++) {
+      const id = ids[i];
+      positions.set(id, { x: startX, y });
+      startX += globalSizes.get(id)!.width + config.nodeSpacing;
+    }
+  }
+
+  const width = (layers.size === 0 ? config.nodeWidth : maxLayerWidth) + config.margin * 2;
+  let height;
+  if (layers.size === 0) {
+    height = config.nodeHeight + config.margin * 2;
+    if (nodeId !== null) height += 40;
+  } else {
+    height = currentY - layerGap + config.margin;
+  }
+
+  return { width, height, positions };
+}
+
+function computeAbsolutePositions(
+  hierarchy: Map<string, { parent: string | null; children: string[] }>,
+  nodeId: string | null,
+  localPositions: Map<string, Map<string, Point>>,
+  globalPositions: Map<string, Point>,
+  offsetX: number,
+  offsetY: number
+) {
+  const childrenIds = nodeId === null
+    ? Array.from(hierarchy.entries()).filter(([_, n]) => n.parent === null).map(([id]) => id)
+    : hierarchy.get(nodeId)!.children;
+
+  const locals = localPositions.get(nodeId === null ? "__root__" : nodeId)!;
+
+  for (const childId of childrenIds) {
+    const local = locals.get(childId)!;
+    const absX = offsetX + local.x;
+    const absY = offsetY + local.y;
+    globalPositions.set(childId, { x: absX, y: absY });
+    computeAbsolutePositions(hierarchy, childId, localPositions, globalPositions, absX, absY);
+  }
+}
+
+/**
+ * Computes a basic hierarchical vertical layout for a given graph.
+ *
+ * This layout orchestrates the primary rendering pipeline design by decoupling topological sorting from geometric routing. It first organizes nodes into hierarchical depth layers using an iterative Kahn's algorithm (with a DFS cycle-breaking pass). Once layered, nodes are distributed horizontally.
+ *
+ * If a `previousLayout` is provided, the algorithm will attempt to preserve the relative topological order and visual locality of nodes within layers, minimizing context shifts and jumping during re-renders.
+ * Later in the rendering pipeline, edges are individually routed between these laid-out nodes using an A* shortest-path algorithm (via `edgeEndpoints`) to compute orthogonal lines that avoid intersecting node bounding boxes.
+ *
+ * @example
+ * ```typescript
+ * const layout = verticalLayout(snapshot, {
+ *   nodeWidth: 150,
+ *   nodeHeight: 50,
+ *   layerSpacing: 100
+ * });
+ * const nodePos = layout.positions.get("A");
+ * console.log(`Node A is at (${nodePos?.x}, ${nodePos?.y})`);
+ * ```
+ *
+ * @param graph The logical graph to lay out.
+ * @param options Dimensions and spacing parameters.
+ * @param previousLayout An optional previous layout to use as an ordering hint for nodes.
+ * @param schema The schema representing containment bounds.
+ * @returns A computed `LayoutSnapshot` containing absolute coordinates for all nodes.
+ */
 export function verticalLayout(
   graph: GraphSnapshot,
   options: VerticalLayoutOptions = {},
   previousLayout?: LayoutSnapshot,
+  schema?: GraphSchema
 ): LayoutSnapshot {
   const config = { ...DEFAULT_VERTICAL_LAYOUT, ...options };
   const parentNodes = new Set<string>();
@@ -415,6 +641,72 @@ export function verticalLayout(
     height = currentY - layerGap + config.margin; // subtract last gap and add margin
   }
 
+  const hierarchy = new Map<string, { parent: string | null; children: string[] }>();
+  for (const id of graph.nodes.keys()) {
+    hierarchy.set(id, { children: [], parent: null });
+  }
+
+  if (schema?.containment) {
+    for (const edge of graph.edges.values()) {
+      let isContainment = false;
+      for (let i = 0; i < edge.tags.length; i++) {
+        if (schema.containment.includes(edge.tags[i])) {
+          isContainment = true;
+          break;
+        }
+      }
+      if (isContainment) {
+        if (hierarchy.has(edge.source) && hierarchy.has(edge.target)) {
+          hierarchy.get(edge.source)!.children.push(edge.target);
+          hierarchy.get(edge.target)!.parent = edge.source;
+        }
+      }
+    }
+
+    const calcSize = (id: string): {w: number, h: number} => {
+       const children = hierarchy.get(id)?.children || [];
+       if (children.length === 0) {
+          const s = nodeSizes.get(id);
+          if (s) return {w: s.width, h: s.height};
+          const w = config.nodeWidth;
+          const isCol = config.collapsedNodes?.has(id) ?? false;
+          const h = isCol ? 36 : config.nodeHeight;
+          nodeSizes.set(id, {width: w, height: h});
+          return {w, h};
+       }
+       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+       let hasChildren = false;
+       for (const childId of children) {
+          const p = positions.get(childId);
+          if (p) {
+             hasChildren = true;
+             const s = calcSize(childId);
+             if (p.x < minX) minX = p.x;
+             if (p.x + s.w > maxX) maxX = p.x + s.w;
+             if (p.y < minY) minY = p.y;
+             if (p.y + s.h > maxY) maxY = p.y + s.h;
+          }
+       }
+       if (hasChildren) {
+          const pad = 20;
+          const header = 40;
+          const w = (maxX - minX) + pad * 2;
+          const h = (maxY - minY) + header + pad;
+          nodeSizes.set(id, {width: w, height: h});
+          positions.set(id, {x: minX - pad, y: minY - header});
+          return {w, h};
+       } else {
+          return {w: config.nodeWidth, h: config.nodeHeight};
+       }
+    };
+
+    for (const parent of parentNodes) {
+       if (hierarchy.get(parent)?.parent === null) {
+          calcSize(parent);
+       }
+    }
+  }
+
 
   const edgeRouting = new Map<string, EdgeRoutingHint>();
   const spacing = 16;
@@ -470,6 +762,7 @@ export function verticalLayout(
     }),
     nodeSizes: Object.freeze(nodeSizes),
     edgeRouting,
+    hierarchy,
   });
 }
 
@@ -534,7 +827,7 @@ export function edgeEndpoints(
     y: target.y,
   };
 
-  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout, routing.outIndex, routing.inIndex, routing.outTotal, routing.inTotal);
+  const path = routeEdgeOrthogonal(edge, sourcePt, targetPt, layout, routing.outIndex, routing.inIndex, routing.outTotal, routing.inTotal);
 
   return {
     source: sourcePt,
@@ -559,6 +852,7 @@ export function edgeEndpoints(
  * @returns A readonly array of points defining the calculated orthogonal path.
  */
 function routeEdgeOrthogonal(
+  edge: GraphEdge,
   sourcePt: Point,
   targetPt: Point,
   layout: LayoutSnapshot,
@@ -569,10 +863,11 @@ function routeEdgeOrthogonal(
 ): readonly Point[] {
   const margin = 20;
 
-  const obstacles: { x: number; y: number; w: number; h: number }[] = [];
+  const obstacles: { id: string; x: number; y: number; w: number; h: number }[] = [];
   for (const [id, pos] of layout.positions.entries()) {
     const size = layout.nodeSizes?.get(id) || layout.nodeSize;
     obstacles.push({
+      id,
       x: pos.x,
       y: pos.y,
       w: size.width,
@@ -666,6 +961,20 @@ function routeEdgeOrthogonal(
   const endXIdx = getIdx(xCoords, targetPt.x);
   const endYIdx = getIdx(yCoords, targetPt.y);
 
+  const ignoredObstacles = new Set<string>();
+  if (layout.hierarchy) {
+    let curr = layout.hierarchy.get(edge.source)?.parent || '';
+    while (curr) {
+      ignoredObstacles.add(curr);
+      curr = layout.hierarchy.get(curr)?.parent || '';
+    }
+    curr = layout.hierarchy.get(edge.target)?.parent || '';
+    while (curr) {
+      ignoredObstacles.add(curr);
+      curr = layout.hierarchy.get(curr)?.parent || '';
+    }
+  }
+
   const isSegmentValid = (x1: number, y1: number, x2: number, y2: number) => {
     const minX = Math.min(x1, x2);
     const maxX = Math.max(x1, x2);
@@ -674,6 +983,7 @@ function routeEdgeOrthogonal(
 
     for (let i = 0; i < obstacles.length; i++) {
       const obs = obstacles[i];
+      if (ignoredObstacles.has(obs.id)) continue;
       if (
         minX < obs.x + obs.w &&
         maxX > obs.x &&
