@@ -129,6 +129,15 @@ export interface LayoutSnapshot {
    * Routing hints for staggering edge paths.
    */
   readonly edgeRouting?: ReadonlyMap<string, EdgeRoutingHint>;
+  /**
+   * The hierarchical containment structure representing parent-child relationships.
+   */
+  readonly hierarchy?: ReadonlyMap<string, {
+    /** The parent node ID, or null if it's a root node. */
+    parent: string | null;
+    /** The list of child node IDs. */
+    children: string[]
+  }>;
 }
 
 /**
@@ -534,7 +543,7 @@ export function edgeEndpoints(
     y: target.y,
   };
 
-  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout, routing.outIndex, routing.inIndex, routing.outTotal, routing.inTotal);
+  const path = routeEdgeOrthogonal(edge, sourcePt, targetPt, layout, routing.outIndex, routing.inIndex, routing.outTotal, routing.inTotal);
 
   return {
     source: sourcePt,
@@ -559,6 +568,7 @@ export function edgeEndpoints(
  * @returns A readonly array of points defining the calculated orthogonal path.
  */
 function routeEdgeOrthogonal(
+  edge: GraphEdge,
   sourcePt: Point,
   targetPt: Point,
   layout: LayoutSnapshot,
@@ -569,10 +579,11 @@ function routeEdgeOrthogonal(
 ): readonly Point[] {
   const margin = 20;
 
-  const obstacles: { x: number; y: number; w: number; h: number }[] = [];
+  const obstacles: { id: string; x: number; y: number; w: number; h: number }[] = [];
   for (const [id, pos] of layout.positions.entries()) {
     const size = layout.nodeSizes?.get(id) || layout.nodeSize;
     obstacles.push({
+      id,
       x: pos.x,
       y: pos.y,
       w: size.width,
@@ -674,6 +685,23 @@ function routeEdgeOrthogonal(
 
     for (let i = 0; i < obstacles.length; i++) {
       const obs = obstacles[i];
+
+      let isIgnored = false;
+      if (layout.hierarchy) {
+         let curr = layout.hierarchy.get(edge.source)?.parent;
+         while (curr) {
+            if (obs.id === curr) { isIgnored = true; break; }
+            curr = layout.hierarchy.get(curr)?.parent;
+         }
+         curr = layout.hierarchy.get(edge.target)?.parent;
+         while (curr && !isIgnored) {
+            if (obs.id === curr) { isIgnored = true; break; }
+            curr = layout.hierarchy.get(curr)?.parent;
+         }
+      }
+
+      if (isIgnored) continue;
+
       if (
         minX < obs.x + obs.w &&
         maxX > obs.x &&

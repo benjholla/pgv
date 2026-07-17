@@ -2318,40 +2318,24 @@ function renderNodes(
 ): HTMLElement[] {
   const nodes: HTMLElement[] = [];
 
-  // Temporary change: Calculate nodes that act as parents in containment relationships
-  // so we can omit rendering them.
-  const parentNodes = new Set<string>();
-  if (schema?.containment) {
-    for (const edge of graph.edges.values()) {
-      let isContainment = false;
-      for (let i = 0; i < edge.tags.length; i++) {
-        if (schema.containment.includes(edge.tags[i])) {
-          isContainment = true;
-          break;
-        }
-      }
-      if (isContainment) {
-        parentNodes.add(edge.source);
-      }
-    }
-  }
+  const renderedElements = new Map<string, HTMLElement>();
 
-  for (const node of graph.nodes.values()) {
-    // Temporary change: skip rendering nodes that have children
-    if (parentNodes.has(node.id)) {
-      continue;
+  const renderSingleNode = (nodeId: string): HTMLElement | null => {
+    if (renderedElements.has(nodeId)) {
+      return renderedElements.get(nodeId)!;
     }
+
+    const node = graph.nodes.get(nodeId);
+    if (!node) return null;
 
     const position = layout.positions.get(node.id);
+    if (!position) return null;
 
-    if (!position) {
-      continue;
-    }
+    const isCompound = layout.hierarchy?.has(node.id) && layout.hierarchy.get(node.id)!.children.length > 0;
 
     const element = document.createElement("div");
 
-    // Optimized string builder: avoids array allocations and .map() inside the hot loop.
-    let className = "graph-node pgv-graph-node";
+    let className = isCompound ? "pgv-compound-node" : "graph-node pgv-graph-node";
     for (let i = 0; i < node.tags.length; i++) {
       className += " " + tagToClassName(node.tags[i]);
     }
@@ -2368,13 +2352,49 @@ function renderNodes(
     element.className = className;
     element.dataset.nodeId = node.id;
     element.setAttribute("tabindex", "0");
-    element.style.transform = `translate(${position.x}px, ${position.y}px)`;
 
-    // Explicitly set node width, let expanded nodes flow height naturally
     const nodeSize = layout.nodeSizes?.get(node.id) || layout.nodeSize;
     element.style.width = `${nodeSize.width}px`;
 
-    if (isCollapsed) {
+    if (isCompound) {
+      element.style.height = `${nodeSize.height}px`;
+    }
+
+    const parentId = layout.hierarchy?.get(node.id)?.parent;
+    if (parentId && layout.positions.has(parentId)) {
+      const parentPos = layout.positions.get(parentId)!;
+      element.style.transform = `translate(${position.x - parentPos.x}px, ${position.y - parentPos.y}px)`;
+    } else {
+      element.style.transform = `translate(${position.x}px, ${position.y}px)`;
+    }
+
+    if (isCompound) {
+       const header = document.createElement("div");
+       header.className = "pgv-compound-node-header";
+
+       const title = document.createElement("div");
+       title.className = "pgv-node-title";
+       title.textContent = node.id;
+
+       const toggleBtn = document.createElement("button");
+       toggleBtn.className = "pgv-node-collapse-toggle";
+       toggleBtn.title = "Collapse node (Disabled)";
+       toggleBtn.setAttribute("aria-label", "Collapse node");
+       toggleBtn.setAttribute("aria-expanded", "true");
+       toggleBtn.disabled = true;
+       toggleBtn.textContent = "[-]";
+
+       header.append(title, toggleBtn);
+       element.appendChild(header);
+
+       const children = layout.hierarchy!.get(node.id)!.children;
+       for (const childId of children) {
+         const childEl = renderSingleNode(childId);
+         if (childEl) {
+           element.appendChild(childEl);
+         }
+       }
+    } else if (isCollapsed) {
       const header = document.createElement("div");
       header.className = "pgv-node-header-collapsed";
 
@@ -2417,11 +2437,23 @@ function renderNodes(
       }
     }
 
-    nodes.push(element);
+    renderedElements.set(nodeId, element);
+    return element;
+  };
+
+  for (const nodeId of graph.nodes.keys()) {
+    const parentId = layout.hierarchy?.get(nodeId)?.parent;
+    if (!parentId) {
+      const el = renderSingleNode(nodeId);
+      if (el) {
+        nodes.push(el);
+      }
+    }
   }
 
   return nodes;
 }
+
 
 function defaultNodeContent(node: GraphNode): HTMLElement {
   const content = document.createElement("div");
