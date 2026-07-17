@@ -2442,7 +2442,8 @@ function renderNodes(
 
   for (const nodeId of graph.nodes.keys()) {
     const parentId = layout.hierarchy?.get(nodeId)?.parent;
-    if (!parentId) {
+    // A node is a root element if it has no parent, OR if its parent is not present in the positions (e.g. invalid hierarchy)
+    if (!parentId || !layout.positions.has(parentId)) {
       const el = renderSingleNode(nodeId);
       if (el) {
         nodes.push(el);
