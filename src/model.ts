@@ -305,25 +305,23 @@ function validateStructuralInvariants(
   edges: IterableIterator<GraphEdge>,
   schema?: GraphSchema | GraphSchemaJson
 ) {
-  const edgeList = Array.from(edges);
-
-  for (const edge of edgeList) {
-    if (!nodes.has(edge.source)) {
-      throw new GraphModelError(`Edge "${edge.id}" references missing source "${edge.source}".`);
-    }
-    if (!nodes.has(edge.target)) {
-      throw new GraphModelError(`Edge "${edge.id}" references missing target "${edge.target}".`);
-    }
-  }
-
   // Build adjacency list for containment edges
   const containmentAdjacency = new Map<string, string[]>();
   for (const nodeId of nodes.keys()) {
     containmentAdjacency.set(nodeId, []);
   }
 
-  if (schema?.containment) {
-    for (const edge of edgeList) {
+  // PERF(Bolt): Consolidate structural validation and containment adjacency building
+  // into a single pass over the edge iterable to avoid Array.from() allocation.
+  for (const edge of edges) {
+    if (!nodes.has(edge.source)) {
+      throw new GraphModelError(`Edge "${edge.id}" references missing source "${edge.source}".`);
+    }
+    if (!nodes.has(edge.target)) {
+      throw new GraphModelError(`Edge "${edge.id}" references missing target "${edge.target}".`);
+    }
+
+    if (schema?.containment) {
       let isContainment = false;
       for (let i = 0; i < edge.tags.length; i++) {
         if (schema.containment.includes(edge.tags[i])) {
