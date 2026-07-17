@@ -954,14 +954,16 @@
 .pgv-compound-node-header .pgv-node-title {
   font-weight: 600;
   font-size: 13px;
-  color: var(--pgv-node-fg, #111827);
+  color: var(--pgv-node-title-fg);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
 .pgv-dark .pgv-compound-node-header .pgv-node-title {
-  color: var(--pgv-node-fg, #f9fafb);
+  color: var(--pgv-node-title-fg);
 }
 
 .pgv-compound-node-header .pgv-node-collapse-toggle {
