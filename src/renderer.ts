@@ -2384,8 +2384,8 @@ function renderNodes(
 
       const toggleBtn = document.createElement("button");
       toggleBtn.className = "pgv-node-collapse-toggle";
-      toggleBtn.title = "Expand node";
-      toggleBtn.setAttribute("aria-label", "Expand node");
+      toggleBtn.title = `Expand node ${node.id}`;
+      toggleBtn.setAttribute("aria-label", `Expand node ${node.id}`);
       toggleBtn.setAttribute("aria-expanded", "false");
       toggleBtn.textContent = "[+]";
       toggleBtn.addEventListener("click", (e) => {
@@ -2403,8 +2403,8 @@ function renderNodes(
       } else {
         const toggleBtn = document.createElement("button");
         toggleBtn.className = "pgv-node-collapse-toggle";
-        toggleBtn.title = "Collapse node";
-        toggleBtn.setAttribute("aria-label", "Collapse node");
+        toggleBtn.title = `Collapse node ${node.id}`;
+        toggleBtn.setAttribute("aria-label", `Collapse node ${node.id}`);
         toggleBtn.setAttribute("aria-expanded", "true");
         toggleBtn.textContent = "[-]";
         toggleBtn.addEventListener("click", (e) => {
