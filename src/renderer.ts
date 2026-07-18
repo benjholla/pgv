@@ -2502,7 +2502,7 @@ function createArrowMarker(markerId: string): SVGDefsElement {
 
   marker.setAttribute("id", markerId);
   marker.setAttribute("viewBox", "0 0 10 10");
-  marker.setAttribute("refX", "5");
+  marker.setAttribute("refX", "10");
   marker.setAttribute("refY", "5");
   marker.setAttribute("markerWidth", "6");
   marker.setAttribute("markerHeight", "6");
