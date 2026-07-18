@@ -93,4 +93,30 @@ test.describe("Graph Visual Regression", () => {
       maxDiffPixels: 100,
     });
   });
+
+  test("Compound nodes structure", async ({ page }) => {
+    await injectGraph(page, {
+      schema: {
+        containment: ["contains"]
+      },
+      nodes: [
+        { id: "Parent", attributes: { "XCSG.name": "Parent" } },
+        { id: "Child1", attributes: { "XCSG.name": "Child 1" } },
+        { id: "Child2", attributes: { "XCSG.name": "Child 2" } },
+        { id: "External", attributes: { "XCSG.name": "External" } }
+      ],
+      edges: [
+        { id: "e1", source: "Parent", target: "Child1", tags: ["contains"] },
+        { id: "e2", source: "Parent", target: "Child2", tags: ["contains"] },
+        { id: "e3", source: "Child1", target: "Child2" },
+        { id: "e4", source: "Child2", target: "External" }
+      ],
+    });
+
+    const canvas = page.locator("#graph");
+    await expect(canvas).toHaveScreenshot("layout-compound.png", {
+      maxDiffPixels: 100,
+    });
+  });
+
 });

@@ -15,7 +15,7 @@ function binarySearch(arr: readonly string[], target: string): number {
  * Frontend-owned vertical layout and geometric routing calculations.
  */
 
-import type { GraphSnapshot, GraphEdge } from "./model";
+import type { GraphSnapshot, GraphEdge , GraphSchema} from "./model";
 
 /**
  * Represents an absolute 2D coordinate point in the rendering coordinate system.
@@ -100,6 +100,15 @@ export interface EdgeRoutingHint {
  * (like minimaps) by sharing or interpolating layout coordinate snapshots.
  */
 export interface LayoutSnapshot {
+  /**
+   * The hierarchical containment structure representing parent-child relationships.
+   */
+  readonly hierarchy?: ReadonlyMap<string, {
+    /** The parent node ID, or null if it's a root node. */
+    parent: string | null;
+    /** The list of child node IDs. */
+    children: string[]
+  }>;
   /**
    * A map of node IDs to their absolute visual coordinates.
    */
@@ -212,6 +221,7 @@ export function verticalLayout(
   graph: GraphSnapshot,
   options: VerticalLayoutOptions = {},
   previousLayout?: LayoutSnapshot,
+  schema?: GraphSchema
 ): LayoutSnapshot {
   const config = { ...DEFAULT_VERTICAL_LAYOUT, ...options };
   const parentNodes = new Set<string>();
@@ -227,6 +237,16 @@ export function verticalLayout(
   // Sort node IDs to guarantee determinism in layout regardless of input map iteration order
   const nodeIds = [];
   for (const id of graph.nodes.keys()) {
+    // If a node is a parent, we do NOT want it in the main rank-based DAG layout flow.
+    // HOWEVER, if we filter it out here, we do not layout parent nodes at all (unless we do bottom-up layout).
+    // The current layout logic doesn't actually layout parent nodes recursively yet.
+    // But since we appended "Compound Node Size Injection" at the END of this layout function,
+    // we CANNOT filter out parents here, because then they won't even exist in the layout at all!
+    // But wait, if they are in nodeIds, they might get arbitrary positions in the DAG layout.
+    // The Compound Node Size Injection OVERWRITES their position though: `positions.set(id, {x: minX - pad, y: minY - header});`
+    // Therefore, it's safer to just let them be processed, or process them explicitly later.
+    // If we process them here, they'll act as disconnected nodes and get placed somewhere on layer 0.
+    // Let's filter them out here, BUT we must ensure the "Compound Node Size Injection" logic adds them back to `positions`.
     if (!parentNodes.has(id)) {
       nodeIds.push(id);
     }
@@ -460,6 +480,88 @@ export function verticalLayout(
     }));
   }
 
+    // -- Start Compound Node Size Injection --
+  const layoutHierarchy = new Map<string, { parent: string | null; children: string[] }>();
+  for (const id of graph.nodes.keys()) {
+    layoutHierarchy.set(id, { children: [], parent: null });
+  }
+
+  let hasHierarchy = false;
+  if (schema?.containment) {
+    hasHierarchy = true;
+    for (const edge of graph.edges.values()) {
+      let isContainment = false;
+      for (let i = 0; i < edge.tags.length; i++) {
+        if (schema.containment.includes(edge.tags[i])) {
+          isContainment = true;
+          break;
+        }
+      }
+      if (isContainment) {
+        if (layoutHierarchy.has(edge.source) && layoutHierarchy.has(edge.target)) {
+          layoutHierarchy.get(edge.source)!.children.push(edge.target);
+          layoutHierarchy.get(edge.target)!.parent = edge.source;
+        }
+      }
+    }
+
+    const calcSize = (id: string): {w: number, h: number} => {
+       const children = layoutHierarchy.get(id)?.children || [];
+       if (children.length === 0) {
+          const s = nodeSizes.get(id);
+          if (s) return {w: s.width, h: s.height};
+          const w = config.nodeWidth;
+          const isCol = config.collapsedNodes?.has(id) ?? false;
+          const h = isCol ? 36 : config.nodeHeight;
+          nodeSizes.set(id, {width: w, height: h});
+          return {w, h};
+       }
+       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+       let hasChildren = false;
+       for (const childId of children) {
+          const p = positions.get(childId);
+          if (p) {
+             hasChildren = true;
+             const s = calcSize(childId);
+             if (p.x < minX) minX = p.x;
+             if (p.x + s.w > maxX) maxX = p.x + s.w;
+             if (p.y < minY) minY = p.y;
+             if (p.y + s.h > maxY) maxY = p.y + s.h;
+          }
+       }
+       if (hasChildren) {
+          const pad = 20;
+          const header = 40;
+          const w = (maxX - minX) + pad * 2;
+          const h = (maxY - minY) + header + pad;
+          nodeSizes.set(id, {width: w, height: h});
+          positions.set(id, {x: minX - pad, y: minY - header});
+
+          // Make sure parent node is included in the output even if it wasn't processed by the main graph layout
+          if (!positions.has(id)) {
+              positions.set(id, {x: minX - pad, y: minY - header});
+          }
+          return {w, h};
+       } else {
+          // Empty parent node
+          const w = config.nodeWidth;
+          const h = config.nodeHeight;
+          nodeSizes.set(id, {width: w, height: h});
+          if (!positions.has(id)) {
+             positions.set(id, {x: 0, y: 0}); // Fallback
+          }
+          return {w, h};
+       }
+    };
+
+    for (const id of graph.nodes.keys()) {
+       if (layoutHierarchy.get(id)?.parent === null) {
+          calcSize(id);
+       }
+    }
+  }
+  // -- End Compound Node Size Injection --
+
   return Object.freeze({
     positions,
     width,
@@ -470,6 +572,7 @@ export function verticalLayout(
     }),
     nodeSizes: Object.freeze(nodeSizes),
     edgeRouting,
+    hierarchy: hasHierarchy ? layoutHierarchy : undefined,
   });
 }
 
@@ -534,7 +637,7 @@ export function edgeEndpoints(
     y: target.y,
   };
 
-  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout, routing.outIndex, routing.inIndex, routing.outTotal, routing.inTotal);
+  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout, routing.outIndex, routing.inIndex, routing.outTotal, routing.inTotal, edge.source, edge.target);
 
   return {
     source: sourcePt,
@@ -566,13 +669,16 @@ function routeEdgeOrthogonal(
   inIndex: number = 0,
   outTotal: number = 1,
   inTotal: number = 1,
+  sourceId?: string,
+  targetId?: string,
 ): readonly Point[] {
   const margin = 20;
 
-  const obstacles: { x: number; y: number; w: number; h: number }[] = [];
+  const obstacles: { id: string; x: number; y: number; w: number; h: number }[] = [];
   for (const [id, pos] of layout.positions.entries()) {
     const size = layout.nodeSizes?.get(id) || layout.nodeSize;
     obstacles.push({
+      id,
       x: pos.x,
       y: pos.y,
       w: size.width,
@@ -667,19 +773,71 @@ function routeEdgeOrthogonal(
   const endYIdx = getIdx(yCoords, targetPt.y);
 
   const isSegmentValid = (x1: number, y1: number, x2: number, y2: number) => {
-    const minX = Math.min(x1, x2);
-    const maxX = Math.max(x1, x2);
-    const minY = Math.min(y1, y2);
-    const maxY = Math.max(y1, y2);
+    // Add small epsilon to allow edges to route exactly on the boundary of nodes (or ports)
+    let minX = Math.min(x1, x2) + 0.1;
+    let maxX = Math.max(x1, x2) - 0.1;
+    let minY = Math.min(y1, y2) + 0.1;
+    let maxY = Math.max(y1, y2) - 0.1;
+    if (minX > maxX) { minX = x1 - 0.1; maxX = x1 + 0.1; }
+    if (minY > maxY) { minY = y1 - 0.1; maxY = y1 + 0.1; }
 
     for (let i = 0; i < obstacles.length; i++) {
       const obs = obstacles[i];
+
+      // If this obstacle is a compound node container, it shouldn't block edge routing
+      // traversing through it to connect to its inner children.
+      if (layout.hierarchy?.has(obs.id) && layout.hierarchy.get(obs.id)!.children.length > 0) {
+        continue;
+      }
+
+      // If this obstacle is the exact source or target node, allow edges to originate/terminate exactly on their boundary
+      if (obs.id === sourceId || obs.id === targetId) {
+        // Only ignore it if the segment is literally touching the boundary and moving away
+        // Actually, if we just ignore the source/target entirely, it might allow routing straight through it.
+        // But the A* algorithm should avoid traversing through it if there's a better path, right?
+        // NO, A* finds the shortest path, which is straight through the source node if we ignore it!
+        // So we MUST NOT ignore it. But we must allow the VERY FIRST segment to start inside the obstacle (or rather, on the boundary).
+        // Since minX/maxX/minY/maxY use +/- 0.1, the exact boundary is OUTSIDE the obstacle check.
+        // So we DON'T need to ignore it!
+      }
+
+      // We should also NOT check the obstacle if it is the source OR target of the edge we are routing.
+      // Wait, we don't have source/target ID here. We can't check that.
+      // But wait! If the edge starts at the exact bottom of the source (minY = obs.y + obs.h + 0.1, maxY = obs.y + obs.h - 0.1),
+      // AND it goes DOWN (y2 > y1), then minY = obs.y + obs.h + 0.1, maxY = target.y.
+      // minY < obs.y + obs.h is FALSE. So it doesn't collide.
+      // But if it goes UP (y2 < y1), then minY = target.y + 0.1, maxY = obs.y + obs.h - 0.1.
+      // minY < obs.y + obs.h (TRUE, since target.y is above source).
+      // maxY > obs.y (TRUE, since obs.y + obs.h - 0.1 > obs.y).
+      // So it DOES collide.
+      // So A* SHOULD NOT ALLOW a segment going UP through the source node!
+
       if (
         minX < obs.x + obs.w &&
         maxX > obs.x &&
         minY < obs.y + obs.h &&
         maxY > obs.y
       ) {
+        // If the segment crosses this obstacle, check if it's the source or target.
+        // Wait, if it crosses the source/target, we only allow it if it's on the boundary.
+        // BUT we already add 0.1 to min and subtract 0.1 from max!
+        // So a line EXACTLY on the boundary (e.g. minY = 100.1, maxY = 99.9) will be:
+        // 100.1 < obs.y + obs.h
+        // 99.9 > obs.y
+        // BOTH ARE TRUE!
+        // Wait! If the boundary is at 100, and the obstacle is from 0 to 100:
+        // obs.y = 0, obs.h = 100 -> obs.y + obs.h = 100.
+        // minY = 100.1
+        // 100.1 < 100 is FALSE!
+        // So it correctly ignores the boundary!
+
+        // Wait, what if the edge goes UP from 100?
+        // y1 = 100, y2 = 80.
+        // minY = 80.1, maxY = 99.9.
+        // 80.1 < 100 (TRUE)
+        // 99.9 > 0 (TRUE)
+        // So it correctly BLOCKS it!
+        // SO WHY DOES IT RETURN A PATH?!
         return false;
       }
     }

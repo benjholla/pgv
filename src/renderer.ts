@@ -236,7 +236,7 @@ export class GraphView {
       this.#currentTheme = options.theme;
     }
     this.#layout =
-      this.#options.layout ?? verticalLayout(graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) });
+      this.#options.layout ?? verticalLayout(graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, undefined, this.#schema);
 
     this.#render();
 
@@ -267,7 +267,7 @@ export class GraphView {
     if (options.layout !== undefined && options.layout !== oldLayout) {
       this.#layout = options.layout;
     } else if (options.layoutOptions !== undefined && options.layoutOptions !== oldLayoutOptions && this.#graph) {
-      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined);
+      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined, this.#schema);
     }
     if (this.#clearSelectionBtn) {
       this.#clearSelectionBtn.disabled = !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0);
@@ -567,7 +567,7 @@ export class GraphView {
     }
 
     this.#graph = current;
-    this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined);
+    this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined, this.#schema);
     this.#options.onGraphChange?.(this.#graph);
     this.#render();
   }
@@ -2317,41 +2317,24 @@ function renderNodes(
   onToggleCollapse: (id: string) => void = () => {},
 ): HTMLElement[] {
   const nodes: HTMLElement[] = [];
+  const renderedElements = new Map<string, HTMLElement>();
 
-  // Temporary change: Calculate nodes that act as parents in containment relationships
-  // so we can omit rendering them.
-  const parentNodes = new Set<string>();
-  if (schema?.containment) {
-    for (const edge of graph.edges.values()) {
-      let isContainment = false;
-      for (let i = 0; i < edge.tags.length; i++) {
-        if (schema.containment.includes(edge.tags[i])) {
-          isContainment = true;
-          break;
-        }
-      }
-      if (isContainment) {
-        parentNodes.add(edge.source);
-      }
+  const renderSingleNode = (nodeId: string): HTMLElement | null => {
+    if (renderedElements.has(nodeId)) {
+      return renderedElements.get(nodeId)!;
     }
-  }
 
-  for (const node of graph.nodes.values()) {
-    // Temporary change: skip rendering nodes that have children
-    if (parentNodes.has(node.id)) {
-      continue;
-    }
+    const node = graph.nodes.get(nodeId);
+    if (!node) return null;
 
     const position = layout.positions.get(node.id);
+    if (!position) return null;
 
-    if (!position) {
-      continue;
-    }
+    const isCompound = layout.hierarchy?.has(node.id) && layout.hierarchy.get(node.id)!.children.length > 0;
 
     const element = document.createElement("div");
 
-    // Optimized string builder: avoids array allocations and .map() inside the hot loop.
-    let className = "graph-node pgv-graph-node";
+    let className = isCompound ? "pgv-compound-node" : "graph-node pgv-graph-node";
     for (let i = 0; i < node.tags.length; i++) {
       className += " " + tagToClassName(node.tags[i]);
     }
@@ -2368,19 +2351,55 @@ function renderNodes(
     element.className = className;
     element.dataset.nodeId = node.id;
     element.setAttribute("tabindex", "0");
-    element.style.transform = `translate(${position.x}px, ${position.y}px)`;
 
-    // Explicitly set node width, let expanded nodes flow height naturally
     const nodeSize = layout.nodeSizes?.get(node.id) || layout.nodeSize;
     element.style.width = `${nodeSize.width}px`;
 
-    if (isCollapsed) {
+    if (isCompound) {
+      element.style.height = `${nodeSize.height}px`;
+    }
+
+    const parentId = layout.hierarchy?.get(node.id)?.parent;
+    if (parentId && layout.positions.has(parentId)) {
+      const parentPos = layout.positions.get(parentId)!;
+      element.style.transform = `translate(${position.x - parentPos.x}px, ${position.y - parentPos.y}px)`;
+    } else {
+      element.style.transform = `translate(${position.x}px, ${position.y}px)`;
+    }
+
+    if (isCompound) {
+       const header = document.createElement("div");
+       header.className = "pgv-compound-node-header";
+
+       const title = document.createElement("div");
+       title.className = "pgv-node-title";
+       title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+
+       const toggleBtn = document.createElement("button");
+       toggleBtn.className = "pgv-node-collapse-toggle";
+       toggleBtn.title = "Collapse node (Disabled)";
+       toggleBtn.setAttribute("aria-label", "Collapse node");
+       toggleBtn.setAttribute("aria-expanded", "true");
+       toggleBtn.disabled = true;
+       toggleBtn.textContent = "[-]";
+
+       header.append(title, toggleBtn);
+       element.appendChild(header);
+
+       const children = layout.hierarchy!.get(node.id)!.children;
+       for (const childId of children) {
+         const childEl = renderSingleNode(childId);
+         if (childEl) {
+           element.appendChild(childEl);
+         }
+       }
+    } else if (isCollapsed) {
       const header = document.createElement("div");
       header.className = "pgv-node-header-collapsed";
 
       const title = document.createElement("div");
       title.className = "pgv-node-title";
-      title.textContent = node.id;
+      title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
 
       const toggleBtn = document.createElement("button");
       toggleBtn.className = "pgv-node-collapse-toggle";
@@ -2417,11 +2436,24 @@ function renderNodes(
       }
     }
 
-    nodes.push(element);
+    renderedElements.set(nodeId, element);
+    return element;
+  };
+
+  for (const nodeId of graph.nodes.keys()) {
+    const parentId = layout.hierarchy?.get(nodeId)?.parent;
+    // A node is a root element if it has no parent, OR if its parent is not present in the positions (e.g. invalid hierarchy)
+    if (!parentId || !layout.positions.has(parentId)) {
+      const el = renderSingleNode(nodeId);
+      if (el) {
+        nodes.push(el);
+      }
+    }
   }
 
   return nodes;
 }
+
 
 function defaultNodeContent(node: GraphNode): HTMLElement {
   const content = document.createElement("div");
@@ -2437,7 +2469,7 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
 
   content.className = "pgv-node-content";
   title.className = "pgv-node-title";
-  title.textContent = node.id;
+  title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
   id.className = "pgv-node-id";
   id.textContent = node.id;
 
