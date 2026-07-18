@@ -2355,9 +2355,8 @@ function renderNodes(
     const nodeSize = layout.nodeSizes?.get(node.id) || layout.nodeSize;
     element.style.width = `${nodeSize.width}px`;
 
-    if (isCompound) {
-      element.style.height = `${nodeSize.height}px`;
-    }
+    // Always explicitly apply calculated height to ensure visually consistent boundary with mathematical layout
+    element.style.height = `${nodeSize.height}px`;
 
     const parentId = layout.hierarchy?.get(node.id)?.parent;
     if (parentId && layout.positions.has(parentId)) {
@@ -2480,7 +2479,7 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
 
     list.className = "pgv-node-attributes";
 
-    for (const [key, value] of attributes.slice(0, 3)) {
+    for (const [key, value] of attributes) {
       const term = document.createElement("dt");
       const description = document.createElement("dd");
 

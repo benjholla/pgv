@@ -234,7 +234,7 @@ export function verticalLayout(
     applyPreviousLayoutHints(layers, previousLayout, incoming, outgoing);
   }
 
-  const { positions, nodeSizes, width, height } = computeLayerPositions(layers, nodeIds, config);
+  const { positions, nodeSizes, width, height } = computeLayerPositions(graph, layers, nodeIds, config);
 
 
   const edgeRouting = computeEdgeRoutingHints(graph, edgeOutgoing, edgeIncoming, config);
@@ -936,16 +936,35 @@ function applyPreviousLayoutHints(
   }
 }
 
-function computeLayerPositions(layers: ReadonlyMap<number, readonly string[]>, nodeIds: readonly string[], config: Required<VerticalLayoutOptions>) {
+
+function estimateNodeHeight(graph: GraphSnapshot, id: string, config: Required<VerticalLayoutOptions>) {
+  const isCollapsed = config.collapsedNodes?.has(id) ?? false;
+  if (isCollapsed) return 36;
+
+  const node = graph.nodes.get(id);
+  if (!node) return config.nodeHeight;
+
+  let attrCount = 0;
+  for (const key in node.attributes) {
+    if (Object.prototype.hasOwnProperty.call(node.attributes, key)) {
+      attrCount++;
+    }
+  }
+
+  if (attrCount === 0) {
+    return config.nodeHeight;
+  }
+
+  // Base height (title + id + padding) + margin-top (4) + attributes rows (14px per row + 2px gap)
+  return config.nodeHeight + 4 + (attrCount * 14) + ((attrCount - 1) * 2);
+}
+
+function computeLayerPositions(graph: GraphSnapshot, layers: ReadonlyMap<number, readonly string[]>, nodeIds: readonly string[], config: Required<VerticalLayoutOptions>) {
   const positions = new Map<string, Point>();
   const nodeSizes = new Map<string, Size>();
 
   for (const id of nodeIds) {
-    const isCollapsed = config.collapsedNodes?.has(id) ?? false;
-    nodeSizes.set(id, {
-      width: config.nodeWidth,
-      height: isCollapsed ? 36 : config.nodeHeight,
-    });
+    nodeSizes.set(id, { width: config.nodeWidth, height: estimateNodeHeight(graph, id, config) });
   }
 
   let maxLayerSize = 1;
