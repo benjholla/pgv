@@ -415,6 +415,7 @@
   box-shadow: var(--pgv-selected-shadow);
 }
 
+
 .pgv-graph-node:focus-visible {
   outline: none;
   box-shadow: var(--pgv-focus-shadow);
@@ -436,6 +437,12 @@
 .pgv-graph-edge {
   cursor: pointer;
   pointer-events: auto;
+}
+
+@media (hover: hover) {
+  .pgv-graph-edge:hover path {
+    stroke: var(--pgv-node-accent);
+  }
 }
 
 .pgv-graph-edge path {
@@ -514,6 +521,12 @@
 .graph-node.pgv-selected {
   border-color: var(--pgv-selected-color);
   box-shadow: var(--pgv-selected-shadow);
+}
+
+@media (hover: hover) {
+  .graph-node:hover:not(.pgv-selected) {
+    border-color: var(--pgv-node-accent);
+  }
 }
 
 .pgv-node-content {

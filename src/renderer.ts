@@ -2261,11 +2261,18 @@ function renderEdges(
     group.setAttribute("class", className);
     group.dataset.edgeId = edge.id;
     group.setAttribute("tabindex", "0");
+    group.setAttribute("role", "button");
+
+    let edgeAriaLabel = `Edge ${edge.id}`;
+    const label = options.edgeLabel?.(edge) ?? null;
+    if (label) {
+      edgeAriaLabel += `: ${label}`;
+    }
+    group.setAttribute("aria-label", edgeAriaLabel);
+
     path.setAttribute("d", pathData);
     path.setAttribute("marker-end", `url(#${markerId})`);
     group.appendChild(path);
-
-    const label = options.edgeLabel?.(edge) ?? null;
 
     if (label) {
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
@@ -2377,8 +2384,8 @@ function renderNodes(
 
        const toggleBtn = document.createElement("button");
        toggleBtn.className = "pgv-node-collapse-toggle";
-       toggleBtn.title = "Collapse node (Disabled)";
-       toggleBtn.setAttribute("aria-label", "Collapse node");
+       toggleBtn.title = `Collapse node ${node.id} (Disabled)`;
+       toggleBtn.setAttribute("aria-label", `Collapse node ${node.id} (Disabled)`);
        toggleBtn.setAttribute("aria-expanded", "true");
        toggleBtn.disabled = true;
        toggleBtn.textContent = "[-]";
