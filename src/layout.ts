@@ -224,343 +224,22 @@ export function verticalLayout(
   schema?: GraphSchema
 ): LayoutSnapshot {
   const config = { ...DEFAULT_VERTICAL_LAYOUT, ...options };
-  const parentNodes = new Set<string>();
-  for (const edge of graph.edges.values()) {
-    for (let i = 0; i < edge.tags.length; i++) {
-      if (config.containmentTags.has(edge.tags[i])) {
-        parentNodes.add(edge.source);
-        break;
-      }
-    }
-  }
-
-  // Sort node IDs to guarantee determinism in layout regardless of input map iteration order
-  const nodeIds = [];
-  for (const id of graph.nodes.keys()) {
-    // If a node is a parent, we do NOT want it in the main rank-based DAG layout flow.
-    // HOWEVER, if we filter it out here, we do not layout parent nodes at all (unless we do bottom-up layout).
-    // The current layout logic doesn't actually layout parent nodes recursively yet.
-    // But since we appended "Compound Node Size Injection" at the END of this layout function,
-    // we CANNOT filter out parents here, because then they won't even exist in the layout at all!
-    // But wait, if they are in nodeIds, they might get arbitrary positions in the DAG layout.
-    // The Compound Node Size Injection OVERWRITES their position though: `positions.set(id, {x: minX - pad, y: minY - header});`
-    // Therefore, it's safer to just let them be processed, or process them explicitly later.
-    // If we process them here, they'll act as disconnected nodes and get placed somewhere on layer 0.
-    // Let's filter them out here, BUT we must ensure the "Compound Node Size Injection" logic adds them back to `positions`.
-    if (!parentNodes.has(id)) {
-      nodeIds.push(id);
-    }
-  }
-  nodeIds.sort();
-  const outgoing = new Map<string, string[]>();
-  const incoming = new Map<string, string[]>();
-  const edgeOutgoing = new Map<string, string[]>();
-  const edgeIncoming = new Map<string, string[]>();
-
-  for (const id of nodeIds) {
-    outgoing.set(id, []);
-    incoming.set(id, []);
-    edgeOutgoing.set(id, []);
-    edgeIncoming.set(id, []);
-  }
-
-  for (const edge of graph.edges.values()) {
-    let isContainment = false;
-    for (let i = 0; i < edge.tags.length; i++) {
-      if (config.containmentTags.has(edge.tags[i])) {
-        isContainment = true;
-        break;
-      }
-    }
-    if (isContainment) {
-      continue;
-    }
-
-    // Note: We always need to add to edgeOutgoing and edgeIncoming even if nodes are missing
-    // or if it's a self loop, to maintain behavior of staggering calculation later.
-    if (!edgeOutgoing.has(edge.source)) edgeOutgoing.set(edge.source, []);
-    if (!edgeIncoming.has(edge.target)) edgeIncoming.set(edge.target, []);
-    edgeOutgoing.get(edge.source)!.push(edge.id);
-    edgeIncoming.get(edge.target)!.push(edge.id);
-
-    if (!graph.nodes.has(edge.source) || !graph.nodes.has(edge.target) || parentNodes.has(edge.source) || parentNodes.has(edge.target)) {
-      continue;
-    }
-
-    outgoing.get(edge.source)!.push(edge.target);
-    incoming.get(edge.target)!.push(edge.source);
-  }
-
-  // Sort outgoing edges to guarantee deterministic traversal
-  for (const neighbors of outgoing.values()) {
-    neighbors.sort();
-  }
-  for (const list of edgeOutgoing.values()) {
-    list.sort();
-  }
-  for (const list of edgeIncoming.values()) {
-    list.sort();
-  }
+  const { nodeIds, parentNodes } = identifyCompoundNodes(graph, config);
+  const { outgoing, incoming, edgeOutgoing, edgeIncoming } = buildAdjacencyLists(graph, nodeIds, parentNodes, config);
 
   const depths = assignVerticalDepths(nodeIds, outgoing, incoming);
   const layers = groupByDepth(nodeIds, depths);
 
   if (previousLayout) {
-    for (const ids of layers.values()) {
-      const hintX = new Map<string, number>();
-
-      for (const id of ids) {
-        if (previousLayout.positions.has(id)) {
-          hintX.set(id, previousLayout.positions.get(id)!.x);
-        } else {
-          // Calculate average X of incoming neighbors
-          let sumIn = 0;
-          let countIn = 0;
-
-          const inNeighbors = incoming.get(id) || [];
-          for (const source of inNeighbors) {
-            if (previousLayout.positions.has(source)) {
-              sumIn += previousLayout.positions.get(source)!.x;
-              countIn++;
-            }
-          }
-
-          if (countIn > 0) {
-            hintX.set(id, sumIn / countIn);
-          } else {
-            // Fall back to outgoing neighbors
-            let sumOut = 0;
-            let countOut = 0;
-            const outNeighbors = outgoing.get(id) || [];
-            for (const target of outNeighbors) {
-              if (previousLayout.positions.has(target)) {
-                sumOut += previousLayout.positions.get(target)!.x;
-                countOut++;
-              }
-            }
-
-            if (countOut > 0) {
-              hintX.set(id, sumOut / countOut);
-            } else {
-              hintX.set(id, 0);
-            }
-          }
-        }
-      }
-
-      // Sort nodes in this layer by hintX, falling back to ID for determinism
-      (ids as string[]).sort((a, b) => {
-        const diff = hintX.get(a)! - hintX.get(b)!;
-        if (diff === 0) {
-          return a.localeCompare(b);
-        }
-        return diff;
-      });
-    }
+    applyPreviousLayoutHints(layers, previousLayout, incoming, outgoing);
   }
 
-  const positions = new Map<string, Point>();
-
-  // Replace spread Math.max with iterative calculation to prevent Maximum Call Stack Size Exceeded
-  // on very large graphs, and to avoid creating a large intermediate array.
-  const nodeSizes = new Map<string, Size>();
-  for (const id of nodeIds) {
-    const isCollapsed = config.collapsedNodes?.has(id) ?? false;
-    nodeSizes.set(id, {
-      width: config.nodeWidth,
-      height: isCollapsed ? 36 : config.nodeHeight,
-    });
-  }
-
-  let maxLayerSize = 1;
-  for (const ids of layers.values()) {
-    if (ids.length > maxLayerSize) {
-      maxLayerSize = ids.length;
-    }
-  }
-
-  const maxLayerWidth =
-    config.nodeWidth + Math.max(0, maxLayerSize - 1) * config.nodeSpacing;
-
-  // Calculate dynamic layer heights and Y positions
-  const layerY = new Map<number, number>();
-  let currentY = config.margin;
-
-  // Create an array of depths to process them in order
-  const sortedDepths = new Array<number>(layers.size);
-  let dIdx = 0;
-  for (const depth of layers.keys()) {
-    sortedDepths[dIdx++] = depth;
-  }
-  sortedDepths.sort((a, b) => a - b);
-
-  const layerGap = config.layerSpacing - config.nodeHeight;
-
-  for (const depth of sortedDepths) {
-    layerY.set(depth, currentY);
-
-    // Find max height in this layer
-    let maxLayerNodeHeight = 0;
-    const ids = layers.get(depth)!;
-    for (const id of ids) {
-      const h = nodeSizes.get(id)!.height;
-      if (h > maxLayerNodeHeight) {
-        maxLayerNodeHeight = h;
-      }
-    }
-
-    currentY += maxLayerNodeHeight + layerGap;
-  }
-
-  for (const [depth, ids] of layers) {
-    const layerWidth =
-      config.nodeWidth + Math.max(0, ids.length - 1) * config.nodeSpacing;
-    const startX = config.margin + (maxLayerWidth - layerWidth) / 2;
-    const y = layerY.get(depth)!;
-
-    for (let i = 0; i < ids.length; i++) {
-      positions.set(ids[i], {
-        x: startX + i * config.nodeSpacing,
-        y,
-      });
-    }
-  }
-
-  const width = maxLayerWidth + config.margin * 2;
-  const layerCount = Math.max(1, layers.size);
-  let height;
-  if (layers.size === 0) {
-    height = config.nodeHeight + config.margin * 2;
-  } else {
-    height = currentY - layerGap + config.margin; // subtract last gap and add margin
-  }
+  const { positions, nodeSizes, width, height } = computeLayerPositions(layers, nodeIds, config);
 
 
-  const edgeRouting = new Map<string, EdgeRoutingHint>();
-  const spacing = 16;
-  const maxOffset = config.nodeWidth / 2 - 8;
+  const edgeRouting = computeEdgeRoutingHints(graph, edgeOutgoing, edgeIncoming, config);
 
-  for (const edge of graph.edges.values()) {
-    let isContainment = false;
-    for (let i = 0; i < edge.tags.length; i++) {
-      if (config.containmentTags.has(edge.tags[i])) {
-        isContainment = true;
-        break;
-      }
-    }
-    if (isContainment) {
-      continue;
-    }
-
-    const outList = edgeOutgoing.get(edge.source) || [];
-    const outIndex = binarySearch(outList, edge.id);
-    const outTotal = outList.length;
-    let sOffset = 0;
-    if (outTotal > 1) {
-      sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
-      sOffset = Math.max(-maxOffset, Math.min(maxOffset, sOffset));
-    }
-
-    const inList = edgeIncoming.get(edge.target) || [];
-    const inIndex = binarySearch(inList, edge.id);
-    const inTotal = inList.length;
-    let tOffset = 0;
-    if (inTotal > 1) {
-      tOffset = (inIndex - (inTotal - 1) / 2) * spacing;
-      tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
-    }
-
-    edgeRouting.set(edge.id, Object.freeze({
-      sourceOffsetPx: sOffset,
-      targetOffsetPx: tOffset,
-      outIndex,
-      inIndex,
-      outTotal,
-      inTotal
-    }));
-  }
-
-    // -- Start Compound Node Size Injection --
-  const layoutHierarchy = new Map<string, { parent: string | null; children: string[] }>();
-  for (const id of graph.nodes.keys()) {
-    layoutHierarchy.set(id, { children: [], parent: null });
-  }
-
-  let hasHierarchy = false;
-  if (schema?.containment) {
-    hasHierarchy = true;
-    for (const edge of graph.edges.values()) {
-      let isContainment = false;
-      for (let i = 0; i < edge.tags.length; i++) {
-        if (schema.containment.includes(edge.tags[i])) {
-          isContainment = true;
-          break;
-        }
-      }
-      if (isContainment) {
-        if (layoutHierarchy.has(edge.source) && layoutHierarchy.has(edge.target)) {
-          layoutHierarchy.get(edge.source)!.children.push(edge.target);
-          layoutHierarchy.get(edge.target)!.parent = edge.source;
-        }
-      }
-    }
-
-    const calcSize = (id: string): {w: number, h: number} => {
-       const children = layoutHierarchy.get(id)?.children || [];
-       if (children.length === 0) {
-          const s = nodeSizes.get(id);
-          if (s) return {w: s.width, h: s.height};
-          const w = config.nodeWidth;
-          const isCol = config.collapsedNodes?.has(id) ?? false;
-          const h = isCol ? 36 : config.nodeHeight;
-          nodeSizes.set(id, {width: w, height: h});
-          return {w, h};
-       }
-       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-       let hasChildren = false;
-       for (const childId of children) {
-          const p = positions.get(childId);
-          if (p) {
-             hasChildren = true;
-             const s = calcSize(childId);
-             if (p.x < minX) minX = p.x;
-             if (p.x + s.w > maxX) maxX = p.x + s.w;
-             if (p.y < minY) minY = p.y;
-             if (p.y + s.h > maxY) maxY = p.y + s.h;
-          }
-       }
-       if (hasChildren) {
-          const pad = 40;
-          const header = 40;
-          const w = (maxX - minX) + pad * 2;
-          const h = (maxY - minY) + header + pad * 2;
-          nodeSizes.set(id, {width: w, height: h});
-          positions.set(id, {x: minX - pad, y: minY - header - pad});
-
-          // Make sure parent node is included in the output even if it wasn't processed by the main graph layout
-          if (!positions.has(id)) {
-              positions.set(id, {x: minX - pad, y: minY - header - pad});
-          }
-          return {w, h};
-       } else {
-          // Empty parent node
-          const w = config.nodeWidth;
-          const h = config.nodeHeight;
-          nodeSizes.set(id, {width: w, height: h});
-          if (!positions.has(id)) {
-             positions.set(id, {x: 0, y: 0}); // Fallback
-          }
-          return {w, h};
-       }
-    };
-
-    for (const id of graph.nodes.keys()) {
-       if (layoutHierarchy.get(id)?.parent === null) {
-          calcSize(id);
-       }
-    }
-  }
-  // -- End Compound Node Size Injection --
+  const hierarchy = computeCompoundNodeBounds(graph, schema, positions, nodeSizes, config);
 
   return Object.freeze({
     positions,
@@ -572,7 +251,7 @@ export function verticalLayout(
     }),
     nodeSizes: Object.freeze(nodeSizes),
     edgeRouting,
-    hierarchy: hasHierarchy ? layoutHierarchy : undefined,
+    hierarchy,
   });
 }
 
@@ -1106,4 +785,355 @@ function groupByDepth(
   entries.sort(([a], [b]) => a - b);
 
   return new Map(entries);
+}
+
+function identifyCompoundNodes(graph: GraphSnapshot, config: Required<VerticalLayoutOptions>) {
+  const parentNodes = new Set<string>();
+  for (const edge of graph.edges.values()) {
+    for (let i = 0; i < edge.tags.length; i++) {
+      if (config.containmentTags.has(edge.tags[i])) {
+        parentNodes.add(edge.source);
+        break;
+      }
+    }
+  }
+
+  const nodeIds = [];
+  for (const id of graph.nodes.keys()) {
+    if (!parentNodes.has(id)) {
+      nodeIds.push(id);
+    }
+  }
+  nodeIds.sort();
+
+  return { nodeIds, parentNodes };
+}
+
+function buildAdjacencyLists(graph: GraphSnapshot, nodeIds: readonly string[], parentNodes: ReadonlySet<string>, config: Required<VerticalLayoutOptions>) {
+  const outgoing = new Map<string, string[]>();
+  const incoming = new Map<string, string[]>();
+  const edgeOutgoing = new Map<string, string[]>();
+  const edgeIncoming = new Map<string, string[]>();
+
+  for (const id of nodeIds) {
+    outgoing.set(id, []);
+    incoming.set(id, []);
+    edgeOutgoing.set(id, []);
+    edgeIncoming.set(id, []);
+  }
+
+  for (const edge of graph.edges.values()) {
+    let isContainment = false;
+    for (let i = 0; i < edge.tags.length; i++) {
+      if (config.containmentTags.has(edge.tags[i])) {
+        isContainment = true;
+        break;
+      }
+    }
+    if (isContainment) {
+      continue;
+    }
+
+    // Note: We always need to add to edgeOutgoing and edgeIncoming even if nodes are missing
+    // or if it's a self loop, to maintain behavior of staggering calculation later.
+    if (!edgeOutgoing.has(edge.source)) edgeOutgoing.set(edge.source, []);
+    if (!edgeIncoming.has(edge.target)) edgeIncoming.set(edge.target, []);
+    edgeOutgoing.get(edge.source)!.push(edge.id);
+    edgeIncoming.get(edge.target)!.push(edge.id);
+
+    if (!graph.nodes.has(edge.source) || !graph.nodes.has(edge.target) || parentNodes.has(edge.source) || parentNodes.has(edge.target)) {
+      continue;
+    }
+
+    outgoing.get(edge.source)!.push(edge.target);
+    incoming.get(edge.target)!.push(edge.source);
+  }
+
+  // Sort outgoing edges to guarantee deterministic traversal
+  for (const neighbors of outgoing.values()) {
+    neighbors.sort();
+  }
+  for (const list of edgeOutgoing.values()) {
+    list.sort();
+  }
+  for (const list of edgeIncoming.values()) {
+    list.sort();
+  }
+
+  return { outgoing, incoming, edgeOutgoing, edgeIncoming };
+}
+
+function applyPreviousLayoutHints(
+  layers: ReadonlyMap<number, readonly string[]>,
+  previousLayout: LayoutSnapshot,
+  incoming: ReadonlyMap<string, readonly string[]>,
+  outgoing: ReadonlyMap<string, readonly string[]>
+) {
+  for (const ids of layers.values()) {
+    const hintX = new Map<string, number>();
+
+    for (const id of ids) {
+      if (previousLayout.positions.has(id)) {
+        hintX.set(id, previousLayout.positions.get(id)!.x);
+      } else {
+        // Calculate average X of incoming neighbors
+        let sumIn = 0;
+        let countIn = 0;
+
+        const inNeighbors = incoming.get(id) || [];
+        for (const source of inNeighbors) {
+          if (previousLayout.positions.has(source)) {
+            sumIn += previousLayout.positions.get(source)!.x;
+            countIn++;
+          }
+        }
+
+        if (countIn > 0) {
+          hintX.set(id, sumIn / countIn);
+        } else {
+          // Fall back to outgoing neighbors
+          let sumOut = 0;
+          let countOut = 0;
+          const outNeighbors = outgoing.get(id) || [];
+          for (const target of outNeighbors) {
+            if (previousLayout.positions.has(target)) {
+              sumOut += previousLayout.positions.get(target)!.x;
+              countOut++;
+            }
+          }
+
+          if (countOut > 0) {
+            hintX.set(id, sumOut / countOut);
+          } else {
+            hintX.set(id, 0);
+          }
+        }
+      }
+    }
+
+    // Sort nodes in this layer by hintX, falling back to ID for determinism
+    (ids as string[]).sort((a, b) => {
+      const diff = hintX.get(a)! - hintX.get(b)!;
+      if (diff === 0) {
+        return a.localeCompare(b);
+      }
+      return diff;
+    });
+  }
+}
+
+function computeLayerPositions(layers: ReadonlyMap<number, readonly string[]>, nodeIds: readonly string[], config: Required<VerticalLayoutOptions>) {
+  const positions = new Map<string, Point>();
+  const nodeSizes = new Map<string, Size>();
+
+  for (const id of nodeIds) {
+    const isCollapsed = config.collapsedNodes?.has(id) ?? false;
+    nodeSizes.set(id, {
+      width: config.nodeWidth,
+      height: isCollapsed ? 36 : config.nodeHeight,
+    });
+  }
+
+  let maxLayerSize = 1;
+  for (const ids of layers.values()) {
+    if (ids.length > maxLayerSize) {
+      maxLayerSize = ids.length;
+    }
+  }
+
+  const maxLayerWidth = config.nodeWidth + Math.max(0, maxLayerSize - 1) * config.nodeSpacing;
+
+  const layerY = new Map<number, number>();
+  let currentY = config.margin;
+
+  const sortedDepths = new Array<number>(layers.size);
+  let dIdx = 0;
+  for (const depth of layers.keys()) {
+    sortedDepths[dIdx++] = depth;
+  }
+  sortedDepths.sort((a, b) => a - b);
+
+  const layerGap = config.layerSpacing - config.nodeHeight;
+
+  for (const depth of sortedDepths) {
+    layerY.set(depth, currentY);
+
+    let maxLayerNodeHeight = 0;
+    const ids = layers.get(depth)!;
+    for (const id of ids) {
+      const h = nodeSizes.get(id)!.height;
+      if (h > maxLayerNodeHeight) {
+        maxLayerNodeHeight = h;
+      }
+    }
+
+    currentY += maxLayerNodeHeight + layerGap;
+  }
+
+  for (const [depth, ids] of layers) {
+    const layerWidth = config.nodeWidth + Math.max(0, ids.length - 1) * config.nodeSpacing;
+    const startX = config.margin + (maxLayerWidth - layerWidth) / 2;
+    const y = layerY.get(depth)!;
+
+    for (let i = 0; i < ids.length; i++) {
+      positions.set(ids[i], {
+        x: startX + i * config.nodeSpacing,
+        y,
+      });
+    }
+  }
+
+  const width = maxLayerWidth + config.margin * 2;
+  const layerCount = Math.max(1, layers.size);
+  let height;
+  if (layers.size === 0) {
+    height = config.nodeHeight + config.margin * 2;
+  } else {
+    height = currentY - layerGap + config.margin;
+  }
+
+  return { positions, nodeSizes, width, height };
+}
+
+function computeEdgeRoutingHints(
+  graph: GraphSnapshot,
+  edgeOutgoing: ReadonlyMap<string, readonly string[]>,
+  edgeIncoming: ReadonlyMap<string, readonly string[]>,
+  config: Required<VerticalLayoutOptions>
+) {
+  const edgeRouting = new Map<string, EdgeRoutingHint>();
+  const spacing = 16;
+  const maxOffset = config.nodeWidth / 2 - 8;
+
+  for (const edge of graph.edges.values()) {
+    let isContainment = false;
+    for (let i = 0; i < edge.tags.length; i++) {
+      if (config.containmentTags.has(edge.tags[i])) {
+        isContainment = true;
+        break;
+      }
+    }
+    if (isContainment) {
+      continue;
+    }
+
+    const outList = edgeOutgoing.get(edge.source) || [];
+    const outIndex = binarySearch(outList, edge.id);
+    const outTotal = outList.length;
+    let sOffset = 0;
+    if (outTotal > 1) {
+      sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
+      sOffset = Math.max(-maxOffset, Math.min(maxOffset, sOffset));
+    }
+
+    const inList = edgeIncoming.get(edge.target) || [];
+    const inIndex = binarySearch(inList, edge.id);
+    const inTotal = inList.length;
+    let tOffset = 0;
+    if (inTotal > 1) {
+      tOffset = (inIndex - (inTotal - 1) / 2) * spacing;
+      tOffset = Math.max(-maxOffset, Math.min(maxOffset, tOffset));
+    }
+
+    edgeRouting.set(edge.id, Object.freeze({
+      sourceOffsetPx: sOffset,
+      targetOffsetPx: tOffset,
+      outIndex,
+      inIndex,
+      outTotal,
+      inTotal
+    }));
+  }
+
+  return edgeRouting;
+}
+
+function computeCompoundNodeBounds(
+  graph: GraphSnapshot,
+  schema: GraphSchema | undefined,
+  positions: Map<string, Point>,
+  nodeSizes: Map<string, Size>,
+  config: Required<VerticalLayoutOptions>
+) {
+  const layoutHierarchy = new Map<string, { parent: string | null; children: string[] }>();
+  for (const id of graph.nodes.keys()) {
+    layoutHierarchy.set(id, { children: [], parent: null });
+  }
+
+  let hasHierarchy = false;
+  if (schema?.containment) {
+    hasHierarchy = true;
+    for (const edge of graph.edges.values()) {
+      let isContainment = false;
+      for (let i = 0; i < edge.tags.length; i++) {
+        if (schema.containment.includes(edge.tags[i])) {
+          isContainment = true;
+          break;
+        }
+      }
+      if (isContainment) {
+        if (layoutHierarchy.has(edge.source) && layoutHierarchy.has(edge.target)) {
+          layoutHierarchy.get(edge.source)!.children.push(edge.target);
+          layoutHierarchy.get(edge.target)!.parent = edge.source;
+        }
+      }
+    }
+
+    const calcSize = (id: string): {w: number, h: number} => {
+       const children = layoutHierarchy.get(id)?.children || [];
+       if (children.length === 0) {
+          const s = nodeSizes.get(id);
+          if (s) return {w: s.width, h: s.height};
+          const w = config.nodeWidth;
+          const isCol = config.collapsedNodes?.has(id) ?? false;
+          const h = isCol ? 36 : config.nodeHeight;
+          nodeSizes.set(id, {width: w, height: h});
+          return {w, h};
+       }
+       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+       let hasChildren = false;
+       for (const childId of children) {
+          const p = positions.get(childId);
+          if (p) {
+             hasChildren = true;
+             const s = calcSize(childId);
+             if (p.x < minX) minX = p.x;
+             if (p.x + s.w > maxX) maxX = p.x + s.w;
+             if (p.y < minY) minY = p.y;
+             if (p.y + s.h > maxY) maxY = p.y + s.h;
+          }
+       }
+       if (hasChildren) {
+          const pad = 40;
+          const header = 40;
+          const w = (maxX - minX) + pad * 2;
+          const h = (maxY - minY) + header + pad * 2;
+          nodeSizes.set(id, {width: w, height: h});
+          positions.set(id, {x: minX - pad, y: minY - header - pad});
+
+          // Make sure parent node is included in the output even if it wasn't processed by the main graph layout
+          if (!positions.has(id)) {
+              positions.set(id, {x: minX - pad, y: minY - header - pad});
+          }
+          return {w, h};
+       } else {
+          // Empty parent node
+          const w = config.nodeWidth;
+          const h = config.nodeHeight;
+          nodeSizes.set(id, {width: w, height: h});
+          if (!positions.has(id)) {
+             positions.set(id, {x: 0, y: 0}); // Fallback
+          }
+          return {w, h};
+       }
+    };
+
+    for (const id of graph.nodes.keys()) {
+       if (layoutHierarchy.get(id)?.parent === null) {
+          calcSize(id);
+       }
+    }
+  }
+
+  return hasHierarchy ? layoutHierarchy : undefined;
 }
