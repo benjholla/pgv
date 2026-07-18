@@ -178,6 +178,26 @@ describe("layout", () => {
     });
 
     describe("Property and Edge Case Tests", () => {
+      it("Idempotence Property: consecutive verticalLayout calls on the same snapshot produce identical geometries", () => {
+        const json = {
+          nodes: [{ id: "A" }, { id: "B" }, { id: "C" }],
+          edges: [
+            { id: "e1", source: "A", target: "B" },
+            { id: "e2", source: "B", target: "C" },
+            { id: "e3", source: "A", target: "C" }
+          ]
+        };
+
+        const snap = createGraphSnapshot(json as any);
+        const layout1 = verticalLayout(snap);
+        const layout2 = verticalLayout(snap);
+
+        expect(layout1.positions).toEqual(layout2.positions);
+        expect(layout1.edges).toEqual(layout2.edges);
+        expect(layout1.width).toEqual(layout2.width);
+        expect(layout1.height).toEqual(layout2.height);
+      });
+
       it("Layout Stability: passing a previousLayout strictly preserves the relative horizontal ordering of existing nodes within the same layer", () => {
         // Base graph
         const baseGraph = createGraphSnapshot({
