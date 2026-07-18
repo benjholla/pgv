@@ -530,16 +530,16 @@ export function verticalLayout(
           }
        }
        if (hasChildren) {
-          const pad = 20;
+          const pad = 40;
           const header = 40;
           const w = (maxX - minX) + pad * 2;
-          const h = (maxY - minY) + header + pad;
+          const h = (maxY - minY) + header + pad * 2;
           nodeSizes.set(id, {width: w, height: h});
-          positions.set(id, {x: minX - pad, y: minY - header});
+          positions.set(id, {x: minX - pad, y: minY - header - pad});
 
           // Make sure parent node is included in the output even if it wasn't processed by the main graph layout
           if (!positions.has(id)) {
-              positions.set(id, {x: minX - pad, y: minY - header});
+              positions.set(id, {x: minX - pad, y: minY - header - pad});
           }
           return {w, h};
        } else {
