@@ -428,6 +428,34 @@ describe("model", () => {
   });
 
   describe("serialization and deserialization properties", () => {
+    it("Round-trip Property: serializing and deserializing a snapshot yields an equivalent snapshot", () => {
+      const json = {
+        nodes: [{ id: "A", tags: ["t1"], attributes: { "k": "v" } }],
+        edges: [{ id: "e1", source: "A", target: "A", tags: ["t2"], attributes: {} }]
+      };
+
+      const snap1 = createGraphSnapshot(json as any);
+      const json2 = graphSnapshotToJson(snap1);
+      const snap2 = createGraphSnapshot(json2);
+
+      expect(snap1.nodes).toEqual(snap2.nodes);
+      expect(snap1.edges).toEqual(snap2.edges);
+    });
+
+    it("Round-trip Property: serializing and deserializing a diff yields an equivalent diff", () => {
+      const json = {
+        addedNodes: [{ id: "A", tags: ["t1"], attributes: { "k": "v" } }],
+        addedEdges: [{ id: "e1", source: "A", target: "B", tags: ["t2"], attributes: {} }],
+        removedNodes: ["C"],
+        removedEdges: ["e2"]
+      };
+
+      const diff1 = createGraphDiff(json as any);
+      const json2 = graphDiffToJson(diff1);
+      const diff2 = createGraphDiff(json2);
+
+      expect(diff1).toEqual(diff2);
+    });
 
     it("round-trips GraphDiffJson to GraphDiff and back with containment tags", () => {
       const diffJson: GraphDiffJson = {
