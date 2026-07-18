@@ -49,3 +49,6 @@
 ## 2024-05-19 - Added CSS animation for loading spinner
 **Learning:** Added a loading spinner SVG class `.pgv-spinner` in the DOM but omitted the CSS keyframes, causing a frozen loading state during heavy async operations like image generation. Static visual feedback can make the user think the UI has locked up.
 **Action:** Always verify that newly introduced utility classes (like spinners) have corresponding CSS defined in the stylesheet, and rely on standard CSS keyframes for rotation to avoid relying on external libraries.
+## 2024-08-05 - Dynamic ARIA Labels for Iterated Components
+**Learning:** When rendering iterated components like tree nodes or list items, hardcoding static `aria-label`s and tooltips (e.g., "Expand node", "Collapse node") limits the accessibility because screen readers read these labels generically, providing users with no context regarding *which* node or item they are interacting with.
+**Action:** When creating toggle buttons or interactive controls within an iterated data structure, always use template literals to dynamically inject contextual identifiers (like `node.id` or `item.name`) directly into the `title` and `aria-label` attributes to ensure distinct announcements per item.
