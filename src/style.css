@@ -5,6 +5,7 @@
   --pgv-color-fg: #17202a;
   --pgv-color-bg: #f9fbfd;
   --pgv-color-border: #d6dee8;
+  --pgv-color-bg-secondary: rgba(0, 0, 0, 0.03);
 
   --pgv-controls-bg: rgba(243, 244, 246, 0.7);
   --pgv-controls-border: rgba(209, 213, 219, 0.3);
@@ -58,6 +59,7 @@
   --pgv-color-fg: #e2e8f0;
   --pgv-color-bg: #0f172a;
   --pgv-color-border: #334155;
+  --pgv-color-bg-secondary: rgba(255, 255, 255, 0.05);
 
   --pgv-controls-bg: rgba(30, 41, 59, 0.7);
   --pgv-controls-border: rgba(51, 65, 85, 0.3);
@@ -96,6 +98,7 @@
     --pgv-color-fg: #e2e8f0;
     --pgv-color-bg: #0f172a;
     --pgv-color-border: #334155;
+    --pgv-color-bg-secondary: rgba(255, 255, 255, 0.05);
 
     --pgv-controls-bg: rgba(30, 41, 59, 0.7);
     --pgv-controls-border: rgba(51, 65, 85, 0.3);
@@ -926,7 +929,7 @@
   top: 0;
   left: 0;
   box-sizing: border-box;
-  background-color: var(--pgv-color-bg-secondary, rgba(0, 0, 0, 0.03));
+  background-color: var(--pgv-color-bg-secondary);
   border: none;
   box-shadow: inset 0 0 0 1px var(--pgv-node-border, #d1d5db);
   border-radius: var(--pgv-node-radius, 8px);
@@ -935,10 +938,6 @@
   will-change: transform;
 }
 
-.pgv-dark .pgv-compound-node {
-  background-color: var(--pgv-color-bg-secondary, rgba(255, 255, 255, 0.05));
-  box-shadow: inset 0 0 0 1px var(--pgv-node-border, #4b5563);
-}
 
 .pgv-compound-node.pgv-selected {
   box-shadow: inset 0 0 0 2px var(--pgv-selected-color, #2563eb), 0 0 0 4px var(--pgv-selected-ring, rgba(37, 99, 235, 0.2));
@@ -949,7 +948,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 12px;
-  background-color: var(--pgv-color-bg, #ffffff);
+  background-color: var(--pgv-color-bg);
   border-bottom: 1px solid var(--pgv-node-border, #d1d5db);
   border-top-left-radius: var(--pgv-node-radius, 8px);
   border-top-right-radius: var(--pgv-node-radius, 8px);
@@ -957,10 +956,6 @@
   box-sizing: border-box;
 }
 
-.pgv-dark .pgv-compound-node-header {
-  background-color: var(--pgv-color-bg, #1f2937);
-  border-bottom-color: var(--pgv-node-border, #4b5563);
-}
 
 .pgv-compound-node-header .pgv-node-title {
   font-weight: 600;
@@ -973,9 +968,6 @@
   min-width: 0;
 }
 
-.pgv-dark .pgv-compound-node-header .pgv-node-title {
-  color: var(--pgv-node-title-fg);
-}
 
 .pgv-compound-node-header .pgv-node-collapse-toggle {
   background: none;
