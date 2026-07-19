@@ -215,6 +215,107 @@ describe("layout", () => {
   });
 
   describe("verticalLayout", () => {
+    describe("Compound Nodes (Hierarchy)", () => {
+      it("Bounding Box Inclusion Property: Parent nodes must strictly encompass all their children with padding", () => {
+        const schema = { containment: ["contains"] };
+        const graph = createGraphSnapshot({
+          nodes: [{ id: "P" }, { id: "C1" }, { id: "C2" }],
+          edges: [
+            { id: "e1", source: "P", target: "C1", tags: ["contains"] },
+            { id: "e2", source: "P", target: "C2", tags: ["contains"] }
+          ]
+        });
+
+        const layout = verticalLayout(graph, undefined, undefined, schema);
+
+        expect(layout.hierarchy).toBeDefined();
+        expect(layout.hierarchy?.get("P")?.children).toEqual(["C1", "C2"]);
+
+        const posP = layout.positions.get("P")!;
+        const sizeP = layout.nodeSizes!.get("P")!;
+
+        const posC1 = layout.positions.get("C1")!;
+        const sizeC1 = layout.nodeSizes!.get("C1")!;
+
+        const posC2 = layout.positions.get("C2")!;
+        const sizeC2 = layout.nodeSizes!.get("C2")!;
+
+        // Check inclusion
+        expect(posC1.x).toBeGreaterThanOrEqual(posP.x);
+        expect(posC1.y).toBeGreaterThanOrEqual(posP.y);
+        expect(posC1.x + sizeC1.width).toBeLessThanOrEqual(posP.x + sizeP.width);
+        expect(posC1.y + sizeC1.height).toBeLessThanOrEqual(posP.y + sizeP.height);
+
+        expect(posC2.x).toBeGreaterThanOrEqual(posP.x);
+        expect(posC2.y).toBeGreaterThanOrEqual(posP.y);
+        expect(posC2.x + sizeC2.width).toBeLessThanOrEqual(posP.x + sizeP.width);
+        expect(posC2.y + sizeC2.height).toBeLessThanOrEqual(posP.y + sizeP.height);
+      });
+
+      it("Deep Hierarchy Inclusion: Grandparent encompasses parent which encompasses child", () => {
+        const schema = { containment: ["contains"] };
+        const graph = createGraphSnapshot({
+          nodes: [{ id: "G" }, { id: "P" }, { id: "C" }],
+          edges: [
+            { id: "e1", source: "G", target: "P", tags: ["contains"] },
+            { id: "e2", source: "P", target: "C", tags: ["contains"] }
+          ]
+        });
+
+        const layout = verticalLayout(graph, undefined, undefined, schema);
+
+        const posG = layout.positions.get("G")!;
+        const sizeG = layout.nodeSizes!.get("G")!;
+
+        const posP = layout.positions.get("P")!;
+        const sizeP = layout.nodeSizes!.get("P")!;
+
+        const posC = layout.positions.get("C")!;
+        const sizeC = layout.nodeSizes!.get("C")!;
+
+        // Parent inside Grandparent
+        expect(posP.x).toBeGreaterThanOrEqual(posG.x);
+        expect(posP.y).toBeGreaterThanOrEqual(posG.y);
+        expect(posP.x + sizeP.width).toBeLessThanOrEqual(posG.x + sizeG.width);
+        expect(posP.y + sizeP.height).toBeLessThanOrEqual(posG.y + sizeG.height);
+
+        // Child inside Parent
+        expect(posC.x).toBeGreaterThanOrEqual(posP.x);
+        expect(posC.y).toBeGreaterThanOrEqual(posP.y);
+        expect(posC.x + sizeC.width).toBeLessThanOrEqual(posP.x + sizeP.width);
+        expect(posC.y + sizeC.height).toBeLessThanOrEqual(posP.y + sizeP.height);
+      });
+
+      it("Empty Parent Nodes: Assigns default dimensions and fallback positions", () => {
+        const schema = { containment: ["contains"] };
+        const graph = createGraphSnapshot({
+          nodes: [{ id: "EmptyParent" }],
+          // No containment edges means this parent has no children
+          // Wait, if it has no containment edges pointing out, it's not detected as a parent natively by tags?
+          // The algorithm initializes layoutHierarchy for ALL nodes.
+          edges: []
+        });
+
+        const layout = verticalLayout(graph, undefined, undefined, schema);
+
+        expect(layout.nodeSizes?.get("EmptyParent")).toEqual(layout.nodeSize);
+        expect(layout.positions.has("EmptyParent")).toBe(true);
+      });
+
+      it("Containment edges are excluded from edge endpoints and routing", () => {
+        const schema = { containment: ["contains"] };
+        const graph = createGraphSnapshot({
+          nodes: [{ id: "P" }, { id: "C" }],
+          edges: [{ id: "e1", source: "P", target: "C", tags: ["contains"] }]
+        });
+
+        const layout = verticalLayout(graph, { containmentTags: new Set(["contains"]) }, undefined, schema);
+
+        // It shouldn't generate edge routing hints for containment edges
+        expect(layout.edgeRouting?.has("e1")).toBe(false);
+      });
+    });
+
     describe("Geometric and Topological Properties", () => {
       it("Translation Invariance: Uniformly shifting margin shifts all coordinates by exact amount", () => {
         const graph = createGraphSnapshot({

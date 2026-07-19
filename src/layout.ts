@@ -1135,10 +1135,10 @@ function computeCompoundNodeBounds(
        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
        let hasChildren = false;
        for (const childId of children) {
+          const s = calcSize(childId);
           const p = positions.get(childId);
           if (p) {
              hasChildren = true;
-             const s = calcSize(childId);
              if (p.x < minX) minX = p.x;
              if (p.x + s.w > maxX) maxX = p.x + s.w;
              if (p.y < minY) minY = p.y;
