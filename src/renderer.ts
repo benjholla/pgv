@@ -722,6 +722,7 @@ export class GraphView {
     dropdownBtn.setAttribute("aria-label", "Search mode");
     dropdownBtn.setAttribute("title", "Search mode");
     dropdownBtn.setAttribute("aria-haspopup", "menu");
+    dropdownBtn.setAttribute("aria-controls", "pgv-search-dropdown-menu");
     dropdownBtn.setAttribute("aria-expanded", this.#searchDropdownOpen ? "true" : "false");
     const icons = { chevronDown: "M6 9l6 6 6-6" };
     dropdownBtn.innerHTML = `
@@ -1353,6 +1354,7 @@ export class GraphView {
       dropdownBtn.setAttribute("aria-label", "Select Download Format");
       dropdownBtn.setAttribute("title", "Select Download Format");
       dropdownBtn.setAttribute("aria-haspopup", "menu");
+      dropdownBtn.setAttribute("aria-controls", "pgv-download-dropdown-menu");
       dropdownBtn.setAttribute("aria-expanded", this.#downloadDropdownOpen ? "true" : "false");
       dropdownBtn.innerHTML = `
         <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
