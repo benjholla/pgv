@@ -483,54 +483,16 @@ function routeEdgeOrthogonal(
         continue;
       }
 
-      // If this obstacle is the exact source or target node, allow edges to originate/terminate exactly on their boundary
-      if (obs.id === sourceId || obs.id === targetId) {
-        // Only ignore it if the segment is literally touching the boundary and moving away
-        // Actually, if we just ignore the source/target entirely, it might allow routing straight through it.
-        // But the A* algorithm should avoid traversing through it if there's a better path, right?
-        // NO, A* finds the shortest path, which is straight through the source node if we ignore it!
-        // So we MUST NOT ignore it. But we must allow the VERY FIRST segment to start inside the obstacle (or rather, on the boundary).
-        // Since minX/maxX/minY/maxY use +/- 0.1, the exact boundary is OUTSIDE the obstacle check.
-        // So we DON'T need to ignore it!
-      }
-
-      // We should also NOT check the obstacle if it is the source OR target of the edge we are routing.
-      // Wait, we don't have source/target ID here. We can't check that.
-      // But wait! If the edge starts at the exact bottom of the source (minY = obs.y + obs.h + 0.1, maxY = obs.y + obs.h - 0.1),
-      // AND it goes DOWN (y2 > y1), then minY = obs.y + obs.h + 0.1, maxY = target.y.
-      // minY < obs.y + obs.h is FALSE. So it doesn't collide.
-      // But if it goes UP (y2 < y1), then minY = target.y + 0.1, maxY = obs.y + obs.h - 0.1.
-      // minY < obs.y + obs.h (TRUE, since target.y is above source).
-      // maxY > obs.y (TRUE, since obs.y + obs.h - 0.1 > obs.y).
-      // So it DOES collide.
-      // So A* SHOULD NOT ALLOW a segment going UP through the source node!
-
+      // The +/- 0.1 epsilon applied to the segment bounds above ensures that edges
+      // routing exactly along the boundary of an obstacle (like the source or target node)
+      // do not intersect it. However, any segment that genuinely crosses through the interior
+      // of an obstacle will be detected and blocked.
       if (
         minX < obs.x + obs.w &&
         maxX > obs.x &&
         minY < obs.y + obs.h &&
         maxY > obs.y
       ) {
-        // If the segment crosses this obstacle, check if it's the source or target.
-        // Wait, if it crosses the source/target, we only allow it if it's on the boundary.
-        // BUT we already add 0.1 to min and subtract 0.1 from max!
-        // So a line EXACTLY on the boundary (e.g. minY = 100.1, maxY = 99.9) will be:
-        // 100.1 < obs.y + obs.h
-        // 99.9 > obs.y
-        // BOTH ARE TRUE!
-        // Wait! If the boundary is at 100, and the obstacle is from 0 to 100:
-        // obs.y = 0, obs.h = 100 -> obs.y + obs.h = 100.
-        // minY = 100.1
-        // 100.1 < 100 is FALSE!
-        // So it correctly ignores the boundary!
-
-        // Wait, what if the edge goes UP from 100?
-        // y1 = 100, y2 = 80.
-        // minY = 80.1, maxY = 99.9.
-        // 80.1 < 100 (TRUE)
-        // 99.9 > 0 (TRUE)
-        // So it correctly BLOCKS it!
-        // SO WHY DOES IT RETURN A PATH?!
         return false;
       }
     }
