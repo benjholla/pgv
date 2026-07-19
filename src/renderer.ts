@@ -270,8 +270,8 @@ export class GraphView {
       this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined, this.#schema);
     }
     if (this.#clearSelectionBtn) {
-      this.#clearSelectionBtn.disabled = !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0);
-      if (this.#clearSelectionBtn.disabled) {
+      this.#clearSelectionBtn.setAttribute("aria-disabled", !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0) ? "true" : "false");
+      if (this.#clearSelectionBtn.getAttribute("aria-disabled") === "true") {
         this.#clearSelectionBtn.title = "No nodes or edges selected";
         this.#clearSelectionBtn.setAttribute("aria-label", "No nodes or edges selected");
       } else {
@@ -733,6 +733,7 @@ export class GraphView {
 
     const dropdownMenu = document.createElement("div");
     dropdownMenu.className = "pgv-dropdown-menu";
+    dropdownMenu.id = "pgv-search-dropdown-menu";
     dropdownMenu.setAttribute("role", "menu");
     if (this.#searchDropdownOpen) {
       dropdownMenu.classList.add("open");
@@ -889,6 +890,7 @@ export class GraphView {
       </svg>
     `;
     searchBtn.addEventListener("click", () => {
+      if (searchBtn.getAttribute("aria-disabled") === "true") return;
       this.#executeSearch();
     });
 
@@ -897,7 +899,7 @@ export class GraphView {
     cycleBtn.type = "button";
     cycleBtn.title = "Cycle Results";
     cycleBtn.setAttribute("aria-label", "Cycle search results");
-    cycleBtn.disabled = this.#searchResults.length === 0;
+    cycleBtn.setAttribute("aria-disabled", this.#searchResults.length === 0 ? "true" : "false");
     cycleBtn.innerHTML = `
       <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
@@ -910,10 +912,10 @@ export class GraphView {
         ? (!this.#searchKeyQuery && !this.#searchQuery)
         : (!this.#searchQuery);
 
-      searchBtn.disabled = isQueryEmpty;
+      searchBtn.setAttribute("aria-disabled", isQueryEmpty ? "true" : "false");
       searchBtn.title = isQueryEmpty ? "Enter a query to search" : "Search";
       searchBtn.setAttribute("aria-label", searchBtn.title);
-      cycleBtn.disabled = this.#searchResults.length === 0;
+      cycleBtn.setAttribute("aria-disabled", this.#searchResults.length === 0 ? "true" : "false");
       cycleBtn.title = this.#searchResults.length === 0 ? "No results to cycle" : "Cycle Results";
       cycleBtn.setAttribute("aria-label", cycleBtn.title);
 
@@ -1024,6 +1026,7 @@ export class GraphView {
     actionsContainer.className = "pgv-search-actions";
 
     cycleBtn.addEventListener("click", () => {
+      if (cycleBtn.getAttribute("aria-disabled") === "true") return;
       if (this.#searchResults.length > 0) {
         this.#cycleSearch();
       } else {
@@ -1099,12 +1102,12 @@ export class GraphView {
     });
 
     if (this.#historyIndex === -1) {
-      leftBtn.disabled = true;
-      leftBtn.classList.add("disabled");
+      leftBtn.setAttribute("aria-disabled", "true");
+
       leftBtn.title = "No previous snapshots available";
       leftBtn.setAttribute("aria-label", "No previous snapshots available");
-      rwBtn.disabled = true;
-      rwBtn.classList.add("disabled");
+      rwBtn.setAttribute("aria-disabled", "true");
+
       rwBtn.title = "Already at earliest snapshot";
       rwBtn.setAttribute("aria-label", "Already at earliest snapshot");
     }
@@ -1122,12 +1125,12 @@ export class GraphView {
     });
 
     if (this.#historyIndex >= this.#history.length - 1) {
-      rightBtn.disabled = true;
-      rightBtn.classList.add("disabled");
+      rightBtn.setAttribute("aria-disabled", "true");
+
       rightBtn.title = "No newer snapshots available";
       rightBtn.setAttribute("aria-label", "No newer snapshots available");
-      ffBtn.disabled = true;
-      ffBtn.classList.add("disabled");
+      ffBtn.setAttribute("aria-disabled", "true");
+
       ffBtn.title = "Already at latest snapshot";
       ffBtn.setAttribute("aria-label", "Already at latest snapshot");
     }
@@ -1283,8 +1286,8 @@ export class GraphView {
         },
         label: "Clear Selection",
       });
-      this.#clearSelectionBtn.disabled = !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0);
-      if (this.#clearSelectionBtn.disabled) {
+      this.#clearSelectionBtn.setAttribute("aria-disabled", !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0) ? "true" : "false");
+      if (this.#clearSelectionBtn.getAttribute("aria-disabled") === "true") {
         this.#clearSelectionBtn.title = "No nodes or edges selected";
         this.#clearSelectionBtn.setAttribute("aria-label", "No nodes or edges selected");
       }
@@ -1360,6 +1363,7 @@ export class GraphView {
 
       const dropdownMenu = document.createElement("div");
       dropdownMenu.className = "pgv-dropdown-menu";
+      dropdownMenu.id = "pgv-download-dropdown-menu";
       dropdownMenu.setAttribute("role", "menu");
       if (this.#downloadDropdownOpen) {
         dropdownMenu.classList.add("open");
@@ -1524,7 +1528,7 @@ export class GraphView {
     button.appendChild(svg);
 
     button.addEventListener("click", (e) => {
-      if (button.disabled) return;
+      if (button.getAttribute("aria-disabled") === "true") return;
       e.preventDefault();
       e.stopPropagation();
       btn.action();
@@ -1777,8 +1781,8 @@ export class GraphView {
       originalDownloadTitle = downloadBtn.title;
       originalDropdownTitle = dropdownBtn.title;
 
-      downloadBtn.disabled = true;
-      dropdownBtn.disabled = true;
+      downloadBtn.setAttribute("aria-disabled", "true");
+      dropdownBtn.setAttribute("aria-disabled", "true");
 
       downloadBtn.title = "Downloading graph...";
       downloadBtn.setAttribute("aria-label", downloadBtn.title);
@@ -1956,8 +1960,8 @@ export class GraphView {
     } finally {
       if (downloadBtn && dropdownBtn) {
         downloadBtn.innerHTML = originalBtnHtml;
-        downloadBtn.disabled = false;
-        dropdownBtn.disabled = false;
+        downloadBtn.setAttribute("aria-disabled", "false");
+        dropdownBtn.setAttribute("aria-disabled", "false");
         downloadBtn.title = originalDownloadTitle;
         downloadBtn.setAttribute("aria-label", originalDownloadTitle);
         dropdownBtn.title = originalDropdownTitle;
@@ -2389,7 +2393,7 @@ function renderNodes(
        toggleBtn.title = `Collapse node ${node.id} (Disabled)`;
        toggleBtn.setAttribute("aria-label", `Collapse node ${node.id} (Disabled)`);
        toggleBtn.setAttribute("aria-expanded", "true");
-       toggleBtn.disabled = true;
+       toggleBtn.setAttribute("aria-disabled", "true");
        toggleBtn.textContent = "[-]";
 
        header.append(title, toggleBtn);

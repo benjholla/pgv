@@ -55,3 +55,6 @@
 ## 2024-08-05 - Interactive SVG Accessibility and Hover States
 **Learning:** Native SVG elements like `<g>` and `<path>` do not have implicit interactive semantics or visual `:hover` feedback by default, even if JavaScript event listeners (like `click` or `keydown`) are attached to them. This makes them invisible to screen readers and difficult for sighted users to discover.
 **Action:** When implementing custom interactive elements using SVG primitives (like graph edges), explicitly add `role="button"` and contextual `aria-label`s. Furthermore, always provide clear visual feedback by adding CSS `:hover` states (e.g., changing stroke colors) inside `@media (hover: hover)` blocks.
+## 2025-07-19 - Improved UI Controls Accessibility
+**Learning:** Native `<button disabled>` completely removes buttons from the keyboard tab sequence. For complex UI tools like graph controls, users tabbing through actions might miss that a disabled action (like "No previous snapshots available") even exists or why it is disabled.
+**Action:** Replaced native `disabled` DOM properties with `[aria-disabled="true"]` on all GraphView control buttons, updated CSS selectors accordingly, and linked dropdown toggles to their menus via explicit `aria-controls` IDs.
