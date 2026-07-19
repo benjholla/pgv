@@ -276,16 +276,16 @@
   width: 32px;
 }
 @media (hover: hover) {
-  .pgv-controls button:hover:not(:disabled) {
+  .pgv-controls button:hover:not([aria-disabled="true"]) {
     background: var(--pgv-control-button-hover-bg);
   }
 }
 
-.pgv-controls button:active:not(:disabled) {
+.pgv-controls button:active:not([aria-disabled="true"]) {
   background: var(--pgv-control-button-active-bg);
 }
 
-.pgv-controls button:disabled {
+.pgv-controls button[aria-disabled="true"] {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -391,16 +391,16 @@
   width: 32px;
 }
 @media (hover: hover) {
-  .pgv-history-panel button:hover:not(:disabled) {
+  .pgv-history-panel button:hover:not([aria-disabled="true"]) {
     background: var(--pgv-control-button-hover-bg);
   }
 }
 
-.pgv-history-panel button:active:not(:disabled) {
+.pgv-history-panel button:active:not([aria-disabled="true"]) {
   background: var(--pgv-control-button-active-bg);
 }
 
-.pgv-history-panel button:disabled {
+.pgv-history-panel button[aria-disabled="true"] {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -747,12 +747,12 @@
   cursor: pointer;
 }
 @media (hover: hover) {
-  .pgv-search-actions button:hover:not(:disabled) {
+  .pgv-search-actions button:hover:not([aria-disabled="true"]) {
     background: var(--pgv-control-button-hover-bg);
   }
 }
 
-.pgv-search-actions button:disabled {
+.pgv-search-actions button[aria-disabled="true"] {
   opacity: 0.5;
   cursor: not-allowed;
 }
