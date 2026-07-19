@@ -1064,11 +1064,18 @@ function computeCompoundNodeBounds(
   let hasHierarchy = false;
   if (schema?.containment) {
     hasHierarchy = true;
+
+    // In some tests, schema.containment is provided but config.containmentTags wasn't explicitly populated
+    // We should ensure we use a Set for O(1) lookups regardless.
+    const containmentSet = config.containmentTags.size > 0
+      ? config.containmentTags
+      : new Set(schema.containment);
+
     for (const edge of graph.edges.values()) {
       let isContainment = false;
       if (edge.tags.length > 0) {
         for (let i = 0; i < edge.tags.length; i++) {
-          if (schema.containment!.includes(edge.tags[i])) {
+          if (containmentSet.has(edge.tags[i])) {
             isContainment = true;
             break;
           }

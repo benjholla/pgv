@@ -2219,11 +2219,14 @@ function renderEdges(
   svg.appendChild(createArrowMarker(markerId));
   edgeLayer.classList.add("pgv-edge-layer-inner");
   svg.appendChild(edgeLayer);
+
+  const containmentSet = schema.containment ? new Set(schema.containment) : null;
+
   for (const edge of graph.edges.values()) {
     let isContainment = false;
-    if (schema.containment && edge.tags.length > 0) {
+    if (containmentSet && edge.tags.length > 0) {
       for (let i = 0; i < edge.tags.length; i++) {
-        if (schema.containment.includes(edge.tags[i])) {
+        if (containmentSet.has(edge.tags[i])) {
           isContainment = true;
           break;
         }
