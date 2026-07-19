@@ -313,6 +313,8 @@ function validateStructuralInvariants(
 
   // PERF(Bolt): Consolidate structural validation and containment adjacency building
   // into a single pass over the edge iterable to avoid Array.from() allocation.
+  const containmentSet = schema?.containment ? new Set(schema.containment) : null;
+
   for (const edge of edges) {
     if (!nodes.has(edge.source)) {
       throw new GraphModelError(`Edge "${edge.id}" references missing source "${edge.source}".`);
@@ -321,10 +323,10 @@ function validateStructuralInvariants(
       throw new GraphModelError(`Edge "${edge.id}" references missing target "${edge.target}".`);
     }
 
-    if (schema?.containment && edge.tags.length > 0) {
+    if (containmentSet && edge.tags.length > 0) {
       let isContainment = false;
       for (let i = 0; i < edge.tags.length; i++) {
-        if (schema.containment.includes(edge.tags[i])) {
+        if (containmentSet.has(edge.tags[i])) {
           isContainment = true;
           break;
         }
