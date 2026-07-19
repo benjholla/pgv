@@ -321,7 +321,7 @@ function validateStructuralInvariants(
       throw new GraphModelError(`Edge "${edge.id}" references missing target "${edge.target}".`);
     }
 
-    if (schema?.containment) {
+    if (schema?.containment && edge.tags.length > 0) {
       let isContainment = false;
       for (let i = 0; i < edge.tags.length; i++) {
         if (schema.containment.includes(edge.tags[i])) {

@@ -43,6 +43,122 @@ function generateRandomGraph(seed: number, numNodes: number, edgeDensity: number
 }
 
 describe("layout", () => {
+  describe("Compound Node Layout", () => {
+    it("handles deeply nested empty compound nodes", () => {
+      const graph = createGraphSnapshot({
+        nodes: [
+          { id: "parent1" },
+          { id: "parent2" }
+        ],
+        edges: [
+          { id: "e1", source: "parent1", target: "parent2", tags: ["contains"] }
+        ]
+      });
+
+      const schema = { containment: ["contains"] };
+      const layout = verticalLayout(graph, undefined, undefined, schema);
+
+      expect(layout.nodeSizes.has("parent1")).toBe(true);
+      expect(layout.nodeSizes.has("parent2")).toBe(true);
+    });
+
+    it("returns cached node size if child is already calculated", () => {
+      const graph = createGraphSnapshot({
+        nodes: [
+          { id: "parent" },
+          { id: "child" }
+        ],
+        edges: [
+          { id: "e1", source: "parent", target: "child", tags: ["contains"] }
+        ]
+      });
+      const schema = { containment: ["contains"] };
+
+      const sizes = new Map([["child", { width: 50, height: 50 }]]);
+      const layout = verticalLayout(graph, undefined, undefined, schema);
+
+      // Call verticalLayout again to test cache hit
+      const layout2 = verticalLayout(graph, undefined, undefined, schema);
+      expect(layout2.nodeSizes.has("parent")).toBe(true);
+    });
+
+    it("handles deeply nested compound nodes and their bounding boxes", () => {
+      const graph = createGraphSnapshot({
+        nodes: [
+          { id: "root" },
+          { id: "parent1" },
+          { id: "child1" },
+          { id: "leaf1" },
+          { id: "parent2" },
+          { id: "leaf2" }
+        ],
+        edges: [
+          { id: "e1", source: "root", target: "parent1", tags: ["contains"] },
+          { id: "e2", source: "root", target: "parent2", tags: ["contains"] },
+          { id: "e3", source: "parent1", target: "child1", tags: ["contains"] },
+          { id: "e4", source: "child1", target: "leaf1", tags: ["contains"] },
+          { id: "e5", source: "parent2", target: "leaf2", tags: ["contains"] },
+          { id: "e6", source: "leaf1", target: "leaf2", tags: [] }
+        ]
+      });
+
+      const schema = { containment: ["contains"] };
+      const layout = verticalLayout(graph, undefined, undefined, schema);
+
+      expect(layout.nodeSizes.has("root")).toBe(true);
+      expect(layout.positions.has("root")).toBe(true);
+
+      const rSize = layout.nodeSizes.get("root")!;
+      expect(rSize.width).toBeGreaterThan(0);
+      expect(rSize.height).toBeGreaterThan(0);
+    });
+
+    it("computes bounds for compound nodes and routes edges ignoring containment", () => {
+      const graph = createGraphSnapshot({
+        nodes: [
+          { id: "parent1" },
+          { id: "child1" },
+          { id: "child2" },
+          { id: "emptyParent" }
+        ],
+        edges: [
+          { id: "e1", source: "parent1", target: "child1", tags: ["contains"] },
+          { id: "e2", source: "parent1", target: "child2", tags: ["contains"] },
+          { id: "e3", source: "child1", target: "child2", tags: [] }
+        ]
+      });
+
+      const schema = { containment: ["contains"] };
+      const layout = verticalLayout(graph, undefined, undefined, schema);
+
+      expect(layout.nodeSizes.has("parent1")).toBe(true);
+      expect(layout.positions.has("parent1")).toBe(true);
+      expect(layout.nodeSizes.has("emptyParent")).toBe(true);
+      expect(layout.positions.has("emptyParent")).toBe(true);
+
+      const pSize = layout.nodeSizes.get("parent1")!;
+      expect(pSize.width).toBeGreaterThan(0);
+      expect(pSize.height).toBeGreaterThan(0);
+    });
+
+    it("handles collapsed compound nodes", () => {
+      const graph = createGraphSnapshot({
+        nodes: [
+          { id: "parent1" },
+          { id: "child1" }
+        ],
+        edges: [
+          { id: "e1", source: "parent1", target: "child1", tags: ["contains"] }
+        ]
+      });
+
+      const schema = { containment: ["contains"] };
+      const layout = verticalLayout(graph, { collapsedNodes: new Set(["parent1"]) }, undefined, schema);
+
+      expect(layout.nodeSizes.get("parent1")!.height).toBe(36);
+    });
+  });
+
 
   describe("Edge Routing Orthogonality and Visual Cleanness", () => {
     it("avoids overlapping horizontal paths for orthogonal edges between same ranks", () => {

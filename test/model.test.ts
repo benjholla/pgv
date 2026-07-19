@@ -81,6 +81,33 @@ describe("model", () => {
       expect(snapshot.schema?.containment).toEqual(["cluster", "package"]);
     });
 
+
+    it("handles deeply nested containment properly without arrays", () => {
+      const json = {
+        schema: { containment: ["contains"] },
+        nodes: [{ id: "n1" }, { id: "n2" }, { id: "n3" }],
+        edges: [
+          { id: "e1", source: "n1", target: "n2", tags: ["contains"] },
+          { id: "e2", source: "n2", target: "n3", tags: ["contains"] }
+        ]
+      };
+      const snapshot = createGraphSnapshot(json as any);
+      expect(snapshot.schema?.containment).toEqual(["contains"]);
+    });
+
+    it("handles non-containment edges without throwing", () => {
+      const json = {
+        schema: { containment: ["contains"] },
+        nodes: [{ id: "n1" }, { id: "n2" }, { id: "n3" }],
+        edges: [
+          { id: "e1", source: "n1", target: "n2", tags: ["other"] },
+          { id: "e2", source: "n2", target: "n3", tags: ["other2"] }
+        ]
+      };
+      const snapshot = createGraphSnapshot(json as any);
+      expect(snapshot.edges.size).toBe(2);
+    });
+
     it("throws on duplicate node ID", () => {
       const json: GraphSnapshotJson = {
         nodes: [{ id: "n1" }, { id: "n1" }],
