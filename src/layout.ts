@@ -230,7 +230,7 @@ export function verticalLayout(
   const depths = assignVerticalDepths(nodeIds, outgoing, incoming);
   const layers = groupByDepth(nodeIds, depths);
 
-  if (previousLayout) {
+  if (previousLayout && previousLayout.positions) {
     applyPreviousLayoutHints(layers, previousLayout, incoming, outgoing);
   }
 
@@ -804,10 +804,12 @@ function groupByDepth(
 function identifyCompoundNodes(graph: GraphSnapshot, config: Required<VerticalLayoutOptions>) {
   const parentNodes = new Set<string>();
   for (const edge of graph.edges.values()) {
-    for (let i = 0; i < edge.tags.length; i++) {
-      if (config.containmentTags.has(edge.tags[i])) {
-        parentNodes.add(edge.source);
-        break;
+    if (edge.tags.length > 0) {
+      for (let i = 0; i < edge.tags.length; i++) {
+        if (config.containmentTags.has(edge.tags[i])) {
+          parentNodes.add(edge.source);
+          break;
+        }
       }
     }
   }
@@ -838,10 +840,12 @@ function buildAdjacencyLists(graph: GraphSnapshot, nodeIds: readonly string[], p
 
   for (const edge of graph.edges.values()) {
     let isContainment = false;
-    for (let i = 0; i < edge.tags.length; i++) {
-      if (config.containmentTags.has(edge.tags[i])) {
-        isContainment = true;
-        break;
+    if (edge.tags.length > 0) {
+      for (let i = 0; i < edge.tags.length; i++) {
+        if (config.containmentTags.has(edge.tags[i])) {
+          isContainment = true;
+          break;
+        }
       }
     }
     if (isContainment) {
@@ -1040,10 +1044,12 @@ function computeEdgeRoutingHints(
 
   for (const edge of graph.edges.values()) {
     let isContainment = false;
-    for (let i = 0; i < edge.tags.length; i++) {
-      if (config.containmentTags.has(edge.tags[i])) {
-        isContainment = true;
-        break;
+    if (edge.tags.length > 0) {
+      for (let i = 0; i < edge.tags.length; i++) {
+        if (config.containmentTags.has(edge.tags[i])) {
+          isContainment = true;
+          break;
+        }
       }
     }
     if (isContainment) {
@@ -1098,10 +1104,12 @@ function computeCompoundNodeBounds(
     hasHierarchy = true;
     for (const edge of graph.edges.values()) {
       let isContainment = false;
-      for (let i = 0; i < edge.tags.length; i++) {
-        if (schema.containment.includes(edge.tags[i])) {
-          isContainment = true;
-          break;
+      if (edge.tags.length > 0) {
+        for (let i = 0; i < edge.tags.length; i++) {
+          if (schema.containment!.includes(edge.tags[i])) {
+            isContainment = true;
+            break;
+          }
         }
       }
       if (isContainment) {
@@ -1114,7 +1122,8 @@ function computeCompoundNodeBounds(
 
     const calcSize = (id: string): {w: number, h: number} => {
        const children = layoutHierarchy.get(id)?.children || [];
-       if (children.length === 0) {
+       const isCol = config.collapsedNodes?.has(id) ?? false;
+       if (isCol || children.length === 0) {
           const s = nodeSizes.get(id);
           if (s) return {w: s.width, h: s.height};
           const w = config.nodeWidth;

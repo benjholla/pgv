@@ -2221,7 +2221,7 @@ function renderEdges(
   svg.appendChild(edgeLayer);
   for (const edge of graph.edges.values()) {
     let isContainment = false;
-    if (schema.containment) {
+    if (schema.containment && edge.tags.length > 0) {
       for (let i = 0; i < edge.tags.length; i++) {
         if (schema.containment.includes(edge.tags[i])) {
           isContainment = true;
