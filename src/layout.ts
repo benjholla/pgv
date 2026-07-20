@@ -9,6 +9,35 @@ function binarySearch(arr: readonly string[], target: string): number {
   }
   return -1;
 }
+
+/**
+ * PERF(Bolt): Replaced O(N) scan with O(log N) binary search since coordinate arrays are sorted
+ */
+function findClosestCoordinateIndex(arr: readonly number[], val: number): number {
+  let low = 0;
+  let high = arr.length - 1;
+
+  if (val <= arr[0]) return 0;
+  if (val >= arr[high]) return high;
+
+  while (low <= high) {
+      const mid = (low + high) >>> 1;
+      const midVal = arr[mid];
+
+      if (midVal === val) return mid;
+
+      if (midVal < val) {
+          low = mid + 1;
+      } else {
+          high = mid - 1;
+      }
+  }
+
+  const dHigh = val - arr[high];
+  const dLow = arr[low] - val;
+
+  return dHigh <= dLow ? high : low;
+}
 /**
  * @module
  * @packageDocumentation
@@ -433,37 +462,11 @@ function routeEdgeOrthogonal(
 
   type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number };
 
-  // PERF(Bolt): Replaced O(N) scan with O(log N) binary search since coordinate arrays are sorted
-  const getIdx = (arr: number[], val: number) => {
-    let low = 0;
-    let high = arr.length - 1;
 
-    if (val <= arr[0]) return 0;
-    if (val >= arr[high]) return high;
-
-    while (low <= high) {
-        const mid = (low + high) >>> 1;
-        const midVal = arr[mid];
-
-        if (midVal === val) return mid;
-
-        if (midVal < val) {
-            low = mid + 1;
-        } else {
-            high = mid - 1;
-        }
-    }
-
-    const dHigh = val - arr[high];
-    const dLow = arr[low] - val;
-
-    return dHigh <= dLow ? high : low;
-  };
-
-  const startXIdx = getIdx(xCoords, sourcePt.x);
-  const startYIdx = getIdx(yCoords, sourcePt.y);
-  const endXIdx = getIdx(xCoords, targetPt.x);
-  const endYIdx = getIdx(yCoords, targetPt.y);
+  const startXIdx = findClosestCoordinateIndex(xCoords, sourcePt.x);
+  const startYIdx = findClosestCoordinateIndex(yCoords, sourcePt.y);
+  const endXIdx = findClosestCoordinateIndex(xCoords, targetPt.x);
+  const endYIdx = findClosestCoordinateIndex(yCoords, targetPt.y);
 
   const isSegmentValid = (x1: number, y1: number, x2: number, y2: number) => {
     // Add small epsilon to allow edges to route exactly on the boundary of nodes (or ports)
