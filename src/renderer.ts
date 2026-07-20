@@ -15,6 +15,20 @@ const ATTRIBUTE_SEARCH_MODES = new Set(["node-attribute", "edge-attribute", "att
 const NODE_SEARCH_MODES = new Set(["all", "id", "node-id", "node-tag", "node-attribute", "tag", "attribute"]);
 const EDGE_SEARCH_MODES = new Set(["all", "id", "edge-id", "edge-tag", "edge-attribute", "tag", "attribute"]);
 
+const SEARCH_MODES = [
+  { value: "all", label: "Everywhere" },
+  { value: "node-id", label: "Node Id" },
+  { value: "node-tag", label: "Node Tag" },
+  { value: "node-attribute", label: "Node Attribute" },
+  { value: "edge-id", label: "Edge Id" },
+  { value: "edge-tag", label: "Edge Tag" },
+  { value: "edge-attribute", label: "Edge Attribute" },
+  { value: "id", label: "Element Id" },
+  { value: "tag", label: "Element Tag" },
+  { value: "attribute", label: "Element Attribute" }
+];
+
+
 /**
  * Represents the currently selected or highlighted elements in the graph view.
  *
@@ -695,23 +709,71 @@ export class GraphView {
 
 
 
-  #renderSearchControls(): HTMLElement {
-    const bar = document.createElement("div");
-    bar.className = "pgv-search-bar";
+  #createSearchToggle(label: string, active: boolean, iconHtml: string, onClick: () => void): HTMLButtonElement {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = `pgv-search-toggle ${active ? "active" : ""}`;
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
+    btn.setAttribute("aria-pressed", active ? "true" : "false");
+    btn.innerHTML = iconHtml;
+    // We remove the inline style for width/height so CSS can manage the sizes and media queries
+    btn.addEventListener("click", () => {
+      onClick();
+      btn.classList.toggle("active");
+      btn.setAttribute("aria-pressed", btn.classList.contains("active") ? "true" : "false");
+    });
+    return btn;
+  }
 
-    // Search mode dropdown
-    const modes = [
-      { value: "all", label: "Everywhere" },
-      { value: "node-id", label: "Node Id" },
-      { value: "node-tag", label: "Node Tag" },
-      { value: "node-attribute", label: "Node Attribute" },
-      { value: "edge-id", label: "Edge Id" },
-      { value: "edge-tag", label: "Edge Tag" },
-      { value: "edge-attribute", label: "Edge Attribute" },
-      { value: "id", label: "Element Id" },
-      { value: "tag", label: "Element Tag" },
-      { value: "attribute", label: "Element Attribute" }
-    ];
+  #createSearchInputGroup(
+    modeLabel: string,
+    isKey: boolean,
+    isAttributeMode: boolean,
+    initialValue: string,
+    onInput: (val: string) => void,
+    onEnter: (e: KeyboardEvent) => void,
+    options: {
+      caseSensitive: boolean;
+      exact: boolean;
+      regex: boolean;
+      onCaseSensitiveChange: () => void;
+      onExactChange: () => void;
+      onRegexChange: () => void;
+    }
+  ): { wrapper: HTMLDivElement, input: HTMLInputElement } {
+    const wrapper = document.createElement("div");
+    wrapper.className = "pgv-search-input-wrapper";
+
+    const input = document.createElement("input");
+    input.type = "text";
+    input.maxLength = 1000;
+    const label = isKey ? `Search ${modeLabel} Key` : (isAttributeMode ? `Search ${modeLabel} Value` : `Search ${modeLabel}`);
+    input.setAttribute("aria-label", label);
+    input.placeholder = `${label}...`;
+    input.value = initialValue;
+    input.addEventListener("input", (e) => {
+      onInput((e.target as HTMLInputElement).value);
+    });
+    input.addEventListener("keydown", onEnter);
+    wrapper.appendChild(input);
+
+    const toggles = document.createElement("div");
+    toggles.className = "pgv-search-toggles";
+    const matchCaseIcon = `Aa`;
+    const matchWholeWordIcon = `<span style="text-decoration: underline; font-style: normal; font-family: monospace;">ab</span>`;
+    const matchRegexIcon = `.*`;
+
+    toggles.appendChild(this.#createSearchToggle("Match Case", options.caseSensitive, matchCaseIcon, options.onCaseSensitiveChange));
+    toggles.appendChild(this.#createSearchToggle("Match Whole Word", options.exact, matchWholeWordIcon, options.onExactChange));
+    toggles.appendChild(this.#createSearchToggle("Use Regular Expression", options.regex, matchRegexIcon, options.onRegexChange));
+    wrapper.appendChild(toggles);
+
+    return { wrapper, input };
+  }
+
+  #renderSearchModeDropdown(bar: HTMLElement): HTMLElement {
+
 
     const searchDropdownContainer = document.createElement("div");
     searchDropdownContainer.className = "pgv-search-dropdown-container";
@@ -740,25 +802,30 @@ export class GraphView {
       dropdownMenu.classList.add("open");
     }
 
-    for (let i = 0; i < modes.length; i++) {
-      const mode = modes[i];
+    for (let i = 0; i < SEARCH_MODES.length; i++) {
+      const mode = SEARCH_MODES[i];
       const option = document.createElement("div");
       option.className = "pgv-dropdown-option";
       option.setAttribute("role", "menuitemradio");
+      option.dataset.value = mode.value;
       option.setAttribute("tabindex", "0");
-      if (mode.value === this.#searchMode) {
-        option.classList.add("selected");
+      if (this.#searchMode === mode.value) {
         option.setAttribute("aria-checked", "true");
+        option.classList.add("selected");
       } else {
         option.setAttribute("aria-checked", "false");
       }
       option.textContent = mode.label;
-      option.dataset.value = mode.value;
 
       option.addEventListener("keydown", (e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           option.click();
+        } else if (e.key === "Escape") {
+          this.#searchDropdownOpen = false;
+          dropdownBtn.setAttribute("aria-expanded", "false");
+          dropdownMenu.classList.remove("open");
+          dropdownBtn.focus();
         } else if (e.key === "ArrowDown") {
           e.preventDefault();
           const next = option.nextElementSibling as HTMLElement | null;
@@ -836,33 +903,24 @@ export class GraphView {
       }
     }, { signal: this.#searchAbortController.signal });
 
+    return searchDropdownContainer;
+  }
+
+  #renderSearchControls(): HTMLElement {
+    const bar = document.createElement("div");
+    bar.className = "pgv-search-bar";
+
+    const searchDropdownContainer = this.#renderSearchModeDropdown(bar);
+    bar.appendChild(searchDropdownContainer);
 
     const inputsContainer = document.createElement("div");
     inputsContainer.className = "pgv-search-inputs";
 
     const isAttributeMode = ATTRIBUTE_SEARCH_MODES.has(this.#searchMode);
-    const modeLabel = modes.find(m => m.value === this.#searchMode)?.label || "Everywhere";
 
-    const matchCaseIcon = `Aa`;
-    const matchWholeWordIcon = `<span style="text-decoration: underline; font-style: normal; font-family: monospace;">ab</span>`;
-    const matchRegexIcon = `.*`;
+    // We get modes label again, but it's fine since we abstracted dropdown
 
-    const createToggle = (label: string, active: boolean, iconHtml: string, onClick: () => void) => {
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = `pgv-search-toggle ${active ? "active" : ""}`;
-      btn.title = label;
-      btn.setAttribute("aria-label", label);
-      btn.setAttribute("aria-pressed", active ? "true" : "false");
-      btn.innerHTML = iconHtml;
-      // We remove the inline style for width/height so CSS can manage the sizes and media queries
-      btn.addEventListener("click", () => {
-        onClick();
-        btn.classList.toggle("active");
-        btn.setAttribute("aria-pressed", btn.classList.contains("active") ? "true" : "false");
-      });
-      return btn;
-    };
+    const modeLabel = SEARCH_MODES.find(m => m.value === this.#searchMode)?.label || "Everywhere";
 
     const handleEnter = (e: KeyboardEvent) => {
       if (e.key === "Enter") {
@@ -879,7 +937,6 @@ export class GraphView {
     info.setAttribute("aria-live", "polite");
     info.setAttribute("aria-atomic", "true");
 
-    // Search button (created early so inputs can update its state)
     const searchBtn = document.createElement("button");
     searchBtn.type = "button";
     searchBtn.title = "Search";
@@ -895,7 +952,6 @@ export class GraphView {
       this.#executeSearch();
     });
 
-    // Cycle button
     const cycleBtn = document.createElement("button");
     cycleBtn.type = "button";
     cycleBtn.title = "Cycle Results";
@@ -933,94 +989,85 @@ export class GraphView {
     this.#updateSearchUI = updateSearchBtnState;
 
     if (isAttributeMode) {
-      // Key input wrapper
-      const keyWrapper = document.createElement("div");
-      keyWrapper.className = "pgv-search-input-wrapper";
-
-      const keyInput = document.createElement("input");
-      keyInput.type = "text";
-      keyInput.maxLength = 1000;
-      keyInput.setAttribute("aria-label", `Search ${modeLabel} Key`);
-      keyInput.placeholder = `Search ${modeLabel} Key...`;
-      keyInput.value = this.#searchKeyQuery;
-      keyInput.addEventListener("input", (e) => {
-        this.#searchKeyQuery = (e.target as HTMLInputElement).value;
-        this.#searchResults = [];
-        this.#searchCycleIndex = -1;
-        updateSearchBtnState();
-      });
-      keyInput.addEventListener("keydown", handleEnter);
-      this.#searchKeyInputRef = keyInput;
-      keyWrapper.appendChild(keyInput);
-
-      const keyToggles = document.createElement("div");
-      keyToggles.className = "pgv-search-toggles";
-      keyToggles.appendChild(createToggle("Match Case", this.#searchCaseSensitiveKey, matchCaseIcon, () => {
-        this.#searchCaseSensitiveKey = !this.#searchCaseSensitiveKey;
-        this.#searchResults = [];
-        this.#searchCycleIndex = -1;
-        updateSearchBtnState();
-      }));
-      keyToggles.appendChild(createToggle("Match Whole Word", this.#searchExactKey, matchWholeWordIcon, () => {
-        this.#searchExactKey = !this.#searchExactKey;
-        this.#searchResults = [];
-        this.#searchCycleIndex = -1;
-        updateSearchBtnState();
-      }));
-      keyToggles.appendChild(createToggle("Use Regular Expression", this.#searchRegexKey, matchRegexIcon, () => {
-        this.#searchRegexKey = !this.#searchRegexKey;
-        this.#searchResults = [];
-        this.#searchCycleIndex = -1;
-        updateSearchBtnState();
-      }));
-      keyWrapper.appendChild(keyToggles);
-      inputsContainer.appendChild(keyWrapper);
+      const keyGroup = this.#createSearchInputGroup(
+        modeLabel,
+        true,
+        true, // isAttributeMode is always true if this block runs
+        this.#searchKeyQuery,
+        (val) => {
+          this.#searchKeyQuery = val;
+          this.#searchResults = [];
+          this.#searchCycleIndex = -1;
+          updateSearchBtnState();
+        },
+        handleEnter,
+        {
+          caseSensitive: this.#searchCaseSensitiveKey,
+          exact: this.#searchExactKey,
+          regex: this.#searchRegexKey,
+          onCaseSensitiveChange: () => {
+            this.#searchCaseSensitiveKey = !this.#searchCaseSensitiveKey;
+            this.#searchResults = [];
+            this.#searchCycleIndex = -1;
+            updateSearchBtnState();
+          },
+          onExactChange: () => {
+            this.#searchExactKey = !this.#searchExactKey;
+            this.#searchResults = [];
+            this.#searchCycleIndex = -1;
+            updateSearchBtnState();
+          },
+          onRegexChange: () => {
+            this.#searchRegexKey = !this.#searchRegexKey;
+            this.#searchResults = [];
+            this.#searchCycleIndex = -1;
+            updateSearchBtnState();
+          }
+        }
+      );
+      this.#searchKeyInputRef = keyGroup.input;
+      inputsContainer.appendChild(keyGroup.wrapper);
     }
 
-    // Value input wrapper
-    const valueWrapper = document.createElement("div");
-    valueWrapper.className = "pgv-search-input-wrapper";
+    const valueGroup = this.#createSearchInputGroup(
+      modeLabel,
+      false,
+      isAttributeMode,
+      this.#searchQuery,
+      (val) => {
+        this.#searchQuery = val;
+        this.#searchResults = [];
+        this.#searchCycleIndex = -1;
+        updateSearchBtnState();
+      },
+      handleEnter,
+      {
+        caseSensitive: this.#searchCaseSensitiveValue,
+        exact: this.#searchExactValue,
+        regex: this.#searchRegexValue,
+        onCaseSensitiveChange: () => {
+          this.#searchCaseSensitiveValue = !this.#searchCaseSensitiveValue;
+          this.#searchResults = [];
+          this.#searchCycleIndex = -1;
+          updateSearchBtnState();
+        },
+        onExactChange: () => {
+          this.#searchExactValue = !this.#searchExactValue;
+          this.#searchResults = [];
+          this.#searchCycleIndex = -1;
+          updateSearchBtnState();
+        },
+        onRegexChange: () => {
+          this.#searchRegexValue = !this.#searchRegexValue;
+          this.#searchResults = [];
+          this.#searchCycleIndex = -1;
+          updateSearchBtnState();
+        }
+      }
+    );
+    this.#searchInputRef = valueGroup.input;
+    inputsContainer.appendChild(valueGroup.wrapper);
 
-    const valueInput = document.createElement("input");
-    valueInput.type = "text";
-    valueInput.maxLength = 1000;
-    valueInput.setAttribute("aria-label", isAttributeMode ? `Search ${modeLabel} Value` : `Search ${modeLabel}`);
-    valueInput.placeholder = isAttributeMode ? `Search ${modeLabel} Value...` : `Search ${modeLabel}...`;
-    valueInput.value = this.#searchQuery;
-    valueInput.addEventListener("input", (e) => {
-      this.#searchQuery = (e.target as HTMLInputElement).value;
-      this.#searchResults = [];
-      this.#searchCycleIndex = -1;
-      updateSearchBtnState();
-    });
-    valueInput.addEventListener("keydown", handleEnter);
-    this.#searchInputRef = valueInput;
-    valueWrapper.appendChild(valueInput);
-
-    const valueToggles = document.createElement("div");
-    valueToggles.className = "pgv-search-toggles";
-    valueToggles.appendChild(createToggle("Match Case", this.#searchCaseSensitiveValue, matchCaseIcon, () => {
-      this.#searchCaseSensitiveValue = !this.#searchCaseSensitiveValue;
-      this.#searchResults = [];
-      this.#searchCycleIndex = -1;
-      updateSearchBtnState();
-    }));
-    valueToggles.appendChild(createToggle("Match Whole Word", this.#searchExactValue, matchWholeWordIcon, () => {
-      this.#searchExactValue = !this.#searchExactValue;
-      this.#searchResults = [];
-      this.#searchCycleIndex = -1;
-      updateSearchBtnState();
-    }));
-    valueToggles.appendChild(createToggle("Use Regular Expression", this.#searchRegexValue, matchRegexIcon, () => {
-      this.#searchRegexValue = !this.#searchRegexValue;
-      this.#searchResults = [];
-      this.#searchCycleIndex = -1;
-      updateSearchBtnState();
-    }));
-    valueWrapper.appendChild(valueToggles);
-    inputsContainer.appendChild(valueWrapper);
-
-    bar.appendChild(searchDropdownContainer);
     bar.appendChild(inputsContainer);
 
     const actionsContainer = document.createElement("div");
@@ -1039,7 +1086,6 @@ export class GraphView {
     actionsContainer.appendChild(cycleBtn);
     actionsContainer.appendChild(info);
 
-    // Add a close button
     const closeBtn = document.createElement("button");
     closeBtn.type = "button";
     closeBtn.title = "Close Search (Esc)";
@@ -1063,9 +1109,7 @@ export class GraphView {
     };
 
     closeBtn.addEventListener("click", handleClose);
-
     actionsContainer.appendChild(closeBtn);
-
     bar.appendChild(actionsContainer);
 
     bar.addEventListener("keydown", (e) => {
