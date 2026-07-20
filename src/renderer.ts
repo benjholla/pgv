@@ -733,6 +733,7 @@ export class GraphView {
     initialValue: string,
     onInput: (val: string) => void,
     onEnter: (e: KeyboardEvent) => void,
+    onClear: () => void,
     options: {
       caseSensitive: boolean;
       exact: boolean;
@@ -745,6 +746,9 @@ export class GraphView {
     const wrapper = document.createElement("div");
     wrapper.className = "pgv-search-input-wrapper";
 
+    const innerWrapper = document.createElement("div");
+    innerWrapper.className = "pgv-search-input-inner";
+
     const input = document.createElement("input");
     input.type = "text";
     input.maxLength = 1000;
@@ -752,11 +756,38 @@ export class GraphView {
     input.setAttribute("aria-label", label);
     input.placeholder = `${label}...`;
     input.value = initialValue;
+
+    const clearBtn = document.createElement("button");
+    clearBtn.className = "pgv-search-clear-btn";
+    clearBtn.type = "button";
+    clearBtn.setAttribute("aria-label", "Clear search");
+    clearBtn.title = "Clear";
+    clearBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"></circle>
+      <line x1="15" y1="9" x2="9" y2="15"></line>
+      <line x1="9" y1="9" x2="15" y2="15"></line>
+    </svg>`;
+
+    const updateClearBtn = () => {
+      clearBtn.style.display = input.value ? "flex" : "none";
+    };
+    updateClearBtn();
+
     input.addEventListener("input", (e) => {
       onInput((e.target as HTMLInputElement).value);
+      updateClearBtn();
     });
     input.addEventListener("keydown", onEnter);
-    wrapper.appendChild(input);
+
+    clearBtn.addEventListener("click", () => {
+      input.value = "";
+      updateClearBtn();
+      onClear();
+    });
+
+    innerWrapper.appendChild(input);
+    innerWrapper.appendChild(clearBtn);
+    wrapper.appendChild(innerWrapper);
 
     const toggles = document.createElement("div");
     toggles.className = "pgv-search-toggles";
@@ -1001,6 +1032,14 @@ export class GraphView {
           updateSearchBtnState();
         },
         handleEnter,
+        () => {
+          this.#searchKeyQuery = "";
+          this.#searchResults = [];
+          this.#searchCycleIndex = -1;
+          this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
+          this.#executeSearch();
+          updateSearchBtnState();
+        },
         {
           caseSensitive: this.#searchCaseSensitiveKey,
           exact: this.#searchExactKey,
@@ -1041,6 +1080,14 @@ export class GraphView {
         updateSearchBtnState();
       },
       handleEnter,
+      () => {
+        this.#searchQuery = "";
+        this.#searchResults = [];
+        this.#searchCycleIndex = -1;
+        this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
+        this.#executeSearch();
+        updateSearchBtnState();
+      },
       {
         caseSensitive: this.#searchCaseSensitiveValue,
         exact: this.#searchExactValue,
