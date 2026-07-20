@@ -1,3 +1,9 @@
+/**
+ * @module
+ * @packageDocumentation
+ * Frontend-owned vertical layout and geometric routing calculations.
+ */
+
 function binarySearch(arr: readonly string[], target: string): number {
   let left = 0;
   let right = arr.length - 1;
@@ -38,11 +44,6 @@ function findClosestCoordinateIndex(arr: readonly number[], val: number): number
 
   return dHigh <= dLow ? high : low;
 }
-/**
- * @module
- * @packageDocumentation
- * Frontend-owned vertical layout and geometric routing calculations.
- */
 
 import type { GraphSnapshot, GraphEdge , GraphSchema} from "./model";
 

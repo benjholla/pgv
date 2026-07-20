@@ -747,6 +747,7 @@ function freezeAttributes(
  * Decodes HTML entities (both decimal and hexadecimal) in a given string
  * into their corresponding characters.
  *
+ * @internal
  * @param text The string containing HTML entities to decode.
  * @returns The decoded string.
  */
@@ -772,6 +773,7 @@ export function decodeHtmlEntities(text: string): string {
  * removes control characters, and validates that no restricted URI schemes
  * are present.
  *
+ * @internal
  * @param value The string to sanitize.
  * @returns The sanitized string safe for rendering.
  * @throws {TypeError} If the input value is not a string.
