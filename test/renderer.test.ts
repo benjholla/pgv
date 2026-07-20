@@ -262,7 +262,7 @@ describe('GraphView', () => {
 
     const searchBtn = container.querySelector('button[title="Search"]') as HTMLButtonElement;
     expect(searchBtn).not.toBeNull();
-    expect(searchBtn.disabled).toBe(false);
+    expect(searchBtn.getAttribute("aria-disabled")).toBe("false");
 
     // Execute search
     searchBtn.click();
@@ -562,4 +562,97 @@ describe('GraphView', () => {
       view.destroy();
     });
   });
+
+  describe("Compound Nodes", () => {
+    it("renders compound nodes with nested children and headers", () => {
+      const container = document.createElement("div");
+
+      const graph = createGraphSnapshot({
+        nodes: [
+          { id: "parent", attributes: { "XCSG.name": "ParentNode" } },
+          { id: "child1" },
+          { id: "child2" }
+        ],
+        edges: [
+          { id: "e1", source: "parent", target: "child1", tags: ["contains"] },
+          { id: "e2", source: "parent", target: "child2", tags: ["contains"] }
+        ],
+        schema: {
+          containment: ["contains"]
+        }
+      });
+
+      const view = new GraphView(container, graph.schema);
+      view.setGraph(graph);
+
+      const parentEl = container.querySelector('[data-node-id="parent"]');
+      expect(parentEl).not.toBeNull();
+
+      const header = parentEl?.querySelector(".pgv-compound-node-header");
+      expect(header).not.toBeNull();
+
+      const title = header?.querySelector(".pgv-node-title");
+      expect(title?.textContent).toBe("ParentNode");
+
+      const toggle = header?.querySelector(".pgv-node-collapse-toggle");
+      expect(toggle).not.toBeNull();
+      expect(toggle?.getAttribute("aria-expanded")).toBe("true");
+
+      const child1 = parentEl?.querySelector('[data-node-id="child1"]');
+      const child2 = parentEl?.querySelector('[data-node-id="child2"]');
+
+      expect(child1).not.toBeNull();
+      expect(child2).not.toBeNull();
+
+      expect(child1?.getAttribute("style")).toContain("transform: translate");
+    });
+
+    it("verifies DOM rendering of disconnected compound node subgraphs", () => {
+      const container = document.createElement("div");
+
+      const graph = createGraphSnapshot({
+        nodes: [
+          { id: "parent_isolated" },
+          { id: "child_isolated" },
+        ],
+        edges: [
+          { id: "e_isolated", source: "parent_isolated", target: "child_isolated", tags: ["contains"] }
+        ],
+        schema: {
+          containment: ["contains"]
+        }
+      });
+
+      const view = new GraphView(container, graph.schema);
+      view.setGraph(graph);
+
+      const parentEl = container.querySelector('[data-node-id="parent_isolated"]');
+      expect(parentEl).not.toBeNull();
+
+      const child1 = parentEl?.querySelector('[data-node-id="child_isolated"]');
+      expect(child1).not.toBeNull();
+    });
+
+    it("renders empty parent nodes correctly", () => {
+      const container = document.createElement("div");
+
+      const graph = createGraphSnapshot({
+        nodes: [
+          { id: "parent_empty" },
+        ],
+        edges: [],
+        schema: {
+          containment: ["contains"]
+        }
+      });
+
+      const view = new GraphView(container, graph.schema);
+      view.setGraph(graph);
+
+      const parentEl = container.querySelector('[data-node-id="parent_empty"]');
+      expect(parentEl).not.toBeNull();
+      expect(parentEl?.className).toContain("pgv-graph-node");
+    });
+  });
+
 });
