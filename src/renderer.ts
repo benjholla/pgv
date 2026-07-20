@@ -1869,7 +1869,7 @@ export class GraphView {
     // html-to-image has issues copying CSS variables down into SVG contexts properly during cloning.
     // To ensure edges render correctly, we temporarily inline the critical stroke/fill properties
     // on the SVG paths before exporting, and then remove them afterward.
-    const edgePaths = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge path");
+    const edgePaths = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge > path");
     const edgeMarkers = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge marker path");
     const edgeLabels = stage.querySelectorAll<SVGTextElement>(".pgv-edge-label");
 
@@ -1903,10 +1903,12 @@ export class GraphView {
 
     for (let i = 0; i < edgeMarkers.length; i++) {
       const path = edgeMarkers[i];
-      const isSelected = path.closest(".pgv-graph-edge")?.classList.contains("pgv-selected");
+      const edgeGroup = path.closest(".pgv-graph-edge");
+      const isSelected = edgeGroup?.classList.contains("pgv-selected");
+      const mainPath = edgeGroup?.querySelector(":scope > path");
 
       const pathStyle = window.getComputedStyle(path);
-      const computedFill = pathStyle.getPropertyValue("fill");
+      const computedFill = mainPath ? window.getComputedStyle(mainPath).getPropertyValue("stroke") : pathStyle.getPropertyValue("fill");
 
       const finalFill = isSelected ? selectedColor : (computedFill !== "none" && computedFill ? computedFill : edgeColor);
 
@@ -2212,9 +2214,6 @@ function renderEdges(
 ): SVGSVGElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   const edgeLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
-  const markerId = `pgv-arrowhead-${markerIdSequence}`;
-
-  markerIdSequence += 1;
 
   svg.classList.add("pgv-edge-layer");
   svg.setAttribute("viewBox", `0 0 ${layout.width} ${layout.height}`);
@@ -2222,7 +2221,6 @@ function renderEdges(
   svg.setAttribute("height", `${layout.height}`);
   svg.setAttribute("aria-hidden", "true");
 
-  svg.appendChild(createArrowMarker(markerId));
   edgeLayer.classList.add("pgv-edge-layer-inner");
   svg.appendChild(edgeLayer);
 
@@ -2271,6 +2269,9 @@ function renderEdges(
     group.dataset.edgeId = edge.id;
     group.setAttribute("tabindex", "0");
     group.setAttribute("role", "button");
+
+    const markerId = `pgv-arrowhead-${markerIdSequence++}`;
+    group.appendChild(createArrowMarker(markerId));
 
     let edgeAriaLabel = `Edge ${edge.id}`;
     const label = options.edgeLabel?.(edge) ?? null;
