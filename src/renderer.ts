@@ -723,7 +723,7 @@ export class GraphView {
     dropdownBtn.setAttribute("title", "Search mode");
     dropdownBtn.setAttribute("aria-haspopup", "menu");
     dropdownBtn.setAttribute("aria-expanded", this.#searchDropdownOpen ? "true" : "false");
-    const icons = { chevronDown: "M6 9l6 6 6-6" };
+    const icons = { chevronDown: "M6 9l6 6 6-6", clear: "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" };
     dropdownBtn.innerHTML = `
       <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="${icons.chevronDown}"></path>
@@ -936,21 +936,55 @@ export class GraphView {
       const keyWrapper = document.createElement("div");
       keyWrapper.className = "pgv-search-input-wrapper";
 
+      const keyInputInner = document.createElement("div");
+      keyInputInner.className = "pgv-search-input-inner";
+
       const keyInput = document.createElement("input");
       keyInput.type = "text";
       keyInput.maxLength = 1000;
       keyInput.setAttribute("aria-label", `Search ${modeLabel} Key`);
       keyInput.placeholder = `Search ${modeLabel} Key...`;
       keyInput.value = this.#searchKeyQuery;
+
+      const keyClearBtn = document.createElement("button");
+      keyClearBtn.type = "button";
+      keyClearBtn.className = "pgv-search-clear-btn";
+      keyClearBtn.title = "Clear Input";
+      keyClearBtn.setAttribute("aria-label", "Clear Input");
+      keyClearBtn.innerHTML = `
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="${icons.clear}"></path>
+        </svg>
+      `;
+      keyClearBtn.style.display = this.#searchKeyQuery ? "flex" : "none";
+
       keyInput.addEventListener("input", (e) => {
         this.#searchKeyQuery = (e.target as HTMLInputElement).value;
         this.#searchResults = [];
         this.#searchCycleIndex = -1;
         updateSearchBtnState();
+        keyClearBtn.style.display = this.#searchKeyQuery ? "flex" : "none";
       });
+
+      keyClearBtn.addEventListener("click", () => {
+        this.#searchKeyQuery = "";
+        keyInput.value = "";
+        this.#searchResults = [];
+        this.#searchCycleIndex = -1;
+        if (this.#options.selection && (this.#options.selection.nodes.size > 0 || this.#options.selection.edges.size > 0)) {
+          this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
+        }
+        updateSearchBtnState();
+        keyClearBtn.style.display = "none";
+        this.#render();
+        keyInput.focus();
+      });
+
       keyInput.addEventListener("keydown", handleEnter);
       this.#searchKeyInputRef = keyInput;
-      keyWrapper.appendChild(keyInput);
+      keyInputInner.appendChild(keyInput);
+      keyInputInner.appendChild(keyClearBtn);
+      keyWrapper.appendChild(keyInputInner);
 
       const keyToggles = document.createElement("div");
       keyToggles.className = "pgv-search-toggles";
@@ -980,21 +1014,55 @@ export class GraphView {
     const valueWrapper = document.createElement("div");
     valueWrapper.className = "pgv-search-input-wrapper";
 
+    const valueInputInner = document.createElement("div");
+    valueInputInner.className = "pgv-search-input-inner";
+
     const valueInput = document.createElement("input");
     valueInput.type = "text";
     valueInput.maxLength = 1000;
     valueInput.setAttribute("aria-label", isAttributeMode ? `Search ${modeLabel} Value` : `Search ${modeLabel}`);
     valueInput.placeholder = isAttributeMode ? `Search ${modeLabel} Value...` : `Search ${modeLabel}...`;
     valueInput.value = this.#searchQuery;
+
+    const valueClearBtn = document.createElement("button");
+    valueClearBtn.type = "button";
+    valueClearBtn.className = "pgv-search-clear-btn";
+    valueClearBtn.title = "Clear Input";
+    valueClearBtn.setAttribute("aria-label", "Clear Input");
+    valueClearBtn.innerHTML = `
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="${icons.clear}"></path>
+      </svg>
+    `;
+    valueClearBtn.style.display = this.#searchQuery ? "flex" : "none";
+
     valueInput.addEventListener("input", (e) => {
       this.#searchQuery = (e.target as HTMLInputElement).value;
       this.#searchResults = [];
       this.#searchCycleIndex = -1;
       updateSearchBtnState();
+      valueClearBtn.style.display = this.#searchQuery ? "flex" : "none";
     });
+
+    valueClearBtn.addEventListener("click", () => {
+      this.#searchQuery = "";
+      valueInput.value = "";
+      this.#searchResults = [];
+      this.#searchCycleIndex = -1;
+      if (this.#options.selection && (this.#options.selection.nodes.size > 0 || this.#options.selection.edges.size > 0)) {
+        this.#options.onSelectionChange?.({ nodes: new Set(), edges: new Set() });
+      }
+      updateSearchBtnState();
+      valueClearBtn.style.display = "none";
+      this.#render();
+      valueInput.focus();
+    });
+
     valueInput.addEventListener("keydown", handleEnter);
     this.#searchInputRef = valueInput;
-    valueWrapper.appendChild(valueInput);
+    valueInputInner.appendChild(valueInput);
+    valueInputInner.appendChild(valueClearBtn);
+    valueWrapper.appendChild(valueInputInner);
 
     const valueToggles = document.createElement("div");
     valueToggles.className = "pgv-search-toggles";
@@ -1166,7 +1234,8 @@ export class GraphView {
       history: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
       collapse: "M10 10L4 4M10 10V5M10 10H5M14 14l6 6M14 14v5M14 14h5", // implosion (inward arrows)
       expand: "M20 4L14 10M20 4v5M20 4h-5M4 20l6-6M4 20v-5M4 20h5",   // explosion (outward arrows)
-      placeholder: ""
+      placeholder: "",
+      clear: "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"
     };
 
     if (this.#controlsCollapsed) {

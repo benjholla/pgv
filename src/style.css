@@ -622,7 +622,7 @@
   color: var(--pgv-color-fg);
   border: 1px solid var(--pgv-controls-border);
   border-radius: 4px;
-  padding: 4px 8px;
+  padding: 4px 24px 4px 8px; /* Extra right padding for clear button */
   font-size: 12px;
   outline: none;
   box-sizing: border-box;
@@ -675,6 +675,38 @@
   display: flex;
   gap: 4px;
   flex-grow: 1;
+}
+
+.pgv-search-input-inner {
+  position: relative;
+  display: flex;
+  flex-grow: 1;
+}
+
+.pgv-search-clear-btn {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--pgv-color-fg);
+  cursor: pointer;
+  padding: 2px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+.pgv-search-clear-btn:hover {
+  opacity: 1;
+  background: var(--pgv-control-button-hover);
+}
+
+.pgv-search-clear-btn[style*="display: none"] {
+  pointer-events: none;
 }
 
 .pgv-search-input-wrapper {
