@@ -2282,20 +2282,25 @@ function renderEdges(
 
     path.setAttribute("d", pathData);
     path.setAttribute("marker-end", `url(#${markerId})`);
+
+    let totalLength = 0;
+    const lengths: number[] = [];
+    for (let i = 1; i < pathPts.length; i++) {
+      const len = Math.abs(pathPts[i].x - pathPts[i-1].x) + Math.abs(pathPts[i].y - pathPts[i-1].y);
+      lengths.push(len);
+      totalLength += len;
+    }
+
+    // Trim the visible line slightly before the marker tip so it doesn't bleed through
+    const trimAmount = 5;
+    path.setAttribute("stroke-dasharray", `${Math.max(0, totalLength - trimAmount)} ${totalLength + trimAmount}`);
+
     group.appendChild(path);
 
     if (label) {
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
 
       // Find middle of the path to place the label
-      let totalLength = 0;
-      const lengths: number[] = [];
-      for (let i = 1; i < pathPts.length; i++) {
-        const len = Math.abs(pathPts[i].x - pathPts[i-1].x) + Math.abs(pathPts[i].y - pathPts[i-1].y);
-        lengths.push(len);
-        totalLength += len;
-      }
-
       const halfLen = totalLength / 2;
       let currLen = 0;
       let midX = 0;
@@ -2518,7 +2523,7 @@ function createArrowMarker(markerId: string): SVGDefsElement {
 
   marker.setAttribute("id", markerId);
   marker.setAttribute("viewBox", "0 0 10 10");
-  marker.setAttribute("refX", "10");
+  marker.setAttribute("refX", "9");
   marker.setAttribute("refY", "5");
   marker.setAttribute("markerWidth", "6");
   marker.setAttribute("markerHeight", "6");
