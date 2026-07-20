@@ -58,3 +58,6 @@
 ## 2025-07-19 - Improved UI Controls Accessibility
 **Learning:** Native `<button disabled>` completely removes buttons from the keyboard tab sequence. For complex UI tools like graph controls, users tabbing through actions might miss that a disabled action (like "No previous snapshots available") even exists or why it is disabled.
 **Action:** Replaced native `disabled` DOM properties with `[aria-disabled="true"]` on all GraphView control buttons, updated CSS selectors accordingly, and linked dropdown toggles to their menus via explicit `aria-controls` IDs.
+## $(date +%Y-%m-%d) - Focus Management on Transient Controls
+**Learning:** In complex interactive components like the search bar, when a transient control (like a "Clear" button) is clicked and immediately hidden (`display: none`), keyboard focus drops to the document body, breaking the user's flow and creating a poor accessibility experience.
+**Action:** Always explicitly return focus to the logically related active element (e.g., `input.focus()`) immediately after hiding the transient control that triggered the action.

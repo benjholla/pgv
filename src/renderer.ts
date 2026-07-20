@@ -783,6 +783,7 @@ export class GraphView {
       input.value = "";
       updateClearBtn();
       onClear();
+      input.focus();
     });
 
     innerWrapper.appendChild(input);
