@@ -370,7 +370,7 @@ export function edgeEndpoints(
  * @param layout The current layout containing node sizes and positions (obstacles).
  * @returns A readonly array of points defining the calculated orthogonal path.
  */
-function routeEdgeOrthogonal(
+export function routeEdgeOrthogonal(
   sourcePt: Point,
   targetPt: Point,
   layout: LayoutSnapshot,
@@ -461,7 +461,7 @@ function routeEdgeOrthogonal(
   }
   yCoords.sort((a, b) => a - b);
 
-  type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number };
+  type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number; dir: number };
 
 
   const startXIdx = findClosestCoordinateIndex(xCoords, sourcePt.x);
@@ -504,9 +504,9 @@ function routeEdgeOrthogonal(
   };
 
   const openList: Node[] = [];
-  const closedSet = new Set<string>();
+  const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
-  openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1 });
+  openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
 
   const allowedY1 = sourcePt.y + sourceVerticalOffset;
   const allowedY2 = targetPt.y - targetVerticalOffset;
@@ -536,9 +536,9 @@ function routeEdgeOrthogonal(
       return Object.freeze(path.reverse());
     }
 
-    const key = `${curr.xIdx},${curr.yIdx},${curr.dirX},${curr.dirY}`;
-    if (closedSet.has(key)) continue;
-    closedSet.add(key);
+    const key = (curr.xIdx * yCoords.length + curr.yIdx) * 4 + curr.dir;
+    if (closedSet[key] === 1) continue;
+    closedSet[key] = 1;
 
     for (let i = 0; i < 4; i++) {
       let dx = 0;
@@ -595,7 +595,7 @@ function routeEdgeOrthogonal(
         const h = Math.abs(xCoords[endXIdx] - x2) + Math.abs(yCoords[endYIdx] - y2);
         const f = g + h;
 
-        openList.push({ xIdx: nxIdx, yIdx: nyIdx, g, f, parent: curr, dirX: dx, dirY: dy });
+        openList.push({ xIdx: nxIdx, yIdx: nyIdx, g, f, parent: curr, dirX: dx, dirY: dy, dir: i });
       }
     }
   }
