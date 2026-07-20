@@ -749,6 +749,7 @@ function freezeAttributes(
  *
  * @param text The string containing HTML entities to decode.
  * @returns The decoded string.
+ * @internal
  */
 export function decodeHtmlEntities(text: string): string {
   return text
@@ -775,6 +776,7 @@ export function decodeHtmlEntities(text: string): string {
  * @param value The string to sanitize.
  * @returns The sanitized string safe for rendering.
  * @throws {TypeError} If the input value is not a string.
+ * @internal
  */
 export function sanitizeString(value: string): string {
   if (typeof value !== "string") {

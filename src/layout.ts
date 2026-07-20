@@ -1,3 +1,11 @@
+/**
+ * @module
+ * @packageDocumentation
+ * Frontend-owned vertical layout and geometric routing calculations.
+ */
+
+import type { GraphSnapshot, GraphEdge , GraphSchema} from "./model";
+
 function binarySearch(arr: readonly string[], target: string): number {
   let left = 0;
   let right = arr.length - 1;
@@ -9,13 +17,6 @@ function binarySearch(arr: readonly string[], target: string): number {
   }
   return -1;
 }
-/**
- * @module
- * @packageDocumentation
- * Frontend-owned vertical layout and geometric routing calculations.
- */
-
-import type { GraphSnapshot, GraphEdge , GraphSchema} from "./model";
 
 /**
  * Represents an absolute 2D coordinate point in the rendering coordinate system.
