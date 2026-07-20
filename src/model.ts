@@ -788,16 +788,21 @@ export function sanitizeString(value: string): string {
   // Strip <script> tags (iterative to prevent nested bypasses like <scr<script>ipt>)
   let sanitized = value;
   let previous;
+  let scriptIterations = 0;
   do {
     previous = sanitized;
     sanitized = sanitized.replace(/<\/?script\b[^>]*>?/gi, "");
+    scriptIterations++;
+    if (scriptIterations > 50) {
+      throw new GraphModelError("String is too complex to sanitize safely.");
+    }
   } while (sanitized !== previous);
 
   // Strip inline event handlers (on*)
-  sanitized = sanitized.replace(/\bon[a-z]+[\s\x00-\x1F\x7F]*=/gi, "data-blocked=");
+  sanitized = sanitized.replace(/\bon[a-z]+\b[\s\x00-\x1F\x7F]*=/gi, "data-blocked=");
 
   // Strip CSS expressions
-  sanitized = sanitized.replace(/expression\s*\(/gi, "blocked-expr(");
+  sanitized = sanitized.replace(/\bexpression\b\s*\(/gi, "blocked-expr(");
 
   // Basic XSS/script sanitization on the stripped payload
   let clean = sanitized;
@@ -805,6 +810,7 @@ export function sanitizeString(value: string): string {
   // Repeatedly decode HTML entities and URL encoding until no changes are made.
   // This handles bypasses like double URL encoding or mixed entity/URL encoding.
   let previousClean;
+  let decodeIterations = 0;
   do {
     previousClean = clean;
 
@@ -819,6 +825,10 @@ export function sanitizeString(value: string): string {
         return match;
       }
     });
+    decodeIterations++;
+    if (decodeIterations > 50) {
+      throw new GraphModelError("String is too complex to sanitize safely.");
+    }
   } while (clean !== previousClean);
 
   clean = clean.replace(/[\s\x00-\x1F\x7F\u200B-\u200F\u202A-\u202E]+/g, "").toLowerCase();
