@@ -457,8 +457,7 @@
   stroke-linecap: round;
   stroke-width: 2;
   transition:
-    stroke 0.2s ease,
-    stroke-width 0.2s ease;
+    stroke 0.2s ease;
 }
 
 .pgv-graph-edge marker path {
@@ -468,7 +467,6 @@
 
 .pgv-graph-edge.pgv-selected > path {
   stroke: var(--pgv-selected-color);
-  stroke-width: 3;
 }
 
 .pgv-graph-edge.pgv-selected marker path {
@@ -481,7 +479,6 @@
 
 .pgv-graph-edge:focus-visible > path {
   stroke: var(--pgv-focus-color);
-  stroke-width: 3;
 }
 
 .pgv-graph-edge:focus-visible marker path {
