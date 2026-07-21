@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createGraphSnapshot, createGraphDiff, applyGraphDiff, graphSnapshotToJson } from "../src/model";
+import { createGraphSnapshot, createGraphDiff, applyGraphDiff, graphSnapshotToJson } from "../../src/model";
 
 describe("Algebraic properties of applyGraphDiff", () => {
     it("Identity Property: Applying an empty diff preserves the graph identically", () => {

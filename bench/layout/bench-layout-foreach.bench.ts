@@ -1,6 +1,6 @@
 import { bench, describe } from "vitest";
-import { createGraphSnapshot } from "../src/model";
-import { computeLayout } from "../src/layout";
+import { createGraphSnapshot } from "../../src/model";
+import { computeLayout } from "../../src/layout";
 
 describe("layout foreach vs for loop", () => {
   const nodes = [];

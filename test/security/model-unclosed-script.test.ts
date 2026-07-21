@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sanitizeString } from "../src/model";
+import { sanitizeString } from "../../src/model";
 
 describe("sanitizeString unclosed script tags", () => {
   it("blocks unclosed script tags which might bypass filtering", () => {

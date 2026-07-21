@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { tagToClassName, GraphView } from '../src/renderer';
-import { createGraphSnapshot, createGraphDiff, GraphSnapshotJson } from '../src/model';
-import { verticalLayout } from '../src/layout';
+import { tagToClassName, GraphView } from '../../src/renderer';
+import { createGraphSnapshot, createGraphDiff, GraphSnapshotJson } from '../../src/model';
+import { verticalLayout } from '../../src/layout';
 
 describe('tagToClassName', () => {
   it('converts basic alphanumeric tags correctly', () => {
