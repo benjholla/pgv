@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { verticalLayout } from "../src/layout";
-import { createGraphSnapshot } from "../src/model";
+import { verticalLayout } from "../../src/layout";
+import { createGraphSnapshot } from "../../src/model";
 
 describe("Layout Properties", () => {
   it("Order Invariance: Output layout is completely independent of the insertion order of nodes and edges", () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createGraphSnapshot, createGraphDiff, applyGraphDiff, graphSnapshotToJson, graphDiffToJson } from "../src/model";
+import { createGraphSnapshot, createGraphDiff, applyGraphDiff, graphSnapshotToJson, graphDiffToJson } from "../../src/model";
 
 describe("Serialization Determinism", () => {
   it("produces identical JSON output for identical graphs regardless of construction order", () => {

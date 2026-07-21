@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { sanitizeString } from "../src/model";
+import { sanitizeString } from "../../src/model";
 
 describe("sanitizeString data URIs", () => {
   it("blocks dangerous data URIs", () => {

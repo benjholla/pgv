@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createGraphSnapshot } from "../src/model";
+import { createGraphSnapshot } from "../../src/model";
 
 describe("freezeAttributes Prototype Pollution", () => {
   it("prevents __proto__ pollution in attribute maps", () => {

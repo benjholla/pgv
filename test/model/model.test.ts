@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createGraphSnapshot, createGraphDiff, graphSnapshotToJson, applyGraphDiff, graphDiffToJson, GraphModelError, GraphSnapshotJson, GraphDiffJson, sanitizeString } from "../src/model";
+import { createGraphSnapshot, createGraphDiff, graphSnapshotToJson, applyGraphDiff, graphDiffToJson, GraphModelError, GraphSnapshotJson, GraphDiffJson, sanitizeString } from "../../src/model";
 
 describe("model", () => {
   describe("Domain Properties of Graph Model", () => {

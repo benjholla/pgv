@@ -1,7 +1,8 @@
 import { bench, describe } from "vitest";
-import { routeEdgeOrthogonal as routeEdgeOrthogonalOrig } from "../src/layout.js";
+import { routeEdgeOrthogonal } from "../../src/layout.js";
+import { LayoutSnapshot } from "../../src/model.js";
 
-const layout = {
+const layout: LayoutSnapshot = {
   width: 1000,
   height: 1000,
   nodeSize: { width: 100, height: 100 },
@@ -13,14 +14,13 @@ const layout = {
     ])
   ),
   edges: [],
-  hierarchy: new Map(),
 };
 
 const sourcePt = { x: 50, y: 50 };
 const targetPt = { x: 950, y: 950 };
 
-describe("routeEdgeOrthogonal full", () => {
-  bench("orig", () => {
-    routeEdgeOrthogonalOrig(sourcePt, targetPt, layout as any);
+describe("routeEdgeOrthogonal", () => {
+  bench("current", () => {
+    routeEdgeOrthogonal(layout, sourcePt, targetPt);
   });
 });

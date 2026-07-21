@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { verticalLayout, edgeEndpoints, type VerticalLayoutOptions } from "../src/layout";
-import { createGraphSnapshot, type GraphSnapshot } from "../src/model";
+import { verticalLayout, edgeEndpoints, type VerticalLayoutOptions } from "../../src/layout";
+import { createGraphSnapshot, type GraphSnapshot } from "../../src/model";
 
 class PRNG {
   private seed: number;

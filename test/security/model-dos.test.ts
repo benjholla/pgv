@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createGraphSnapshot, sanitizeString } from "../src/model";
+import { createGraphSnapshot, sanitizeString } from "../../src/model";
 
 describe("DoS prevention via input length limits", () => {
   it("rejects excessively long strings in node IDs", () => {

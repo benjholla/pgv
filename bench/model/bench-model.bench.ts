@@ -1,5 +1,5 @@
 import { bench, describe } from "vitest";
-import { createGraphSnapshot, applyGraphDiff, createGraphDiff, graphSnapshotToJson, type GraphSnapshotJson } from "../src/model";
+import { createGraphSnapshot, applyGraphDiff, createGraphDiff, graphSnapshotToJson, type GraphSnapshotJson } from "../../src/model";
 
 function generateLargeGraph(numNodes: number, edgesPerNode: number): GraphSnapshotJson {
   const nodes = [];

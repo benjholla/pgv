@@ -1,6 +1,6 @@
 import { bench, describe } from "vitest";
-import { createGraphSnapshot, type GraphSnapshotJson } from "../src/model";
-import { verticalLayout } from "../src/layout";
+import { createGraphSnapshot, type GraphSnapshotJson } from "../../src/model";
+import { verticalLayout } from "../../src/layout";
 
 function generateDeepGraph(depth: number, branchesPerNode: number): GraphSnapshotJson {
   const nodes = [];
