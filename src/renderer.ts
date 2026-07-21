@@ -1949,9 +1949,18 @@ export class GraphView {
         transform: "none", // Override the translate/scale for pan and zoom
         transformOrigin: "top left",
       },
-      filter: (node: HTMLElement) => {
+      filter: (node: HTMLElement | SVGElement) => {
+        const className = node.getAttribute ? (node.getAttribute("class") || "") : "";
+
         // Exclude the controls from the image if we ever capture the container directly
-        if (node.classList?.contains("pgv-controls") || node.classList?.contains("pgv-history-panel")) {
+        if (className.includes("pgv-controls") ||
+            className.includes("pgv-history-panel") ||
+            className.includes("pgv-top-container") ||
+            className.includes("pgv-bottom-container")) {
+          return false;
+        }
+        // Exclude interactive hit areas from the final image
+        if (className.includes("pgv-edge-hitarea")) {
           return false;
         }
         return true;
@@ -1975,7 +1984,7 @@ export class GraphView {
     };
 
     // Query only the specific functional layers to avoid massive getComputedStyle overhead on arbitrary children.
-    const allElements = stage.querySelectorAll<HTMLElement | SVGElement>(".pgv-graph-node, .pgv-compound-node, .pgv-compound-node-header, .pgv-graph-edge > path:not(.pgv-edge-hitarea), .pgv-graph-edge marker path, .pgv-edge-label");
+    const allElements = stage.querySelectorAll<HTMLElement | SVGElement>(".pgv-graph-node, .pgv-compound-node, .pgv-compound-node-header, .pgv-graph-edge > path:not(.pgv-edge-hitarea), .pgv-graph-edge marker path, .pgv-edge-label, .pgv-edge-hitarea");
     for (let i = 0; i < allElements.length; i++) {
       const el = allElements[i];
       const isPath = el.tagName.toLowerCase() === "path";
@@ -2015,27 +2024,32 @@ export class GraphView {
       if (el instanceof SVGElement) {
         const inEdgeLayer = el.closest(".pgv-edge-layer") !== null;
         if (inEdgeLayer && isPath) {
-          const isMarker = el.closest("marker") !== null;
-
-          if (!isMarker) {
-            // It's a main edge path
-            const computedStroke = computed.getPropertyValue("stroke");
-            const computedStrokeWidth = computed.getPropertyValue("stroke-width");
-            const computedStrokeLinecap = computed.getPropertyValue("stroke-linecap");
-
-            const finalStroke = isSelected ? selectedColor : (computedStroke !== "none" && computedStroke ? computedStroke : edgeColor);
-            const finalStrokeWidth = isSelected ? "3px" : (computedStrokeWidth || "2px");
-
-            inline += `fill: transparent; stroke: ${finalStroke}; stroke-linecap: ${computedStrokeLinecap || "round"}; stroke-width: ${finalStrokeWidth};`;
+          if (el.classList.contains("pgv-edge-hitarea")) {
+             // html-to-image doesn't reliably filter nested SVG elements, so we explicitly hide them here
+             inline += `display: none;`;
           } else {
-            // It's an arrowhead marker path
-            const edgeGroup = el.closest(".pgv-graph-edge");
-            const mainPath = edgeGroup?.querySelector(":scope > path");
-            const computedFill = mainPath ? window.getComputedStyle(mainPath).getPropertyValue("stroke") : computed.getPropertyValue("fill");
+            const isMarker = el.closest("marker") !== null;
 
-            const finalFill = isSelected ? selectedColor : (computedFill !== "none" && computedFill ? computedFill : edgeColor);
+            if (!isMarker) {
+              // It's a main edge path
+              const computedStroke = computed.getPropertyValue("stroke");
+              const computedStrokeWidth = computed.getPropertyValue("stroke-width");
+              const computedStrokeLinecap = computed.getPropertyValue("stroke-linecap");
 
-            inline += `fill: ${finalFill}; stroke: none;`;
+              const finalStroke = isSelected ? selectedColor : (computedStroke !== "none" && computedStroke ? computedStroke : edgeColor);
+              const finalStrokeWidth = isSelected ? "3px" : (computedStrokeWidth || "2px");
+
+              inline += `fill: transparent; stroke: ${finalStroke}; stroke-linecap: ${computedStrokeLinecap || "round"}; stroke-width: ${finalStrokeWidth};`;
+            } else {
+              // It's an arrowhead marker path
+              const edgeGroup = el.closest(".pgv-graph-edge");
+              const mainPath = edgeGroup?.querySelector(":scope > path");
+              const computedFill = mainPath ? window.getComputedStyle(mainPath).getPropertyValue("stroke") : computed.getPropertyValue("fill");
+
+              const finalFill = isSelected ? selectedColor : (computedFill !== "none" && computedFill ? computedFill : edgeColor);
+
+              inline += `fill: ${finalFill}; stroke: none;`;
+            }
           }
         }
 
