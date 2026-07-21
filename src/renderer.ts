@@ -1958,12 +1958,9 @@ export class GraphView {
       }
     };
 
-    // html-to-image has issues copying CSS variables down into SVG contexts properly during cloning.
-    // To ensure edges render correctly, we temporarily inline the critical stroke/fill properties
-    // on the SVG paths before exporting, and then remove them afterward.
-    const edgePaths = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge > path");
-    const edgeMarkers = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge marker path");
-    const edgeLabels = stage.querySelectorAll<SVGTextElement>(".pgv-edge-label");
+    // html-to-image has issues copying CSS variables down into nested contexts properly during cloning.
+    // To ensure elements (edges, compound nodes, SVG text) render correctly, we temporarily inline
+    // the computed critical properties before exporting, and then remove them afterward.
 
     const edgeColor = themeVariables["--pgv-edge-color"] || "#697586";
     const selectedColor = themeVariables["--pgv-selected-color"] || "#2563eb";
@@ -1977,46 +1974,85 @@ export class GraphView {
       el.setAttribute("style", (el.getAttribute("style") || "") + ";" + styleStr);
     };
 
-    for (let i = 0; i < edgePaths.length; i++) {
-      const path = edgePaths[i];
-      const isSelected = path.parentElement?.classList.contains("pgv-selected");
-      // Read specific path styles
-      const pathStyle = window.getComputedStyle(path);
-      const computedStroke = pathStyle.getPropertyValue("stroke");
-      const computedStrokeWidth = pathStyle.getPropertyValue("stroke-width");
-      const computedStrokeLinecap = pathStyle.getPropertyValue("stroke-linecap");
+    // Query only the specific functional layers to avoid massive getComputedStyle overhead on arbitrary children.
+    const allElements = stage.querySelectorAll<HTMLElement | SVGElement>(".pgv-graph-node, .pgv-compound-node, .pgv-compound-node-header, .pgv-graph-edge > path, .pgv-graph-edge marker path, .pgv-edge-label");
+    for (let i = 0; i < allElements.length; i++) {
+      const el = allElements[i];
+      const isPath = el.tagName.toLowerCase() === "path";
+      const isText = el.tagName.toLowerCase() === "text";
+      const isGraphNode = el.classList.contains("pgv-graph-node") || el.classList.contains("pgv-compound-node") || el.classList.contains("pgv-compound-node-header");
 
-      // Use specific styles if present, else fallback
-      const finalStroke = isSelected ? selectedColor : (computedStroke !== "none" && computedStroke ? computedStroke : edgeColor);
-      const finalStrokeWidth = isSelected ? "3px" : (computedStrokeWidth || "2px");
+      const isSelected = el.closest(".pgv-selected") !== null;
 
-      applyInlineStyle(path, `fill: transparent; stroke: ${finalStroke}; stroke-linecap: ${computedStrokeLinecap || "round"}; stroke-width: ${finalStrokeWidth};`);
-    }
+      const computed = window.getComputedStyle(el);
 
-    for (let i = 0; i < edgeMarkers.length; i++) {
-      const path = edgeMarkers[i];
-      const edgeGroup = path.closest(".pgv-graph-edge");
-      const isSelected = edgeGroup?.classList.contains("pgv-selected");
-      const mainPath = edgeGroup?.querySelector(":scope > path");
+      let inline = "";
 
-      const pathStyle = window.getComputedStyle(path);
-      const computedFill = mainPath ? window.getComputedStyle(mainPath).getPropertyValue("stroke") : pathStyle.getPropertyValue("fill");
+      // For standard HTML nodes (like compound nodes and node boundaries)
+      if (isGraphNode && el instanceof HTMLElement) {
+        const bg = computed.getPropertyValue("background-color");
+        const shadow = computed.getPropertyValue("box-shadow");
+        const border = computed.getPropertyValue("border");
+        const borderTop = computed.getPropertyValue("border-top");
+        const borderRight = computed.getPropertyValue("border-right");
+        const borderBottom = computed.getPropertyValue("border-bottom");
+        const borderLeft = computed.getPropertyValue("border-left");
+        const borderRadius = computed.getPropertyValue("border-radius");
+        const color = computed.getPropertyValue("color");
 
-      const finalFill = isSelected ? selectedColor : (computedFill !== "none" && computedFill ? computedFill : edgeColor);
+        if (bg && bg !== "rgba(0, 0, 0, 0)" && bg !== "transparent") inline += `background-color: ${bg};`;
+        if (shadow && shadow !== "none") inline += `box-shadow: ${shadow};`;
+        if (border && border !== "none" && border !== "") inline += `border: ${border};`;
+        if (borderTop && borderTop !== "none" && borderTop !== "") inline += `border-top: ${borderTop};`;
+        if (borderRight && borderRight !== "none" && borderRight !== "") inline += `border-right: ${borderRight};`;
+        if (borderBottom && borderBottom !== "none" && borderBottom !== "") inline += `border-bottom: ${borderBottom};`;
+        if (borderLeft && borderLeft !== "none" && borderLeft !== "") inline += `border-left: ${borderLeft};`;
+        if (borderRadius && borderRadius !== "0px") inline += `border-radius: ${borderRadius};`;
+        if (color && color !== "") inline += `color: ${color};`;
+      }
 
-      applyInlineStyle(path, `fill: ${finalFill}; stroke: none;`);
-    }
+      // For SVG elements inside edges
+      if (el instanceof SVGElement) {
+        const inEdgeLayer = el.closest(".pgv-edge-layer") !== null;
+        if (inEdgeLayer && isPath) {
+          const isMarker = el.closest("marker") !== null;
 
-    for (let i = 0; i < edgeLabels.length; i++) {
-      const text = edgeLabels[i];
-      const textStyle = window.getComputedStyle(text);
-      const computedFill = textStyle.getPropertyValue("fill");
-      const computedStroke = textStyle.getPropertyValue("stroke");
+          if (!isMarker) {
+            // It's a main edge path
+            const computedStroke = computed.getPropertyValue("stroke");
+            const computedStrokeWidth = computed.getPropertyValue("stroke-width");
+            const computedStrokeLinecap = computed.getPropertyValue("stroke-linecap");
 
-      const finalFill = computedFill !== "none" && computedFill ? computedFill : labelFg;
-      const finalStroke = computedStroke !== "none" && computedStroke ? computedStroke : labelBg;
+            const finalStroke = isSelected ? selectedColor : (computedStroke !== "none" && computedStroke ? computedStroke : edgeColor);
+            const finalStrokeWidth = isSelected ? "3px" : (computedStrokeWidth || "2px");
 
-      applyInlineStyle(text, `fill: ${finalFill}; stroke: ${finalStroke}; paint-order: stroke; stroke-width: 4px; font-size: 12px; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-anchor: middle; stroke-linejoin: round; pointer-events: none;`);
+            inline += `fill: transparent; stroke: ${finalStroke}; stroke-linecap: ${computedStrokeLinecap || "round"}; stroke-width: ${finalStrokeWidth};`;
+          } else {
+            // It's an arrowhead marker path
+            const edgeGroup = el.closest(".pgv-graph-edge");
+            const mainPath = edgeGroup?.querySelector(":scope > path");
+            const computedFill = mainPath ? window.getComputedStyle(mainPath).getPropertyValue("stroke") : computed.getPropertyValue("fill");
+
+            const finalFill = isSelected ? selectedColor : (computedFill !== "none" && computedFill ? computedFill : edgeColor);
+
+            inline += `fill: ${finalFill}; stroke: none;`;
+          }
+        }
+
+        if (inEdgeLayer && isText) {
+          const computedFill = computed.getPropertyValue("fill");
+          const computedStroke = computed.getPropertyValue("stroke");
+
+          const finalFill = computedFill !== "none" && computedFill ? computedFill : labelFg;
+          const finalStroke = computedStroke !== "none" && computedStroke ? computedStroke : labelBg;
+
+          inline += `fill: ${finalFill}; stroke: ${finalStroke}; paint-order: stroke; stroke-width: 4px; font-size: 12px; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-anchor: middle; stroke-linejoin: round; pointer-events: none;`;
+        }
+      }
+
+      if (inline) {
+        applyInlineStyle(el, inline);
+      }
     }
 
     try {
