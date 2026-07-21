@@ -4,6 +4,16 @@
  * Frontend-owned vertical layout and geometric routing calculations.
  */
 
+function isContainmentEdge(edge: GraphEdge, tags: ReadonlySet<string>): boolean {
+  if (edge.tags.length === 0) return false;
+  for (let i = 0; i < edge.tags.length; i++) {
+    if (tags.has(edge.tags[i])) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function binarySearch(arr: readonly string[], target: string): number {
   let left = 0;
   let right = arr.length - 1;
@@ -770,13 +780,8 @@ function groupByDepth(
 function identifyCompoundNodes(graph: GraphSnapshot, config: Required<VerticalLayoutOptions>) {
   const parentNodes = new Set<string>();
   for (const edge of graph.edges.values()) {
-    if (edge.tags.length > 0) {
-      for (let i = 0; i < edge.tags.length; i++) {
-        if (config.containmentTags.has(edge.tags[i])) {
-          parentNodes.add(edge.source);
-          break;
-        }
-      }
+    if (isContainmentEdge(edge, config.containmentTags)) {
+      parentNodes.add(edge.source);
     }
   }
 
@@ -805,16 +810,7 @@ function buildAdjacencyLists(graph: GraphSnapshot, nodeIds: readonly string[], p
   }
 
   for (const edge of graph.edges.values()) {
-    let isContainment = false;
-    if (edge.tags.length > 0) {
-      for (let i = 0; i < edge.tags.length; i++) {
-        if (config.containmentTags.has(edge.tags[i])) {
-          isContainment = true;
-          break;
-        }
-      }
-    }
-    if (isContainment) {
+    if (isContainmentEdge(edge, config.containmentTags)) {
       continue;
     }
 
@@ -1009,16 +1005,7 @@ function computeEdgeRoutingHints(
   const maxOffset = config.nodeWidth / 2 - 8;
 
   for (const edge of graph.edges.values()) {
-    let isContainment = false;
-    if (edge.tags.length > 0) {
-      for (let i = 0; i < edge.tags.length; i++) {
-        if (config.containmentTags.has(edge.tags[i])) {
-          isContainment = true;
-          break;
-        }
-      }
-    }
-    if (isContainment) {
+    if (isContainmentEdge(edge, config.containmentTags)) {
       continue;
     }
 
@@ -1076,16 +1063,7 @@ function computeCompoundNodeBounds(
       : new Set(schema.containment);
 
     for (const edge of graph.edges.values()) {
-      let isContainment = false;
-      if (edge.tags.length > 0) {
-        for (let i = 0; i < edge.tags.length; i++) {
-          if (containmentSet.has(edge.tags[i])) {
-            isContainment = true;
-            break;
-          }
-        }
-      }
-      if (isContainment) {
+      if (isContainmentEdge(edge, containmentSet)) {
         if (layoutHierarchy.has(edge.source) && layoutHierarchy.has(edge.target)) {
           layoutHierarchy.get(edge.source)!.children.push(edge.target);
           layoutHierarchy.get(edge.target)!.parent = edge.source;
