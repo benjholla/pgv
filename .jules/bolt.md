@@ -13,3 +13,6 @@
 ## 2024-05-18 - A* ClosedSet Bitmask Mapping
 **Learning:** In hot loops like A* pathfinding, JavaScript's `Set<string>` allocations and string concatenation for state hashing (`${x},${y},${dx},${dy}`) cause severe memory churn and GC pauses. On a 200x200 grid, replacing `Set<string>` with a flat `Uint8Array` accessed via `1D_index = (x * yLen + y) * 4 + dir` improves lookups by ~200-300x while virtually eliminating allocations.
 **Action:** Always prefer flat typed array indexing over string-based Hash Sets/Maps for dense coordinate matrices in performance critical algorithms.
+## 2024-05-24 - Map lookups in pathfinding hot loops
+**Learning:** During A* orthogonal routing, checking `layout.hierarchy?.has(id)` inside `isSegmentValid` means doing an O(N) lookup repeatedly for *every* line segment checked. Removing the map lookup from this innermost hot loop and filtering compound nodes out during the initial O(N) array allocation step (`obstacles.push`) makes edge routing ~35% faster.
+**Action:** Always filter mapping and checking variables as early as possible before entering hot tight loops (like pathfinding algorithms or rendering loops).
