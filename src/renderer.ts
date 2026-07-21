@@ -1961,7 +1961,7 @@ export class GraphView {
     // html-to-image has issues copying CSS variables down into SVG contexts properly during cloning.
     // To ensure edges render correctly, we temporarily inline the critical stroke/fill properties
     // on the SVG paths before exporting, and then remove them afterward.
-    const edgePaths = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge > path");
+    const edgePaths = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge > path:not(.pgv-edge-hitarea)");
     const edgeMarkers = stage.querySelectorAll<SVGPathElement>(".pgv-graph-edge marker path");
     const edgeLabels = stage.querySelectorAll<SVGTextElement>(".pgv-edge-label");
 
@@ -2388,6 +2388,11 @@ function renderEdges(
     path.setAttribute("stroke-dasharray", `${Math.max(0, totalLength - trimAmount)} ${totalLength + trimAmount}`);
 
     group.appendChild(path);
+
+    const hitAreaPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    hitAreaPath.setAttribute("class", "pgv-edge-hitarea");
+    hitAreaPath.setAttribute("d", pathData);
+    group.appendChild(hitAreaPath);
 
     if (label) {
       const text = document.createElementNS("http://www.w3.org/2000/svg", "text");

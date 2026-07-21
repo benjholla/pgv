@@ -25,6 +25,7 @@
   --pgv-node-attr-val-fg: #344054;
 
   --pgv-edge-color: #697586;
+  --pgv-edge-hitarea-width: 15px;
   --pgv-edge-label-fg: #445160;
   --pgv-edge-label-bg: #f9fbfd;
 
@@ -79,6 +80,7 @@
   --pgv-node-attr-val-fg: #cbd5e1;
 
   --pgv-edge-color: #64748b;
+  --pgv-edge-hitarea-width: 15px;
   --pgv-edge-label-fg: #94a3b8;
   --pgv-edge-label-bg: #0f172a;
 
@@ -118,6 +120,7 @@
     --pgv-node-attr-val-fg: #cbd5e1;
 
     --pgv-edge-color: #64748b;
+    --pgv-edge-hitarea-width: 15px;
     --pgv-edge-label-fg: #94a3b8;
     --pgv-edge-label-bg: #0f172a;
 
@@ -443,7 +446,7 @@
 }
 
 @media (hover: hover) {
-  .pgv-graph-edge:hover > path {
+  .pgv-graph-edge:hover > path:not(.pgv-edge-hitarea) {
     stroke: var(--pgv-node-accent);
   }
   .pgv-graph-edge:hover marker path {
@@ -460,12 +463,17 @@
     stroke 0.2s ease;
 }
 
+.pgv-graph-edge > path.pgv-edge-hitarea {
+  stroke: transparent;
+  stroke-width: var(--pgv-edge-hitarea-width);
+}
+
 .pgv-graph-edge marker path {
   fill: var(--pgv-edge-color);
   transition: fill 0.2s ease;
 }
 
-.pgv-graph-edge.pgv-selected > path {
+.pgv-graph-edge.pgv-selected > path:not(.pgv-edge-hitarea) {
   stroke: var(--pgv-selected-color);
 }
 
@@ -477,7 +485,7 @@
   outline: none;
 }
 
-.pgv-graph-edge:focus-visible > path {
+.pgv-graph-edge:focus-visible > path:not(.pgv-edge-hitarea) {
   stroke: var(--pgv-focus-color);
 }
 
