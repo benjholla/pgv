@@ -61,3 +61,6 @@
 ## $(date +%Y-%m-%d) - Focus Management on Transient Controls
 **Learning:** In complex interactive components like the search bar, when a transient control (like a "Clear" button) is clicked and immediately hidden (`display: none`), keyboard focus drops to the document body, breaking the user's flow and creating a poor accessibility experience.
 **Action:** Always explicitly return focus to the logically related active element (e.g., `input.focus()`) immediately after hiding the transient control that triggered the action.
+## $(date +%Y-%m-%d) - Adding accessibility to SVG/DOM native nodes
+**Learning:** In `@pgv/graph-core`, native DOM elements like `<div class="pgv-graph-node">` inside the view renderer may be given a `tabindex="0"` for focusability but lack implicit semantics to be announced correctly. Screen readers treat them as generic text or groups rather than interactive elements.
+**Action:** When creating custom interactive elements (even visually complex graph nodes), always explicitly add `role="button"` and contextual `aria-label`s to ensure they are properly announced.
