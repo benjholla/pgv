@@ -2043,7 +2043,7 @@ export class GraphView {
             } else {
               // It's an arrowhead marker path
               const edgeGroup = el.closest(".pgv-graph-edge");
-              const mainPath = edgeGroup?.querySelector(":scope > path");
+              const mainPath = edgeGroup?.querySelector(":scope > path:not(.pgv-edge-hitarea)");
               const computedFill = mainPath ? window.getComputedStyle(mainPath).getPropertyValue("stroke") : computed.getPropertyValue("fill");
 
               const finalFill = isSelected ? selectedColor : (computedFill !== "none" && computedFill ? computedFill : edgeColor);
