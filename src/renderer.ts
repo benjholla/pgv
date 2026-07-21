@@ -1975,7 +1975,7 @@ export class GraphView {
     };
 
     // Query only the specific functional layers to avoid massive getComputedStyle overhead on arbitrary children.
-    const allElements = stage.querySelectorAll<HTMLElement | SVGElement>(".pgv-graph-node, .pgv-compound-node, .pgv-compound-node-header, .pgv-graph-edge > path, .pgv-graph-edge marker path, .pgv-edge-label");
+    const allElements = stage.querySelectorAll<HTMLElement | SVGElement>(".pgv-graph-node, .pgv-compound-node, .pgv-compound-node-header, .pgv-graph-edge > path:not(.pgv-edge-hitarea), .pgv-graph-edge marker path, .pgv-edge-label");
     for (let i = 0; i < allElements.length; i++) {
       const el = allElements[i];
       const isPath = el.tagName.toLowerCase() === "path";
@@ -2376,6 +2376,7 @@ function renderEdges(
 
     const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const hitAreaPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
 
     // Optimized string builder: avoids array allocations and .map() inside the hot loop.
     let className = "graph-edge pgv-graph-edge";
@@ -2411,6 +2412,9 @@ function renderEdges(
     path.setAttribute("d", pathData);
     path.setAttribute("marker-end", `url(#${markerId})`);
 
+    hitAreaPath.setAttribute("d", pathData);
+    hitAreaPath.setAttribute("class", "pgv-edge-hitarea");
+
     let totalLength = 0;
     const lengths: number[] = [];
     for (let i = 1; i < pathPts.length; i++) {
@@ -2423,6 +2427,7 @@ function renderEdges(
     const trimAmount = 5;
     path.setAttribute("stroke-dasharray", `${Math.max(0, totalLength - trimAmount)} ${totalLength + trimAmount}`);
 
+    group.appendChild(hitAreaPath);
     group.appendChild(path);
 
     if (label) {

@@ -38,6 +38,8 @@
   --pgv-minimap-edge-color: rgba(105, 117, 134, 0.4);
   --pgv-minimap-selected-color: #d97706; /* dark yellow / amber */
 
+  --pgv-edge-hitarea-width: 15px;
+
   background-color: var(--pgv-color-bg);
   color: var(--pgv-color-fg);
   font-family:
@@ -443,7 +445,7 @@
 }
 
 @media (hover: hover) {
-  .pgv-graph-edge:hover > path {
+  .pgv-graph-edge:hover > path:not(.pgv-edge-hitarea) {
     stroke: var(--pgv-node-accent);
   }
   .pgv-graph-edge:hover marker path {
@@ -451,7 +453,7 @@
   }
 }
 
-.pgv-graph-edge > path {
+.pgv-graph-edge > path:not(.pgv-edge-hitarea) {
   fill: none;
   stroke: var(--pgv-edge-color);
   stroke-linecap: round;
@@ -465,7 +467,7 @@
   transition: fill 0.2s ease;
 }
 
-.pgv-graph-edge.pgv-selected > path {
+.pgv-graph-edge.pgv-selected > path:not(.pgv-edge-hitarea) {
   stroke: var(--pgv-selected-color);
 }
 
@@ -477,8 +479,14 @@
   outline: none;
 }
 
-.pgv-graph-edge:focus-visible > path {
+.pgv-graph-edge:focus-visible > path:not(.pgv-edge-hitarea) {
   stroke: var(--pgv-focus-color);
+}
+
+.pgv-graph-edge > path.pgv-edge-hitarea {
+  fill: none;
+  stroke: transparent;
+  stroke-width: var(--pgv-edge-hitarea-width);
 }
 
 .pgv-graph-edge:focus-visible marker path {
