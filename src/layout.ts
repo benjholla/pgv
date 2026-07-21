@@ -395,6 +395,12 @@ export function routeEdgeOrthogonal(
 
   const obstacles: { id: string; x: number; y: number; w: number; h: number }[] = [];
   for (const [id, pos] of layout.positions.entries()) {
+    // If this obstacle is a compound node container, it shouldn't block edge routing
+    // traversing through it to connect to its inner children.
+    if (layout.hierarchy?.has(id) && layout.hierarchy.get(id)!.children.length > 0) {
+      continue;
+    }
+
     const size = layout.nodeSizes?.get(id) || layout.nodeSize;
     obstacles.push({
       id,
@@ -490,12 +496,6 @@ export function routeEdgeOrthogonal(
 
     for (let i = 0; i < obstacles.length; i++) {
       const obs = obstacles[i];
-
-      // If this obstacle is a compound node container, it shouldn't block edge routing
-      // traversing through it to connect to its inner children.
-      if (layout.hierarchy?.has(obs.id) && layout.hierarchy.get(obs.id)!.children.length > 0) {
-        continue;
-      }
 
       // The +/- 0.1 epsilon applied to the segment bounds above ensures that edges
       // routing exactly along the boundary of an obstacle (like the source or target node)
