@@ -1925,8 +1925,21 @@ export class GraphView {
     }
 
     // We want to download the entire graph, ignoring current viewport transform
-    const width = this.#layout.width;
-    const height = this.#layout.height;
+    let minX = 0;
+    let minY = 0;
+    let maxX = this.#layout.width;
+    let maxY = this.#layout.height;
+
+    for (const [id, pos] of this.#layout.positions.entries()) {
+      const size = this.#layout.nodeSizes?.get(id) || this.#layout.nodeSize;
+      if (pos.x < minX) minX = pos.x;
+      if (pos.y < minY) minY = pos.y;
+      if (pos.x + size.width > maxX) maxX = pos.x + size.width;
+      if (pos.y + size.height > maxY) maxY = pos.y + size.height;
+    }
+
+    const exportWidth = maxX - minX;
+    const exportHeight = maxY - minY;
 
     // Get the computed styles to extract the CSS variables applied by the theme
     // We must pass these down because html-to-image clones the stage element
@@ -1941,12 +1954,12 @@ export class GraphView {
     }
 
     const options = {
-      width,
-      height,
+      width: exportWidth,
+      height: exportHeight,
       backgroundColor: themeVariables["--pgv-color-bg"] || "transparent",
       style: {
         ...themeVariables,
-        transform: "none", // Override the translate/scale for pan and zoom
+        transform: `translate(${-minX}px, ${-minY}px)`, // Override the translate/scale for pan and zoom, shifting for negative bounds
         transformOrigin: "top left",
       },
       filter: (node: HTMLElement | SVGElement) => {
@@ -1984,12 +1997,13 @@ export class GraphView {
     };
 
     // Query only the specific functional layers to avoid massive getComputedStyle overhead on arbitrary children.
-    const allElements = stage.querySelectorAll<HTMLElement | SVGElement>(".pgv-graph-node, .pgv-compound-node, .pgv-compound-node-header, .pgv-graph-edge > path:not(.pgv-edge-hitarea), .pgv-graph-edge marker path, .pgv-edge-label, .pgv-edge-hitarea");
+    const allElements = stage.querySelectorAll<HTMLElement | SVGElement>(".pgv-graph-node, .pgv-compound-node, .pgv-compound-node-header, .pgv-node-title, .pgv-node-id, .pgv-node-attributes dt, .pgv-node-attributes dd, .pgv-graph-edge > path:not(.pgv-edge-hitarea), .pgv-graph-edge marker path, .pgv-edge-label, .pgv-edge-hitarea");
     for (let i = 0; i < allElements.length; i++) {
       const el = allElements[i];
       const isPath = el.tagName.toLowerCase() === "path";
       const isText = el.tagName.toLowerCase() === "text";
       const isGraphNode = el.classList.contains("pgv-graph-node") || el.classList.contains("pgv-compound-node") || el.classList.contains("pgv-compound-node-header");
+      const isTextElement = el.classList.contains("pgv-node-title") || el.classList.contains("pgv-node-id") || el.tagName.toLowerCase() === "dt" || el.tagName.toLowerCase() === "dd";
 
       const isSelected = el.closest(".pgv-selected") !== null;
 
@@ -1998,7 +2012,7 @@ export class GraphView {
       let inline = "";
 
       // For standard HTML nodes (like compound nodes and node boundaries)
-      if (isGraphNode && el instanceof HTMLElement) {
+      if ((isGraphNode || isTextElement) && el instanceof HTMLElement) {
         const bg = computed.getPropertyValue("background-color");
         const shadow = computed.getPropertyValue("box-shadow");
         const border = computed.getPropertyValue("border");
