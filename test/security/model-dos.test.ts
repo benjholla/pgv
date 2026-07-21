@@ -40,4 +40,17 @@ describe("DoS prevention via input length limits", () => {
 
     expect(() => sanitizeString(longString)).toThrow(/exceeds maximum allowed length/);
   });
+
+  it("rejects excessively nested script tags exceeding iteration limit", () => {
+    let str = "<script>";
+    for (let i = 0; i < 55; i++) {
+      str = `<scr${str}ipt>`;
+    }
+    expect(() => sanitizeString(str)).toThrow(/too complex to sanitize safely/);
+  });
+
+  it("rejects excessively nested URL encodings exceeding iteration limit", () => {
+    const str = "%" + "25".repeat(55) + "3C";
+    expect(() => sanitizeString(str)).toThrow(/too complex to sanitize safely/);
+  });
 });
