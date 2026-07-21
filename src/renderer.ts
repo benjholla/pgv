@@ -2037,7 +2037,7 @@ export class GraphView {
               const computedStrokeLinecap = computed.getPropertyValue("stroke-linecap");
 
               const finalStroke = isSelected ? selectedColor : (computedStroke !== "none" && computedStroke ? computedStroke : edgeColor);
-              const finalStrokeWidth = isSelected ? "3px" : (computedStrokeWidth || "2px");
+              const finalStrokeWidth = computedStrokeWidth || "2px";
 
               inline += `fill: transparent; stroke: ${finalStroke}; stroke-linecap: ${computedStrokeLinecap || "round"}; stroke-width: ${finalStrokeWidth};`;
             } else {
