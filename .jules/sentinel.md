@@ -36,3 +36,8 @@
 **Vulnerability:** Regular Expression Denial of Service (ReDoS) and Infinite Loop DoS during XSS sanitization.
 **Learning:** Bounding iteration limits inside a `while` loop that cleans input to prevent DoS without throwing an error silently introduces XSS bypass vulnerabilities by returning a partially sanitized, dangerous string once the limit hits. Also, unanchored regexes like `\bon...` followed by optional non-word characters can cause ReDoS if not explicitly bounded by `\b`.
 **Prevention:** In iterative sanitization loops, always throw an error to fail securely (e.g., `throw new Error("String is too complex to sanitize safely")`) if the complexity exceeds safe thresholds. Add explicit word boundaries `\b` to lock down regex matches to prevent unexpected backtracking.
+
+## 2024-05-18 - [Strengthen XSS sanitization in sanitizeString]
+**Vulnerability:** The `sanitizeString` function previously only stripped `<script>` tags, making it vulnerable to XSS and unintended execution via other elements like `<iframe>`, `<object>`, `<embed>`, `<style>`, etc.
+**Learning:** HTML sanitization based solely on regular expressions can be easily bypassed if the capture groups are not comprehensive enough to catch all the dangerous tags.
+**Prevention:** Extend regex coverage to block a wider range of dangerous HTML tags. For stronger guarantees, consider a dedicated DOM-based sanitization library in the future.
