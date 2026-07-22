@@ -4,15 +4,7 @@
  * Frontend-owned vertical layout and geometric routing calculations.
  */
 
-function isContainmentEdge(edge: GraphEdge, tags: ReadonlySet<string>): boolean {
-  if (edge.tags.length === 0) return false;
-  for (let i = 0; i < edge.tags.length; i++) {
-    if (tags.has(edge.tags[i])) {
-      return true;
-    }
-  }
-  return false;
-}
+
 
 function binarySearch(arr: readonly string[], target: string): number {
   let left = 0;
@@ -56,6 +48,7 @@ function findClosestCoordinateIndex(arr: readonly number[], val: number): number
 }
 
 import type { GraphSnapshot, GraphEdge , GraphSchema} from "./model";
+import { isContainmentEdge } from "./model";
 
 /**
  * Represents an absolute 2D coordinate point in the rendering coordinate system.

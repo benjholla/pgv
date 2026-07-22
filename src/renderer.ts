@@ -5,7 +5,7 @@
  */
 
 import { edgeEndpoints, verticalLayout, type LayoutSnapshot, type VerticalLayoutOptions } from "./layout";
-import type { AttributeValue, GraphEdge, GraphNode, GraphSchema, GraphSnapshot } from "./model";
+import { isContainmentEdge, type AttributeValue, type GraphEdge, type GraphNode, type GraphSchema, type GraphSnapshot } from "./model";
 import { toSvg, toPng, toJpeg } from "html-to-image";
 
 let markerIdSequence = 0;
@@ -2390,16 +2390,7 @@ function renderEdges(
   const containmentSet = schema.containment ? new Set(schema.containment) : null;
 
   for (const edge of graph.edges.values()) {
-    let isContainment = false;
-    if (containmentSet && edge.tags.length > 0) {
-      for (let i = 0; i < edge.tags.length; i++) {
-        if (containmentSet.has(edge.tags[i])) {
-          isContainment = true;
-          break;
-        }
-      }
-    }
-    if (isContainment) {
+    if (containmentSet && isContainmentEdge(edge, containmentSet)) {
       continue;
     }
 
