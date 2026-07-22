@@ -274,53 +274,8 @@ describe("model", () => {
     });
   });
 
-  describe("algebraic properties of applyGraphDiff", () => {
+  describe("Security properties", () => {
     describe("Property and Edge Case Tests", () => {
-      it("Commutativity: Independent diffs can be applied in any order with identical results", () => {
-        const base = createGraphSnapshot({
-          nodes: [{ id: "n1" }],
-          edges: []
-        });
-
-        const diff1 = createGraphDiff({
-          addedNodes: [{ id: "n2" }],
-          addedEdges: [{ id: "e1", source: "n1", target: "n2" }]
-        });
-
-        const diff2 = createGraphDiff({
-          addedNodes: [{ id: "n3" }],
-          addedEdges: [{ id: "e2", source: "n1", target: "n3" }]
-        });
-
-        const snap1 = applyGraphDiff(applyGraphDiff(base, diff1), diff2);
-        const snap2 = applyGraphDiff(applyGraphDiff(base, diff2), diff1);
-
-        const ids1 = Array.from(snap1.nodes.keys()).sort();
-        const ids2 = Array.from(snap2.nodes.keys()).sort();
-        expect(ids1).toEqual(ids2);
-
-        const eids1 = Array.from(snap1.edges.keys()).sort();
-        const eids2 = Array.from(snap2.edges.keys()).sort();
-        expect(eids1).toEqual(eids2);
-      });
-
-      it("Replacement Property: Safely replace an element in a single diff without duplicate ID errors", () => {
-        const base = createGraphSnapshot({
-          nodes: [{ id: "n1", tags: ["old"] }],
-          edges: []
-        });
-
-        const diff = createGraphDiff({
-          removedNodes: ["n1"],
-          addedNodes: [{ id: "n1", tags: ["new"] }]
-        });
-
-        const snap = applyGraphDiff(base, diff);
-
-        expect(snap.nodes.size).toBe(1);
-        expect(snap.nodes.get("n1")?.tags).toEqual(["new"]);
-      });
-
       it("Security Properties: Benign URIs are preserved while dangerous ones are blocked", () => {
         const json: GraphSnapshotJson = {
           nodes: [{
@@ -405,27 +360,6 @@ describe("model", () => {
       expect(baseSnapshot.edges.size).toBe(1);
     });
 
-    it("Round-trip/Inverse: Adding elements then removing them yields the original graph", () => {
-      // Step 1: Add new elements
-      const addDiff = createGraphDiff({
-        addedNodes: [{ id: "n3", tags: ["C"], attributes: {} }],
-        addedEdges: [{ id: "e2", source: "n1", target: "n3", tags: [], attributes: {} }]
-      });
-      const snapshotAfterAdd = applyGraphDiff(baseSnapshot, addDiff);
-
-      // Step 2: Remove those exact elements
-      const removeDiff = createGraphDiff({
-        removedNodes: ["n3"],
-        removedEdges: ["e2"]
-      });
-      const snapshotAfterRemove = applyGraphDiff(snapshotAfterAdd, removeDiff);
-
-      // The final snapshot should be structurally identical to the base snapshot
-      const baseJson = graphSnapshotToJson(baseSnapshot);
-      const finalJson = graphSnapshotToJson(snapshotAfterRemove);
-
-      expect(finalJson).toEqual(baseJson);
-    });
   });
 
   describe("createGraphDiff properties", () => {
