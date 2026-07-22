@@ -1996,6 +1996,12 @@ export class GraphView {
       el.setAttribute("style", (el.getAttribute("style") || "") + ";" + styleStr);
     };
 
+    // To prevent html-to-image from dropping rgba alpha channels due to a transparent clone context,
+    // explicitly give the stage element the global background color so nested elements blend correctly.
+    if (themeVariables["--pgv-color-bg"]) {
+       applyInlineStyle(stage, `background-color: ${themeVariables["--pgv-color-bg"]}`);
+    }
+
     // Query only the specific functional layers to avoid massive getComputedStyle overhead on arbitrary children.
     const allElements = stage.querySelectorAll<HTMLElement | SVGElement>(".pgv-graph-node, .pgv-compound-node, .pgv-compound-node-header, .pgv-node-title, .pgv-node-id, .pgv-node-attributes dt, .pgv-node-attributes dd, .pgv-graph-edge > path:not(.pgv-edge-hitarea), .pgv-graph-edge marker path, .pgv-edge-label, .pgv-edge-hitarea");
     for (let i = 0; i < allElements.length; i++) {
