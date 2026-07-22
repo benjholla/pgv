@@ -2412,16 +2412,7 @@ function renderEdges(
       continue;
     }
 
-    let isContainment = false;
-    if (containmentSet && edge.tags.length > 0) {
-      for (let i = 0; i < edge.tags.length; i++) {
-        if (containmentSet.has(edge.tags[i])) {
-          isContainment = true;
-          break;
-        }
-      }
-    }
-    if (isContainment) {
+    if (containmentSet && isContainmentEdge(edge, containmentSet)) {
       continue;
     }
 
@@ -2556,17 +2547,7 @@ function renderNodes(
     const containmentSet = schema?.containment ? new Set(schema.containment) : null;
 
     for (const edge of graph.edges.values()) {
-      let isContainment = false;
-      if (containmentSet && edge.tags.length > 0) {
-        for (let i = 0; i < edge.tags.length; i++) {
-          if (containmentSet.has(edge.tags[i])) {
-            isContainment = true;
-            break;
-          }
-        }
-      }
-
-      if (!isContainment) {
+      if (!containmentSet || !isContainmentEdge(edge, containmentSet)) {
         if (hiddenChildIds.has(edge.source) || hiddenChildIds.has(edge.target)) {
           hiddenEdges++;
         }
