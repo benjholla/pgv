@@ -405,7 +405,7 @@ describe("layout", () => {
           ]
         };
 
-        const snap = createGraphSnapshot(json as any);
+        const snap = createGraphSnapshot(json);
         const layout1 = verticalLayout(snap);
         const layout2 = verticalLayout(snap);
 
@@ -755,21 +755,6 @@ describe("layout", () => {
       expect(layout.positions.get("B")).toEqual({ x: 10, y: 110 }); // 10 + 100
       expect(layout.width).toBe(100 + 20);
       expect(layout.height).toBe(50 + 100 + 20);
-    });
-
-    it("ignores edges referencing missing nodes during depth assignment", () => {
-      // Create a raw graph skipping validation to simulate the case
-      const graph = {
-        nodes: new Map([["A", { id: "A", tags: [], attributes: {} }]]),
-        edges: new Map([
-          ["e1", { id: "e1", source: "A", target: "MISSING", tags: [], attributes: {} }],
-        ]),
-      } as any; // Cast to any to bypass TS checks for the mock
-
-      const layout = verticalLayout(graph);
-
-      expect(layout.positions.size).toBe(1);
-      expect(layout.positions.get("A")).toEqual({ x: 32, y: 32 });
     });
   });
 

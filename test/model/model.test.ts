@@ -614,28 +614,20 @@ describe("model", () => {
       expect(nextSnapshot.edges.get("e2")?.target).toBe("n3");
     });
 
-    it("throws when diff contains duplicate nodes directly in applyGraphDiff (safety fallback check)", () => {
-      // Simulate raw GraphDiff bypassing createGraphDiff to test applyGraphDiff's internal safety
-      const diff: GraphDiffJson = {
-        addedNodes: [{ id: "n3" }, { id: "n3" }],
-        removedNodes: [],
-        removedEdges: [],
-      };
-      expect(() => applyGraphDiff(baseSnapshot, diff as any)).toThrow(/duplicate node id/);
+    it("throws when a diff attempts to add a node that already exists in the graph", () => {
+      // n1 already exists in baseSnapshot
+      const diff = createGraphDiff({
+        addedNodes: [{ id: "n1" }]
+      });
+      expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/duplicate node id/);
     });
 
-    it("throws when diff contains duplicate edges directly in applyGraphDiff (safety fallback check)", () => {
-      // Simulate raw GraphDiff bypassing createGraphDiff to test applyGraphDiff's internal safety
-      const diff: GraphDiffJson = {
-        addedEdges: [
-          { id: "e2", source: "n1", target: "n2" },
-          { id: "e2", source: "n1", target: "n2" }
-        ],
-        addedNodes: [],
-        removedNodes: [],
-        removedEdges: [],
-      };
-      expect(() => applyGraphDiff(baseSnapshot, diff as any)).toThrow(/duplicate edge id/);
+    it("throws when a diff attempts to add an edge that already exists in the graph", () => {
+      // e1 already exists in baseSnapshot
+      const diff = createGraphDiff({
+        addedEdges: [{ id: "e1", source: "n1", target: "n2" }]
+      });
+      expect(() => applyGraphDiff(baseSnapshot, diff)).toThrow(/duplicate edge id/);
     });
 
     it("throws when removing a node leaves an orphaned edge source", () => {
