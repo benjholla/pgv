@@ -587,12 +587,56 @@ export class GraphView {
   }
 
   #toggleNodeCollapse(id: string): void {
-    if (this.#collapsedNodes.has(id)) {
-      this.#collapsedNodes.delete(id);
-    } else {
+    const isCollapsing = !this.#collapsedNodes.has(id);
+    if (isCollapsing) {
       this.#collapsedNodes.add(id);
+    } else {
+      this.#collapsedNodes.delete(id);
     }
-    if (this.#graph) {
+
+    if (this.#graph && this.#layout) {
+      if (isCollapsing && this.#options.selection) {
+        // Clear selection for newly hidden nodes and edges
+        const hiddenNodes = new Set<string>();
+        if (this.#layout.hierarchy?.has(id)) {
+          const stack = [...this.#layout.hierarchy.get(id)!.children];
+          while (stack.length > 0) {
+            const curr = stack.pop()!;
+            hiddenNodes.add(curr);
+            if (this.#layout.hierarchy.has(curr)) {
+              stack.push(...this.#layout.hierarchy.get(curr)!.children);
+            }
+          }
+        }
+
+        let selectionChanged = false;
+        const newSelectedNodes = new Set(this.#options.selection.nodes);
+        const newSelectedEdges = new Set(this.#options.selection.edges);
+
+        for (const hiddenNodeId of hiddenNodes) {
+          if (newSelectedNodes.has(hiddenNodeId)) {
+            newSelectedNodes.delete(hiddenNodeId);
+            selectionChanged = true;
+          }
+        }
+
+        for (const edge of this.#graph.edges.values()) {
+          if (hiddenNodes.has(edge.source) || hiddenNodes.has(edge.target)) {
+            if (newSelectedEdges.has(edge.id)) {
+              newSelectedEdges.delete(edge.id);
+              selectionChanged = true;
+            }
+          }
+        }
+
+        if (selectionChanged) {
+          this.#options.onSelectionChange?.({
+            nodes: newSelectedNodes,
+            edges: newSelectedEdges,
+          });
+        }
+      }
+
       this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined, this.#schema);
       this.#render();
     }
