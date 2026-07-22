@@ -976,8 +976,9 @@
   left: 0;
   box-sizing: border-box;
   background-color: var(--pgv-color-bg-secondary);
-  border: none;
-  box-shadow: inset 0 0 0 1px var(--pgv-node-border, #d1d5db);
+  border: 1px solid var(--pgv-node-border);
+  border-left: 5px solid var(--pgv-node-accent);
+  box-shadow: var(--pgv-node-shadow);
   border-radius: var(--pgv-node-radius, 8px);
   padding: 0;
   transition: transform var(--pgv-transition-speed) ease;
@@ -986,7 +987,7 @@
 
 
 .pgv-compound-node.pgv-selected {
-  box-shadow: inset 0 0 0 2px var(--pgv-selected-color, #2563eb), 0 0 0 4px var(--pgv-selected-ring, rgba(37, 99, 235, 0.2));
+  box-shadow: var(--pgv-node-shadow), inset 0 0 0 2px var(--pgv-selected-color, #2563eb), 0 0 0 4px var(--pgv-selected-ring, rgba(37, 99, 235, 0.2));
 }
 
 .pgv-compound-node-header {
@@ -995,9 +996,9 @@
   justify-content: space-between;
   padding: 8px 12px;
   background-color: var(--pgv-color-bg);
-  box-shadow: inset 0 0 0 1px var(--pgv-node-border, #d1d5db);
-  border-top-left-radius: var(--pgv-node-radius, 8px);
-  border-top-right-radius: var(--pgv-node-radius, 8px);
+  border-bottom: 1px solid var(--pgv-node-border, #d1d5db);
+  border-top-left-radius: calc(var(--pgv-node-radius, 8px) - 1px);
+  border-top-right-radius: calc(var(--pgv-node-radius, 8px) - 1px);
   height: 40px;
   box-sizing: border-box;
 }
