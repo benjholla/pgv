@@ -646,7 +646,7 @@ export class GraphView {
     // keyboard tabbing order (nodes then edges) while keeping z-index
     // responsible for visual stacking.
     stage.append(...renderNodes(graph, layout, this.#options, this.#collapsedNodes, this.#schema, (id) => this.#toggleNodeCollapse(id)));
-    stage.appendChild(renderEdges(graph, layout, this.#options, this.#schema));
+    stage.appendChild(renderEdges(graph, layout, this.#options, this.#schema, this.#collapsedNodes));
 
     if (this.#options.usePanZoom || this.#options.useThemeToggle || (this.#options.maxHistory && this.#options.maxHistory > 0)) {
       const viewport = document.createElement("div");
@@ -2374,6 +2374,7 @@ function renderEdges(
   layout: LayoutSnapshot,
   options: GraphViewOptions,
   schema: GraphSchema,
+  collapsedNodes: ReadonlySet<string> = new Set(),
 ): SVGSVGElement {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   const edgeLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
@@ -2389,8 +2390,38 @@ function renderEdges(
 
   const containmentSet = schema.containment ? new Set(schema.containment) : null;
 
+  // Determine hidden nodes based on collapsed parents
+  const hiddenNodes = new Set<string>();
+  if (layout.hierarchy) {
+    for (const collapsedId of collapsedNodes) {
+      if (layout.hierarchy.has(collapsedId)) {
+        const stack = [...layout.hierarchy.get(collapsedId)!.children];
+        while (stack.length > 0) {
+          const curr = stack.pop()!;
+          hiddenNodes.add(curr);
+          if (layout.hierarchy.has(curr)) {
+            stack.push(...layout.hierarchy.get(curr)!.children);
+          }
+        }
+      }
+    }
+  }
+
   for (const edge of graph.edges.values()) {
-    if (containmentSet && isContainmentEdge(edge, containmentSet)) {
+    if (hiddenNodes.has(edge.source) || hiddenNodes.has(edge.target)) {
+      continue;
+    }
+
+    let isContainment = false;
+    if (containmentSet && edge.tags.length > 0) {
+      for (let i = 0; i < edge.tags.length; i++) {
+        if (containmentSet.has(edge.tags[i])) {
+          isContainment = true;
+          break;
+        }
+      }
+    }
+    if (isContainment) {
       continue;
     }
 
@@ -2500,6 +2531,51 @@ function renderNodes(
   const nodes: HTMLElement[] = [];
   const renderedElements = new Map<string, HTMLElement>();
 
+  const getHiddenCounts = (nodeId: string): { nodes: number, edges: number } => {
+    let hiddenNodes = 0;
+    let hiddenEdges = 0;
+
+    if (!layout.hierarchy?.has(nodeId)) return { nodes: 0, edges: 0 };
+
+    const children = layout.hierarchy.get(nodeId)!.children;
+    hiddenNodes += children.length;
+
+    // Calculate edges connected to these children
+    const hiddenChildIds = new Set<string>();
+    const stack = [...children];
+    while (stack.length > 0) {
+      const curr = stack.pop()!;
+      hiddenChildIds.add(curr);
+      if (layout.hierarchy?.has(curr)) {
+        const grandChildren = layout.hierarchy.get(curr)!.children;
+        hiddenNodes += grandChildren.length;
+        stack.push(...grandChildren);
+      }
+    }
+
+    const containmentSet = schema?.containment ? new Set(schema.containment) : null;
+
+    for (const edge of graph.edges.values()) {
+      let isContainment = false;
+      if (containmentSet && edge.tags.length > 0) {
+        for (let i = 0; i < edge.tags.length; i++) {
+          if (containmentSet.has(edge.tags[i])) {
+            isContainment = true;
+            break;
+          }
+        }
+      }
+
+      if (!isContainment) {
+        if (hiddenChildIds.has(edge.source) || hiddenChildIds.has(edge.target)) {
+          hiddenEdges++;
+        }
+      }
+    }
+
+    return { nodes: hiddenNodes, edges: hiddenEdges };
+  };
+
   const renderSingleNode = (nodeId: string): HTMLElement | null => {
     if (renderedElements.has(nodeId)) {
       return renderedElements.get(nodeId)!;
@@ -2551,7 +2627,7 @@ function renderNodes(
       element.style.transform = `translate(${position.x}px, ${position.y}px)`;
     }
 
-    if (isCompound) {
+    if (isCompound && !isCollapsed) {
        const header = document.createElement("div");
        header.className = "pgv-compound-node-header";
 
@@ -2561,11 +2637,14 @@ function renderNodes(
 
        const toggleBtn = document.createElement("button");
        toggleBtn.className = "pgv-node-collapse-toggle";
-       toggleBtn.title = `Collapse node ${node.id} (Disabled)`;
-       toggleBtn.setAttribute("aria-label", `Collapse node ${node.id} (Disabled)`);
+       toggleBtn.title = `Collapse node ${node.id}`;
+       toggleBtn.setAttribute("aria-label", `Collapse node ${node.id}`);
        toggleBtn.setAttribute("aria-expanded", "true");
-       toggleBtn.setAttribute("aria-disabled", "true");
        toggleBtn.textContent = "[-]";
+       toggleBtn.addEventListener("click", (e) => {
+         e.stopPropagation();
+         onToggleCollapse(node.id);
+       });
 
        header.append(title, toggleBtn);
        element.appendChild(header);
@@ -2584,6 +2663,19 @@ function renderNodes(
       const title = document.createElement("div");
       title.className = "pgv-node-title";
       title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+
+      if (isCompound) {
+        const hidden = getHiddenCounts(node.id);
+        const indicator = document.createElement("span");
+        indicator.className = "pgv-node-hidden-indicator";
+        indicator.title = `${hidden.nodes} nodes, ${hidden.edges} edges hidden`;
+        indicator.textContent = " [...]";
+        indicator.style.opacity = "0.6";
+        indicator.style.fontSize = "0.9em";
+        indicator.style.marginLeft = "4px";
+        indicator.style.cursor = "help";
+        title.appendChild(indicator);
+      }
 
       const toggleBtn = document.createElement("button");
       toggleBtn.className = "pgv-node-collapse-toggle";

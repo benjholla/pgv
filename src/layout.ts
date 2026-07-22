@@ -772,15 +772,48 @@ function groupByDepth(
 
 function identifyCompoundNodes(graph: GraphSnapshot, config: Required<VerticalLayoutOptions>) {
   const parentNodes = new Set<string>();
+
+  // First, find all parent nodes based on containment edges
   for (const edge of graph.edges.values()) {
     if (isContainmentEdge(edge, config.containmentTags)) {
       parentNodes.add(edge.source);
     }
   }
 
+  // Next, we identify nodes that are hidden because they are descendants of a collapsed node
+  const hiddenDescendants = new Set<string>();
+  if (config.collapsedNodes && config.collapsedNodes.size > 0) {
+    // Build a quick adjacency list for containment
+    const containmentMap = new Map<string, string[]>();
+    for (const edge of graph.edges.values()) {
+      if (isContainmentEdge(edge, config.containmentTags)) {
+        if (!containmentMap.has(edge.source)) containmentMap.set(edge.source, []);
+        containmentMap.get(edge.source)!.push(edge.target);
+      }
+    }
+
+    for (const collapsed of config.collapsedNodes) {
+      if (parentNodes.has(collapsed)) {
+        const stack = containmentMap.get(collapsed) ? [...containmentMap.get(collapsed)!] : [];
+        while (stack.length > 0) {
+          const curr = stack.pop()!;
+          hiddenDescendants.add(curr);
+          if (containmentMap.has(curr)) {
+            stack.push(...containmentMap.get(curr)!);
+          }
+        }
+      }
+    }
+  }
+
   const nodeIds = [];
   for (const id of graph.nodes.keys()) {
-    if (!parentNodes.has(id)) {
+    // A node is included in the layout (nodeIds) if it is NOT a parent node,
+    // OR if it IS a parent node but it is currently collapsed (so it acts like a leaf).
+    // However, if a node is a descendant of a collapsed node, it is completely hidden and shouldn't be laid out.
+    if (hiddenDescendants.has(id)) continue;
+
+    if (!parentNodes.has(id) || config.collapsedNodes?.has(id)) {
       nodeIds.push(id);
     }
   }
@@ -790,6 +823,7 @@ function identifyCompoundNodes(graph: GraphSnapshot, config: Required<VerticalLa
 }
 
 function buildAdjacencyLists(graph: GraphSnapshot, nodeIds: readonly string[], parentNodes: ReadonlySet<string>, config: Required<VerticalLayoutOptions>) {
+  const nodeIdsSet = new Set(nodeIds);
   const outgoing = new Map<string, string[]>();
   const incoming = new Map<string, string[]>();
   const edgeOutgoing = new Map<string, string[]>();
@@ -814,12 +848,15 @@ function buildAdjacencyLists(graph: GraphSnapshot, nodeIds: readonly string[], p
     edgeOutgoing.get(edge.source)!.push(edge.id);
     edgeIncoming.get(edge.target)!.push(edge.id);
 
-    if (!graph.nodes.has(edge.source) || !graph.nodes.has(edge.target) || parentNodes.has(edge.source) || parentNodes.has(edge.target)) {
+    if (!graph.nodes.has(edge.source) || !graph.nodes.has(edge.target)) {
       continue;
     }
 
-    outgoing.get(edge.source)!.push(edge.target);
-    incoming.get(edge.target)!.push(edge.source);
+    // Only route edges between nodes that are actually part of the layout
+    if (nodeIdsSet.has(edge.source) && nodeIdsSet.has(edge.target)) {
+      outgoing.get(edge.source)!.push(edge.target);
+      incoming.get(edge.target)!.push(edge.source);
+    }
   }
 
   // Sort outgoing edges to guarantee deterministic traversal
@@ -1068,12 +1105,20 @@ function computeCompoundNodeBounds(
        const children = layoutHierarchy.get(id)?.children || [];
        const isCol = config.collapsedNodes?.has(id) ?? false;
        if (isCol || children.length === 0) {
+          let w = config.nodeWidth;
+          let h = isCol ? 36 : config.nodeHeight;
           const s = nodeSizes.get(id);
-          if (s) return {w: s.width, h: s.height};
-          const w = config.nodeWidth;
-          const isCol = config.collapsedNodes?.has(id) ?? false;
-          const h = isCol ? 36 : config.nodeHeight;
-          nodeSizes.set(id, {width: w, height: h});
+          if (s) {
+            w = s.width;
+            h = s.height;
+          } else {
+            nodeSizes.set(id, {width: w, height: h});
+          }
+
+          if (!positions.has(id)) {
+              // If it's collapsed or has no children, but wasn't laid out (e.g. detached), give it a default pos
+              positions.set(id, {x: 0, y: 0});
+          }
           return {w, h};
        }
        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
