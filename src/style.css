@@ -1013,10 +1013,8 @@
 .pgv-compound-node-header .pgv-node-collapse-toggle {
   background: none;
   border: none;
-  color: var(--pgv-node-fg-muted, #6b7280);
-  cursor: not-allowed;
+  cursor: pointer;
   font-family: monospace;
   font-size: 12px;
   padding: 0 4px;
-  opacity: 0.5;
 }
