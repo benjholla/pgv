@@ -670,6 +670,11 @@
   width: 100%;
 }
 
+.pgv-search-bar input:focus-visible {
+  outline: none;
+  box-shadow: var(--pgv-selected-shadow);
+}
+
 .pgv-search-bar input:focus {
   border-color: var(--pgv-selected-color);
 }
