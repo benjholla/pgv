@@ -323,17 +323,8 @@ function validateStructuralInvariants(
       throw new GraphModelError(`Edge "${edge.id}" references missing target "${edge.target}".`);
     }
 
-    if (containmentSet && edge.tags.length > 0) {
-      let isContainment = false;
-      for (let i = 0; i < edge.tags.length; i++) {
-        if (containmentSet.has(edge.tags[i])) {
-          isContainment = true;
-          break;
-        }
-      }
-      if (isContainment) {
-        containmentAdjacency.get(edge.source)!.push(edge.target);
-      }
+    if (containmentSet && isContainmentEdge(edge, containmentSet)) {
+      containmentAdjacency.get(edge.source)!.push(edge.target);
     }
   }
 
@@ -860,4 +851,17 @@ function assertNonEmptyString(value: unknown, fieldName: string): asserts value 
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new GraphModelError(`${fieldName} must be a non-empty string.`);
   }
+}
+
+/**
+ * @internal
+ */
+export function isContainmentEdge(edge: GraphEdge, tags: ReadonlySet<string>): boolean {
+  if (edge.tags.length === 0) return false;
+  for (let i = 0; i < edge.tags.length; i++) {
+    if (tags.has(edge.tags[i])) {
+      return true;
+    }
+  }
+  return false;
 }
