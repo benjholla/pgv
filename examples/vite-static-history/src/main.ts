@@ -75,7 +75,7 @@ function updateGraph(): void {
       summaryElement.textContent = `${graph.nodes.size} nodes, ${graph.edges.size} edges`;
     },
     onThemeChange: (theme: string) => {
-      document.documentElement.classList.remove("pgv-light", "pgv-dark", "pgv-auto");
+      document.documentElement.classList.remove("pgv-light", "pgv-dark");
       document.documentElement.classList.add(`pgv-${theme}`);
     },
     onNodeClick: (nodeId: string) => {
