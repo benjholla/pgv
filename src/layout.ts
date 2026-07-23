@@ -666,7 +666,14 @@ function assignVerticalDepths(
     }
   }
 
-  const roots = nodeIds.filter((id) => incoming.get(id)!.length === 0);
+  // PERF(Bolt): Avoid Array.filter allocation in topological sorting roots setup
+  const roots: string[] = [];
+  for (let i = 0; i < nodeIds.length; i++) {
+    const id = nodeIds[i];
+    if (incoming.get(id)!.length === 0) {
+      roots.push(id);
+    }
+  }
   for (const id of roots) {
     if (state.get(id) !== "visited") {
       dfsBreakCyclesIterative(id);
