@@ -379,29 +379,25 @@ function validateStructuralInvariants(
  * @returns A frozen, validated `GraphSnapshot`.
  * @throws {GraphModelError} If duplicate IDs are found, or references (edges) are invalid.
  */
+function buildItemMap<T, U extends { id: string }>(
+  items: readonly T[],
+  normalize: (item: T) => U,
+  itemTypeName: string
+): Map<string, U> {
+  const map = new Map<string, U>();
+  for (const item of items) {
+    const normalized = normalize(item);
+    if (map.has(normalized.id)) {
+      throw new GraphModelError(`Duplicate ${itemTypeName} id "${normalized.id}".`);
+    }
+    map.set(normalized.id, normalized);
+  }
+  return map;
+}
+
 export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
-  const nodes = new Map<string, GraphNode>();
-  const edges = new Map<string, GraphEdge>();
-
-  for (const node of input.nodes) {
-    const normalized = normalizeNode(node);
-
-    if (nodes.has(normalized.id)) {
-      throw new GraphModelError(`Duplicate node id "${normalized.id}".`);
-    }
-
-    nodes.set(normalized.id, normalized);
-  }
-
-  for (const edge of input.edges) {
-    const normalized = normalizeEdge(edge);
-
-    if (edges.has(normalized.id)) {
-      throw new GraphModelError(`Duplicate edge id "${normalized.id}".`);
-    }
-
-    edges.set(normalized.id, normalized);
-  }
+  const nodes = buildItemMap(input.nodes, normalizeNode, "node");
+  const edges = buildItemMap(input.edges, normalizeEdge, "edge");
 
   validateStructuralInvariants(nodes, edges.values(), input.schema);
 
@@ -473,60 +469,51 @@ export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson 
  * @returns An immutable `GraphDiff`.
  * @throws {GraphModelError} If the diff contains invalid data.
  */
+function parseAddedItems<T, U extends { id: string }>(
+  items: readonly T[] | undefined,
+  normalize: (item: T) => U,
+  itemTypeName: string
+): U[] {
+  const result: U[] = [];
+  const ids = new Set<string>();
+  if (items) {
+    for (let i = 0; i < items.length; i++) {
+      const item = normalize(items[i]);
+      if (ids.has(item.id)) {
+        throw new GraphModelError(`Duplicate ${itemTypeName} id "${item.id}".`);
+      }
+      ids.add(item.id);
+      result.push(item);
+    }
+  }
+  return result;
+}
+
+function parseRemovedItems(
+  items: readonly string[] | undefined,
+  itemTypeName: string
+): string[] {
+  const result: string[] = [];
+  const ids = new Set<string>();
+  if (items) {
+    for (let i = 0; i < items.length; i++) {
+      const id = items[i];
+      assertNonEmptyString(id, `${itemTypeName} id`);
+      if (ids.has(id)) {
+        throw new GraphModelError(`Duplicate ${itemTypeName} id "${id}".`);
+      }
+      ids.add(id);
+      result.push(id);
+    }
+  }
+  return result;
+}
+
 export function createGraphDiff(input: GraphDiffJson): GraphDiff {
-  const addedNodes: GraphNode[] = [];
-  const addedNodesIds = new Set<string>();
-  if (input.addedNodes) {
-    for (let i = 0; i < input.addedNodes.length; i++) {
-      const node = normalizeNode(input.addedNodes[i]);
-      if (addedNodesIds.has(node.id)) {
-        throw new GraphModelError(`Duplicate node id "${node.id}".`);
-      }
-      addedNodesIds.add(node.id);
-      addedNodes.push(node);
-    }
-  }
-
-  const addedEdges: GraphEdge[] = [];
-  const addedEdgesIds = new Set<string>();
-  if (input.addedEdges) {
-    for (let i = 0; i < input.addedEdges.length; i++) {
-      const edge = normalizeEdge(input.addedEdges[i]);
-      if (addedEdgesIds.has(edge.id)) {
-        throw new GraphModelError(`Duplicate edge id "${edge.id}".`);
-      }
-      addedEdgesIds.add(edge.id);
-      addedEdges.push(edge);
-    }
-  }
-
-  const removedNodesIds = new Set<string>();
-  const removedNodes: string[] = [];
-  if (input.removedNodes) {
-    for (let i = 0; i < input.removedNodes.length; i++) {
-      const id = input.removedNodes[i];
-      assertNonEmptyString(id, "removedNode id");
-      if (removedNodesIds.has(id)) {
-        throw new GraphModelError(`Duplicate node id "${id}".`);
-      }
-      removedNodesIds.add(id);
-      removedNodes.push(id);
-    }
-  }
-
-  const removedEdgesIds = new Set<string>();
-  const removedEdges: string[] = [];
-  if (input.removedEdges) {
-    for (let i = 0; i < input.removedEdges.length; i++) {
-      const id = input.removedEdges[i];
-      assertNonEmptyString(id, "removedEdge id");
-      if (removedEdgesIds.has(id)) {
-        throw new GraphModelError(`Duplicate edge id "${id}".`);
-      }
-      removedEdgesIds.add(id);
-      removedEdges.push(id);
-    }
-  }
+  const addedNodes = parseAddedItems(input.addedNodes, normalizeNode, "node");
+  const addedEdges = parseAddedItems(input.addedEdges, normalizeEdge, "edge");
+  const removedNodes = parseRemovedItems(input.removedNodes, "node");
+  const removedEdges = parseRemovedItems(input.removedEdges, "edge");
 
   return Object.freeze({
     addedNodes: Object.freeze(addedNodes),
