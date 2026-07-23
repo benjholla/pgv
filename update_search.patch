@@ -1,0 +1,36 @@
+--- src/renderer.ts
++++ src/renderer.ts
+@@ -1025,7 +1025,7 @@
+               }
+             });
+           }
+         },
+-        label: "Toggle Search",
++        label: "Toggle Search (/)",
+       });
+       searchToggleBtn.classList.add("pgv-search-toggle-btn");
+       searchToggleBtn.setAttribute("aria-expanded", this.#searchOpen ? "true" : "false");
+@@ -1656,6 +1656,22 @@
+         }
+       }
++
++      // Add '/' keyboard shortcut to open search
++      if (event.key === "/") {
++        if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
++          return;
++        }
++        event.preventDefault();
++        if (!this.#searchOpen) {
++          const searchToggleBtn = this.container.querySelector('.pgv-search-toggle-btn') as HTMLButtonElement | null;
++          searchToggleBtn?.click();
++        } else {
++          if (this.#searchMode === "node-attribute" || this.#searchMode === "edge-attribute" || this.#searchMode === "attribute") {
++            this.#searchKeyInputRef?.focus();
++          } else {
++            this.#searchInputRef?.focus();
++          }
++        }
++      }
+     });
+
+     element.addEventListener("focus", (event) => {

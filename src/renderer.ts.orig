@@ -1376,7 +1376,7 @@ export class GraphView {
             });
           }
         },
-        label: "Toggle Search (/)",
+        label: "Toggle Search",
       });
       searchToggleBtn.classList.add("pgv-search-toggle-btn");
       searchToggleBtn.setAttribute("aria-expanded", this.#searchOpen ? "true" : "false");

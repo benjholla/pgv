@@ -246,7 +246,7 @@ describe('GraphView', () => {
     await new Promise(resolve => setTimeout(resolve, 50));
 
     // Toggle search open
-    const searchToggleBtn = container.querySelector('button[title="Toggle Search (/)"]') as HTMLButtonElement;
+    const searchToggleBtn = container.querySelector('button[title="Toggle Search"]') as HTMLButtonElement;
     expect(searchToggleBtn).not.toBeNull();
     searchToggleBtn.click();
 
