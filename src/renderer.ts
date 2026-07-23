@@ -1884,29 +1884,6 @@ export class GraphView {
 
     const containmentSet = this.#schema.containment ? new Set(this.#schema.containment) : null;
 
-    // Draw edges
-    ctx.lineWidth = 1;
-    for (const edge of this.#graph.edges.values()) {
-      if (hiddenNodes.has(edge.source) || hiddenNodes.has(edge.target)) continue;
-      if (containmentSet && isContainmentEdge(edge, containmentSet)) continue;
-
-      const endpoints = edgeEndpoints(edge, layout);
-      if (!endpoints) continue;
-
-      ctx.strokeStyle = this.#options.selection?.edges.has(edge.id) ? selectedColor : edgeColor;
-      ctx.beginPath();
-
-      const pathPts = endpoints.path;
-      if (pathPts.length > 0) {
-        ctx.moveTo(offsetX + pathPts[0].x * scale, offsetY + pathPts[0].y * scale);
-        for (let i = 1; i < pathPts.length; i++) {
-          ctx.lineTo(offsetX + pathPts[i].x * scale, offsetY + pathPts[i].y * scale);
-        }
-      }
-
-      ctx.stroke();
-    }
-
     // Draw nodes - Ensure parents are rendered before their children
     const renderOrder: string[] = [];
     if (layout.hierarchy) {
@@ -1960,8 +1937,45 @@ export class GraphView {
       const nx = offsetX + position.x * scale;
       const ny = offsetY + position.y * scale;
 
-      ctx.fillStyle = this.#options.selection?.nodes.has(nodeId) ? selectedColor : nodeColor;
+      const isSelected = this.#options.selection?.nodes.has(nodeId);
+      const isParent = layout.hierarchy?.has(nodeId) && (layout.hierarchy.get(nodeId)?.children.length || 0) > 0;
+
+      ctx.fillStyle = isSelected ? selectedColor : nodeColor;
+
+      // If it's a selected parent node, make it semi-transparent so it visually distinguishes from children
+      // but retains the highlight color tone.
+      if (isSelected && isParent) {
+        ctx.globalAlpha = 0.5;
+      }
+
       ctx.fillRect(nx, ny, nw, nh);
+
+      if (isSelected && isParent) {
+        ctx.globalAlpha = 1.0; // reset
+      }
+    }
+
+    // Draw edges
+    ctx.lineWidth = 1;
+    for (const edge of this.#graph.edges.values()) {
+      if (hiddenNodes.has(edge.source) || hiddenNodes.has(edge.target)) continue;
+      if (containmentSet && isContainmentEdge(edge, containmentSet)) continue;
+
+      const endpoints = edgeEndpoints(edge, layout);
+      if (!endpoints) continue;
+
+      ctx.strokeStyle = this.#options.selection?.edges.has(edge.id) ? selectedColor : edgeColor;
+      ctx.beginPath();
+
+      const pathPts = endpoints.path;
+      if (pathPts.length > 0) {
+        ctx.moveTo(offsetX + pathPts[0].x * scale, offsetY + pathPts[0].y * scale);
+        for (let i = 1; i < pathPts.length; i++) {
+          ctx.lineTo(offsetX + pathPts[i].x * scale, offsetY + pathPts[i].y * scale);
+        }
+      }
+
+      ctx.stroke();
     }
   }
 
