@@ -316,25 +316,16 @@ describe('GraphView', () => {
     };
     const snapshot = createGraphSnapshot(json);
     const layout = verticalLayout(snapshot);
-    const view = new GraphView(container, {}, { layout, useThemeToggle: true, usePanZoom: true });
+    const view = new GraphView(container, {}, { layout, useThemeToggle: true, usePanZoom: true, theme: 'light' });
     view.setGraph(snapshot);
 
     await new Promise(resolve => setTimeout(resolve, 50));
 
     let root = container.querySelector('.pgv-graph-view') as HTMLElement;
-
-    expect(root.classList.contains('pgv-light')).toBe(false);
-    expect(root.classList.contains('pgv-dark')).toBe(false);
+    expect(root.classList.contains('pgv-light')).toBe(true);
 
     let themeBtn = container.querySelector('button[title^="Theme:"]') as HTMLButtonElement;
     expect(themeBtn).not.toBeNull();
-
-    themeBtn.click();
-    await new Promise(resolve => setTimeout(resolve, 50));
-    root = container.querySelector('.pgv-graph-view') as HTMLElement;
-    expect(root.classList.contains('pgv-light')).toBe(true);
-
-    themeBtn = container.querySelector('button[title^="Theme:"]') as HTMLButtonElement;
 
     themeBtn.click();
     await new Promise(resolve => setTimeout(resolve, 50));
@@ -346,8 +337,7 @@ describe('GraphView', () => {
     themeBtn.click();
     await new Promise(resolve => setTimeout(resolve, 50));
     root = container.querySelector('.pgv-graph-view') as HTMLElement;
-    expect(root.classList.contains('pgv-light')).toBe(false);
-    expect(root.classList.contains('pgv-dark')).toBe(false);
+    expect(root.classList.contains('pgv-light')).toBe(true);
 
     view.destroy();
   });

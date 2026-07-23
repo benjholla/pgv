@@ -89,9 +89,9 @@ export interface GraphViewOptions {
   readonly selection?: SelectionState;
 
   /**
-   * The initial theme mode. Default is `"auto"` (follows system preferences).
+   * The initial theme mode. Default is to follow system preferences.
    */
-  readonly theme?: "light" | "dark" | "auto";
+  readonly theme?: "light" | "dark";
 
   /**
    * If true, enables interactive panning, zooming, and a minimap control layer.
@@ -117,7 +117,7 @@ export interface GraphViewOptions {
   /**
    * Callback invoked when the user toggles the theme via the built-in control.
    */
-  readonly onThemeChange?: (theme: "light" | "dark" | "auto") => void;
+  readonly onThemeChange?: (theme: "light" | "dark") => void;
 
   /**
    * Callback invoked when a node is clicked or activated via keyboard.
@@ -185,7 +185,7 @@ export class GraphView {
   #layout: LayoutSnapshot | null = null;
   #viewportState: ViewportState = { x: 0, y: 0, scale: 1 };
   #panZoomAbortController: AbortController | null = null;
-  #currentTheme: "light" | "dark" | "auto";
+  #currentTheme: "light" | "dark";
   #minimapOpen: boolean = false;
   #historyOpen: boolean = false;
   #firstRender: boolean = true;
@@ -231,7 +231,7 @@ export class GraphView {
     this.container = container;
     this.#schema = schema;
     this.#options = options;
-    this.#currentTheme = options.theme ?? "auto";
+    this.#currentTheme = options.theme ?? (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   }
 
   /**
@@ -1295,7 +1295,6 @@ export class GraphView {
       reset: "M12 12m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0 M12 12L12 12",
       sun: "M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0 M3 12h1M20 12h1M12 3v1M12 20v1M5.6 5.6l.7.7M17.7 17.7l.7.7M5.6 17.7l.7-.7M17.7 5.6l-.7.7",
       moon: "M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z",
-      auto: "M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20z M12 2v20",
       map: "M9 20v-14l-4 2v14l4 -2zM15 4v14l4 -2v-14l-4 2zM9 20l6 -2v-14l-6 2z",
       download: "M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4",
       chevronDown: "M6 9l6 6 6-6",
@@ -1431,7 +1430,7 @@ export class GraphView {
       topButtonsContainer.appendChild(this.#clearSelectionBtn);
 
       if (this.#options.useThemeToggle) {
-        const themeIcon = this.#currentTheme === "light" ? icons.sun : this.#currentTheme === "dark" ? icons.moon : icons.auto;
+        const themeIcon = this.#currentTheme === "light" ? icons.sun : icons.moon;
         const themeLabel = `Theme: ${this.#currentTheme.charAt(0).toUpperCase() + this.#currentTheme.slice(1)}`;
         topButtonsContainer.appendChild(this.#createControlButton({
           icon: themeIcon,
@@ -1748,9 +1747,7 @@ export class GraphView {
   }
 
   #toggleTheme(): void {
-    const themes: Array<"light" | "dark" | "auto"> = ["light", "dark", "auto"];
-    const currentIndex = themes.indexOf(this.#currentTheme);
-    this.#currentTheme = themes[(currentIndex + 1) % themes.length];
+    this.#currentTheme = this.#currentTheme === "light" ? "dark" : "light";
     this.#options.onThemeChange?.(this.#currentTheme);
     this.#render();
   }
