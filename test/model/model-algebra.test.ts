@@ -78,6 +78,38 @@ describe("Algebraic properties of applyGraphDiff", () => {
         expect(eids1).toEqual(eids2);
     });
 
+    it("Commutativity with Removals: Independent diffs involving additions and removals can be applied in any order", () => {
+        const base = createGraphSnapshot({
+            nodes: [{ id: "n1" }, { id: "n2" }],
+            edges: [{ id: "e1", source: "n1", target: "n2" }]
+        });
+
+        // Diff1 adds new elements
+        const diff1 = createGraphDiff({
+            addedNodes: [{ id: "n3" }],
+            addedEdges: [{ id: "e2", source: "n2", target: "n3" }]
+        });
+
+        // Diff2 removes existing elements (independent from Diff1)
+        const diff2 = createGraphDiff({
+            removedNodes: ["n1"],
+            removedEdges: ["e1"]
+        });
+
+        const snap1 = applyGraphDiff(applyGraphDiff(base, diff1), diff2);
+        const snap2 = applyGraphDiff(applyGraphDiff(base, diff2), diff1);
+
+        expect(graphSnapshotToJson(snap1)).toEqual(graphSnapshotToJson(snap2));
+
+        // Final state should contain exactly n2, n3, and e2
+        expect(snap1.nodes.size).toBe(2);
+        expect(snap1.nodes.has("n2")).toBe(true);
+        expect(snap1.nodes.has("n3")).toBe(true);
+        expect(snap1.edges.size).toBe(1);
+        expect(snap1.edges.has("e2")).toBe(true);
+    });
+
+
     it("Replacement Property: Safely replace an element in a single diff without duplicate ID errors", () => {
         const base = createGraphSnapshot({
             nodes: [{ id: "n1", tags: ["old"] }],
