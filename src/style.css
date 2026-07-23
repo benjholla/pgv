@@ -1040,6 +1040,6 @@
   border: none;
   cursor: pointer;
   font-family: monospace;
-  font-size: 12px;
+  position: static;
   padding: 0 4px;
 }

@@ -9,6 +9,7 @@ import "../../../src/style.css";
 const graphElement = document.getElementById("graph") as HTMLElement;
 
 let currentGraph: GraphSnapshot | null = null;
+let currentSchema: any = {};
 let graphView: GraphView | null = null;
 
 const layoutOptions = {
@@ -29,17 +30,17 @@ function updateGraph(): void {
     maxHistory: 0,
   };
 
-  if (!graphView) {
-    graphView = new GraphView(graphElement, {}, options);
-    graphView.setGraph(currentGraph);
-  } else {
-    graphView.setGraph(currentGraph);
-  }
+  // Always recreate GraphView if schema changes, or just recreate it every time to be safe for tests
+  graphElement.innerHTML = '';
+  graphView?.destroy();
+  graphView = new GraphView(graphElement, currentSchema, options);
+  graphView.setGraph(currentGraph);
 }
 
 // Expose a way for e2e tests to inject a new graph directly
-(window as any).__setTestGraph = (json: GraphSnapshotJson) => {
+(window as any).__setTestGraph = (json: any) => {
   currentGraph = createGraphSnapshot(json);
+  currentSchema = json.schema || {};
   updateGraph();
 };
 
@@ -52,6 +53,7 @@ async function loadDefaultGraph() {
     if (graphRes.ok) {
       const json = await graphRes.json();
       currentGraph = createGraphSnapshot(json);
+      currentSchema = json.schema || {};
       updateGraph();
     }
   } catch (e) {
