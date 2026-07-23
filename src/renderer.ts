@@ -1884,6 +1884,77 @@ export class GraphView {
 
     const containmentSet = this.#schema.containment ? new Set(this.#schema.containment) : null;
 
+    // Draw nodes - Ensure parents are rendered before their children
+    const renderOrder: string[] = [];
+    if (layout.hierarchy) {
+      const visited = new Set<string>();
+
+      // Find root nodes
+      const roots = [];
+      for (const [id, data] of layout.hierarchy.entries()) {
+        if (!data.parent) {
+          roots.push(id);
+        }
+      }
+
+      // Add to render order using a stack for DFS
+      const stack = [...roots];
+      while (stack.length > 0) {
+        const curr = stack.pop()!;
+        if (!visited.has(curr)) {
+          visited.add(curr);
+          renderOrder.push(curr);
+          const children = layout.hierarchy.get(curr)?.children;
+          if (children && children.length > 0) {
+            // Push children so they are processed next
+            stack.push(...children);
+          }
+        }
+      }
+
+      // Fallback for any nodes not reached (e.g. disconnected from hierarchy or malformed)
+      for (const id of this.#graph.nodes.keys()) {
+        if (!visited.has(id)) {
+          renderOrder.push(id);
+        }
+      }
+    } else {
+      for (const id of this.#graph.nodes.keys()) {
+        renderOrder.push(id);
+      }
+    }
+
+    for (const nodeId of renderOrder) {
+      if (hiddenNodes.has(nodeId)) continue;
+
+      const position = layout.positions.get(nodeId);
+      if (!position) continue;
+
+      const nodeSize = layout.nodeSizes?.get(nodeId) || layout.nodeSize;
+      const nw = nodeSize.width * scale;
+      const nh = nodeSize.height * scale;
+
+      const nx = offsetX + position.x * scale;
+      const ny = offsetY + position.y * scale;
+
+      const isSelected = this.#options.selection?.nodes.has(nodeId);
+      const isParent = layout.hierarchy?.has(nodeId) && (layout.hierarchy.get(nodeId)?.children.length || 0) > 0;
+
+      ctx.fillStyle = isSelected ? selectedColor : nodeColor;
+
+      // If it's a selected parent node, make it semi-transparent so it visually distinguishes from children
+      // but retains the highlight color tone.
+      if (isSelected && isParent) {
+        ctx.globalAlpha = 0.5;
+      }
+
+      ctx.fillRect(nx, ny, nw, nh);
+
+      if (isSelected && isParent) {
+        ctx.globalAlpha = 1.0; // reset
+      }
+    }
+
     // Draw edges
     ctx.lineWidth = 1;
     for (const edge of this.#graph.edges.values()) {
@@ -1905,24 +1976,6 @@ export class GraphView {
       }
 
       ctx.stroke();
-    }
-
-    // Draw nodes
-    for (const node of this.#graph.nodes.values()) {
-      if (hiddenNodes.has(node.id)) continue;
-
-      const position = layout.positions.get(node.id);
-      if (!position) continue;
-
-      const nodeSize = layout.nodeSizes?.get(node.id) || layout.nodeSize;
-      const nw = nodeSize.width * scale;
-      const nh = nodeSize.height * scale;
-
-      const nx = offsetX + position.x * scale;
-      const ny = offsetY + position.y * scale;
-
-      ctx.fillStyle = this.#options.selection?.nodes.has(node.id) ? selectedColor : nodeColor;
-      ctx.fillRect(nx, ny, nw, nh);
     }
   }
 
