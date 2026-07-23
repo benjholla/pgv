@@ -41,3 +41,8 @@
 **Vulnerability:** The `sanitizeString` function previously only stripped `<script>` tags, making it vulnerable to XSS and unintended execution via other elements like `<iframe>`, `<object>`, `<embed>`, `<style>`, etc.
 **Learning:** HTML sanitization based solely on regular expressions can be easily bypassed if the capture groups are not comprehensive enough to catch all the dangerous tags.
 **Prevention:** Extend regex coverage to block a wider range of dangerous HTML tags. For stronger guarantees, consider a dedicated DOM-based sanitization library in the future.
+
+## 2024-03-24 - XSS Filter Bypass via HTML Entities Without Semicolons
+**Vulnerability:** The HTML entity decoding logic in `sanitizeString` (`decodeHtmlEntities`) only decoded named entities like `&colon;` if they ended with a semicolon.
+**Learning:** Modern web browsers are lenient and will often decode HTML entities even if the trailing semicolon is omitted, especially if the subsequent characters make it clear it's an entity or if it's in certain contexts (like inside attributes). Attackers could use this (e.g., `javascript&colon(alert)`) to bypass keyword-based XSS filters that expect a properly terminated entity.
+**Prevention:** When implementing custom HTML entity decoding for sanitization, always make the trailing semicolon optional in the regex match (e.g., `/&colon;?/gi`) to match browser leniency.
