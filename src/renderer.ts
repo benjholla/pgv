@@ -1867,9 +1867,32 @@ export class GraphView {
     const nodeColor = computedStyle.getPropertyValue("--pgv-minimap-node-color").trim() || "rgba(105, 117, 134, 0.6)";
     const edgeColor = computedStyle.getPropertyValue("--pgv-minimap-edge-color").trim() || "rgba(105, 117, 134, 0.4)";
     const selectedColor = computedStyle.getPropertyValue("--pgv-minimap-selected-color").trim() || "#d97706";
+
+    // Determine hidden nodes based on collapsed parents
+    const hiddenNodes = new Set<string>();
+    if (layout.hierarchy) {
+      for (const collapsedId of this.#collapsedNodes) {
+        if (layout.hierarchy.has(collapsedId)) {
+          const stack = [...layout.hierarchy.get(collapsedId)!.children];
+          while (stack.length > 0) {
+            const curr = stack.pop()!;
+            hiddenNodes.add(curr);
+            if (layout.hierarchy.has(curr)) {
+              stack.push(...layout.hierarchy.get(curr)!.children);
+            }
+          }
+        }
+      }
+    }
+
+    const containmentSet = this.#schema.containment ? new Set(this.#schema.containment) : null;
+
     // Draw edges
     ctx.lineWidth = 1;
     for (const edge of this.#graph.edges.values()) {
+      if (hiddenNodes.has(edge.source) || hiddenNodes.has(edge.target)) continue;
+      if (containmentSet && isContainmentEdge(edge, containmentSet)) continue;
+
       const endpoints = edgeEndpoints(edge, layout);
       if (!endpoints) continue;
 
@@ -1889,6 +1912,8 @@ export class GraphView {
 
     // Draw nodes
     for (const node of this.#graph.nodes.values()) {
+      if (hiddenNodes.has(node.id)) continue;
+
       const position = layout.positions.get(node.id);
       if (!position) continue;
 
