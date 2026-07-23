@@ -731,9 +731,9 @@ function freezeAttributes(
  */
 export function decodeHtmlEntities(text: string): string {
   return text
-    .replace(/&colon;/gi, ':')
-    .replace(/&tab;/gi, '\t')
-    .replace(/&newline;/gi, '\n')
+    .replace(/&colon;?/gi, ':')
+    .replace(/&tab;?/gi, '\t')
+    .replace(/&newline;?/gi, '\n')
     .replace(/&#(\d+);?/g, (match, dec) => {
       return String.fromCharCode(parseInt(dec, 10));
     })
