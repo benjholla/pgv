@@ -2323,7 +2323,7 @@ export class GraphView {
 
   #setupEvents(element: HTMLElement): void {
     const handleInteraction = (target: HTMLElement, event: Event) => {
-      const nodeElement = target.closest<HTMLElement>(".pgv-graph-node");
+      const nodeElement = target.closest<HTMLElement>(".pgv-graph-node, .pgv-compound-node");
       if (nodeElement && nodeElement.dataset.nodeId) {
         this.#options.onNodeClick?.(nodeElement.dataset.nodeId, event);
         return;
@@ -2346,7 +2346,7 @@ export class GraphView {
     element.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         const target = event.target as HTMLElement;
-        const isGraphElement = target.closest(".pgv-graph-node") || target.closest(".pgv-graph-edge");
+        const isGraphElement = target.closest(".pgv-graph-node, .pgv-compound-node") || target.closest(".pgv-graph-edge");
 
         if (isGraphElement) {
           event.preventDefault();
@@ -2369,7 +2369,7 @@ export class GraphView {
       }
 
       if (isKeyboardFocus) {
-        if (target.classList.contains("pgv-graph-node") && target.dataset.nodeId) {
+        if ((target.classList.contains("pgv-graph-node") || target.classList.contains("pgv-compound-node")) && target.dataset.nodeId) {
           this.#centerOnGraphElement("node", target.dataset.nodeId);
         } else if (target.classList.contains("pgv-graph-edge") && target.dataset.edgeId) {
           this.#centerOnGraphElement("edge", target.dataset.edgeId);
