@@ -368,6 +368,7 @@ export function edgeEndpoints(
  * valid path. Directional penalties are applied to minimize unnecessary joints
  * and produce clean, predictable edge routing.
  *
+ * @internal
  * @param sourcePt The starting point of the edge.
  * @param targetPt The ending point of the edge.
  * @param layout The current layout containing node sizes and positions (obstacles).
