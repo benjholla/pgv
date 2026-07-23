@@ -16,3 +16,6 @@
 ## 2024-05-24 - Map lookups in pathfinding hot loops
 **Learning:** During A* orthogonal routing, checking `layout.hierarchy?.has(id)` inside `isSegmentValid` means doing an O(N) lookup repeatedly for *every* line segment checked. Removing the map lookup from this innermost hot loop and filtering compound nodes out during the initial O(N) array allocation step (`obstacles.push`) makes edge routing ~35% faster.
 **Action:** Always filter mapping and checking variables as early as possible before entering hot tight loops (like pathfinding algorithms or rendering loops).
+## 2024-11-20 - Avoid Array.filter allocation in topological sorting roots setup
+**Learning:** In `@pgv/graph-core`, `Array.filter` inside `layoutTopologicalSort` (line 669) creates an intermediate array and closure overhead in a hot layout preprocessing step. Benchmarks confirm a standard `for` loop with `push` is significantly faster.
+**Action:** Replaced `.filter` with a standard loop pushing directly to an array to avoid closures and memory allocations, improving layout graph initialization speed.
