@@ -395,6 +395,18 @@ function buildItemMap<T, U extends { id: string }>(
   return map;
 }
 
+/**
+ * Creates an immutable {@link GraphSnapshot} from a JSON representation.
+ *
+ * This function validates the structural invariants of the graph before returning
+ * the snapshot. Specifically, it ensures that:
+ * - All edge endpoints (source and target) reference valid nodes in the graph.
+ * - Any specified containment hierarchies (defined in the schema) are strictly acyclic.
+ *
+ * @param input - The JSON representation of the graph snapshot.
+ * @returns A structurally validated, immutable graph snapshot.
+ * @throws {@link GraphModelError} if validation fails.
+ */
 export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
   const nodes = buildItemMap(input.nodes, normalizeNode, "node");
   const edges = buildItemMap(input.edges, normalizeEdge, "edge");
@@ -509,6 +521,16 @@ function parseRemovedItems(
   return result;
 }
 
+/**
+ * Creates an immutable {@link GraphDiff} from a JSON representation.
+ *
+ * This function processes the JSON input, normalizes the added elements,
+ * and ensures that the returned diff object and all its properties are deeply immutable.
+ *
+ * @param input - The JSON representation of the graph diff.
+ * @returns An immutable graph diff containing additions and removals.
+ * @throws {@link GraphModelError} if duplicate IDs are encountered within the added items.
+ */
 export function createGraphDiff(input: GraphDiffJson): GraphDiff {
   const addedNodes = parseAddedItems(input.addedNodes, normalizeNode, "node");
   const addedEdges = parseAddedItems(input.addedEdges, normalizeEdge, "edge");
