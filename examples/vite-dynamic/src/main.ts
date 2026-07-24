@@ -157,8 +157,8 @@ applyDiffRemoveBtn.addEventListener("click", () => {
   const diff = createGraphDiff({
     addedNodes: [],
     addedEdges: [],
-    removedNodes: ["init"],
-    removedEdges: ["entry-to-init", "init-to-condition"],
+    removedNodes: ["entry"],
+    removedEdges: ["e-entry-init", "e-Foo-entry-contains"],
   });
 
   try {
