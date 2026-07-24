@@ -652,6 +652,7 @@ export class GraphView {
 
   #render(): void {
     const activePlaceholder = document.activeElement && this.container.contains(document.activeElement) && document.activeElement.tagName === "INPUT" ? (document.activeElement as any).placeholder : null;
+    const activeCollapseToggleNodeId = document.activeElement && this.container.contains(document.activeElement) && document.activeElement.classList.contains("pgv-node-collapse-toggle") ? document.activeElement.closest<HTMLElement>(".pgv-graph-node, .pgv-compound-node")?.dataset.nodeId : null;
     if (!this.#graph || !this.#layout) {
       return;
     }
@@ -737,6 +738,11 @@ export class GraphView {
       } else if (this.#searchInputRef) {
         this.#searchInputRef.focus();
         this.#searchInputRef.setSelectionRange(this.#searchInputRef.value.length, this.#searchInputRef.value.length);
+      }
+    } else if (activeCollapseToggleNodeId) {
+      const toggle = root.querySelector<HTMLElement>(`[data-node-id="${activeCollapseToggleNodeId}"] .pgv-node-collapse-toggle`);
+      if (toggle) {
+        toggle.focus();
       }
     }
   }

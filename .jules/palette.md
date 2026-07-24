@@ -64,3 +64,6 @@
 ## $(date +%Y-%m-%d) - Adding accessibility to SVG/DOM native nodes
 **Learning:** In `@pgv/graph-core`, native DOM elements like `<div class="pgv-graph-node">` inside the view renderer may be given a `tabindex="0"` for focusability but lack implicit semantics to be announced correctly. Screen readers treat them as generic text or groups rather than interactive elements.
 **Action:** When creating custom interactive elements (even visually complex graph nodes), always explicitly add `role="button"` and contextual `aria-label`s to ensure they are properly announced.
+## 2026-07-24 - Focus Management on Node Controls
+**Learning:** When rendering nodes in `@pgv/graph-core`, replacing DOM elements (like compound nodes) via `#render()` causes keyboard focus to drop on interactive elements inside them, such as `.pgv-node-collapse-toggle`.
+**Action:** Explicitly manage focus for elements inside nodes by storing the active element's `node.id` (via `data-node-id` on `.pgv-graph-node` or `.pgv-compound-node`) before rendering, and restoring `.focus()` to the newly rendered element afterward.
