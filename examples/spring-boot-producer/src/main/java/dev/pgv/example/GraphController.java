@@ -28,23 +28,26 @@ public class GraphController {
                 ), null),
                 new GraphNode("init", List.of("XCSG.ControlFlow_Node"), Map.of(
                     "XCSG.name", "Initialize i = 0",
-                    "line", 3
+                    "line", Map.of("integer", 3)
                 ), null),
                 new GraphNode("condition", List.of("XCSG.ControlFlow_Node", "XCSG.Loop"), Map.of(
                     "XCSG.name", "i < n?",
-                    "line", 4
+                    "line", Map.of("integer", 4)
                 ), null),
                 new GraphNode("body", List.of("XCSG.ControlFlow_Node"), Map.of(
                     "XCSG.name", "sum += values[i]",
-                    "line", 5
+                    "line", Map.of("integer", 5)
                 ), null),
                 new GraphNode("increment", List.of("XCSG.ControlFlow_Node"), Map.of(
                     "XCSG.name", "i++",
-                    "line", 6
+                    "line", Map.of("integer", 6)
                 ), null),
                 new GraphNode("exit", List.of("XCSG.ControlFlow_Node", "XCSG.controlFlowExit"), Map.of(
                     "XCSG.name", "Return sum",
-                    "line", 8
+                    "line", Map.of("integer", 8)
+                ), null),
+                new GraphNode("Foo", List.of("XCSG.Function"), Map.of(
+                    "XCSG.name", "Foo"
                 ), null)
             ),
             List.of(
@@ -59,7 +62,13 @@ public class GraphController {
                 )),
                 new GraphEdge("e-condition-exit", "condition", "exit", List.of("XCSG.ControlFlow_Edge"), Map.of(
                     "XCSG.conditionValue", false
-                ))
+                )),
+                new GraphEdge("e-Foo-entry-contains", "Foo", "entry", List.of("XCSG.Contains"), Map.of()),
+                new GraphEdge("e-Foo-init-contains", "Foo", "init", List.of("XCSG.Contains"), Map.of()),
+                new GraphEdge("e-Foo-condition-contains", "Foo", "condition", List.of("XCSG.Contains"), Map.of()),
+                new GraphEdge("e-Foo-body-contains", "Foo", "body", List.of("XCSG.Contains"), Map.of()),
+                new GraphEdge("e-Foo-increment-contains", "Foo", "increment", List.of("XCSG.Contains"), Map.of()),
+                new GraphEdge("e-Foo-exit-contains", "Foo", "exit", List.of("XCSG.Contains"), Map.of())
             )
         );
     }
