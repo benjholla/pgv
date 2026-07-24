@@ -753,14 +753,14 @@ export class GraphView {
 
 
 
-  #createSearchToggle(label: string, active: boolean, iconHtml: string, onClick: () => void): HTMLButtonElement {
+  #createSearchToggle(label: string, active: boolean, iconNode: Node, onClick: () => void): HTMLButtonElement {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = `pgv-search-toggle ${active ? "active" : ""}`;
     btn.title = label;
     btn.setAttribute("aria-label", label);
     btn.setAttribute("aria-pressed", active ? "true" : "false");
-    btn.innerHTML = iconHtml;
+    btn.appendChild(iconNode);
     // We remove the inline style for width/height so CSS can manage the sizes and media queries
     btn.addEventListener("click", () => {
       onClick();
@@ -836,9 +836,13 @@ export class GraphView {
 
     const toggles = document.createElement("div");
     toggles.className = "pgv-search-toggles";
-    const matchCaseIcon = `Aa`;
-    const matchWholeWordIcon = `<span style="text-decoration: underline; font-style: normal; font-family: monospace;">ab</span>`;
-    const matchRegexIcon = `.*`;
+    const matchCaseIcon = document.createTextNode("Aa");
+    const matchWholeWordIcon = document.createElement("span");
+    matchWholeWordIcon.style.textDecoration = "underline";
+    matchWholeWordIcon.style.fontStyle = "normal";
+    matchWholeWordIcon.style.fontFamily = "monospace";
+    matchWholeWordIcon.textContent = "ab";
+    const matchRegexIcon = document.createTextNode(".*");
 
     toggles.appendChild(this.#createSearchToggle("Match Case", options.caseSensitive, matchCaseIcon, options.onCaseSensitiveChange));
     toggles.appendChild(this.#createSearchToggle("Match Whole Word", options.exact, matchWholeWordIcon, options.onExactChange));
