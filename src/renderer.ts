@@ -597,17 +597,7 @@ export class GraphView {
     if (this.#graph && this.#layout) {
       if (isCollapsing && this.#options.selection) {
         // Clear selection for newly hidden nodes and edges
-        const hiddenNodes = new Set<string>();
-        if (this.#layout.hierarchy?.has(id)) {
-          const stack = [...this.#layout.hierarchy.get(id)!.children];
-          while (stack.length > 0) {
-            const curr = stack.pop()!;
-            hiddenNodes.add(curr);
-            if (this.#layout.hierarchy.has(curr)) {
-              stack.push(...this.#layout.hierarchy.get(curr)!.children);
-            }
-          }
-        }
+        const hiddenNodes = getHiddenNodes(this.#layout.hierarchy, [id]);
 
         let selectionChanged = false;
         const newSelectedNodes = new Set(this.#options.selection.nodes);
@@ -894,38 +884,19 @@ export class GraphView {
       option.textContent = mode.label;
 
       option.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          option.click();
-        } else if (e.key === "Escape") {
+        if (e.key === "Escape") {
           this.#searchDropdownOpen = false;
-          dropdownBtn.setAttribute("aria-expanded", "false");
-          dropdownMenu.classList.remove("open");
+          toggleDropdownState(false, dropdownBtn, dropdownMenu);
           dropdownBtn.focus();
-        } else if (e.key === "ArrowDown") {
-          e.preventDefault();
-          const next = option.nextElementSibling as HTMLElement | null;
-          if (next) {
-            next.focus();
-          } else {
-            (dropdownMenu.firstElementChild as HTMLElement)?.focus();
-          }
-        } else if (e.key === "ArrowUp") {
-          e.preventDefault();
-          const prev = option.previousElementSibling as HTMLElement | null;
-          if (prev) {
-            prev.focus();
-          } else {
-            (dropdownMenu.lastElementChild as HTMLElement)?.focus();
-          }
+          return;
         }
+        handleDropdownKeyboardNavigation(e, option, dropdownMenu);
       });
 
       option.addEventListener("click", () => {
         this.#searchMode = mode.value as any;
         this.#searchDropdownOpen = false;
-        dropdownBtn.setAttribute("aria-expanded", "false");
-        dropdownMenu.classList.remove("open");
+        toggleDropdownState(false, dropdownBtn, dropdownMenu);
 
         this.#searchResults = [];
         this.#searchCycleIndex = -1;
@@ -945,39 +916,20 @@ export class GraphView {
     }
     searchDropdownContainer.appendChild(dropdownMenu);
 
+    const closeDropdown = () => {
+      this.#searchDropdownOpen = false;
+      toggleDropdownState(false, dropdownBtn, dropdownMenu);
+    };
+
     dropdownBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       this.#searchDropdownOpen = !this.#searchDropdownOpen;
-      dropdownBtn.setAttribute("aria-expanded", this.#searchDropdownOpen ? "true" : "false");
-      if (this.#searchDropdownOpen) {
-        dropdownMenu.classList.add("open");
-        const firstOption = dropdownMenu.querySelector('.pgv-dropdown-option') as HTMLElement;
-        if (firstOption) {
-          firstOption.focus();
-        }
-      } else {
-        dropdownMenu.classList.remove("open");
-      }
-    });
-
-    dropdownMenu.addEventListener("keydown", (e) => {
-      if (e.key === "Escape") {
-        this.#searchDropdownOpen = false;
-        dropdownBtn.setAttribute("aria-expanded", "false");
-        dropdownMenu.classList.remove("open");
-        dropdownBtn.focus();
-      }
+      toggleDropdownState(this.#searchDropdownOpen, dropdownBtn, dropdownMenu);
     });
 
     this.#searchAbortController?.abort();
     this.#searchAbortController = new AbortController();
-    document.addEventListener("click", () => {
-      if (this.#searchDropdownOpen) {
-        this.#searchDropdownOpen = false;
-        dropdownBtn.setAttribute("aria-expanded", "false");
-        dropdownMenu.classList.remove("open");
-      }
-    }, { signal: this.#searchAbortController.signal });
+    setupDropdownCloseEvents(() => this.#searchDropdownOpen, closeDropdown, dropdownBtn, dropdownMenu, this.#searchAbortController);
 
     return searchDropdownContainer;
   }
@@ -1528,32 +1480,12 @@ export class GraphView {
         }
         option.textContent = formatLabels[format];
         option.addEventListener("keydown", (e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            option.click();
-          } else if (e.key === "ArrowDown") {
-            e.preventDefault();
-            const next = option.nextElementSibling as HTMLElement | null;
-            if (next) {
-              next.focus();
-            } else {
-              (dropdownMenu.firstElementChild as HTMLElement)?.focus();
-            }
-          } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            const prev = option.previousElementSibling as HTMLElement | null;
-            if (prev) {
-              prev.focus();
-            } else {
-              (dropdownMenu.lastElementChild as HTMLElement)?.focus();
-            }
-          }
+          handleDropdownKeyboardNavigation(e, option, dropdownMenu);
         });
         option.addEventListener("click", () => {
           this.#downloadFormat = format;
           this.#downloadDropdownOpen = false;
-          dropdownBtn.setAttribute("aria-expanded", "false");
-          dropdownMenu.classList.remove("open");
+          toggleDropdownState(false, dropdownBtn, dropdownMenu);
           updateFormatLabel();
           const opts = dropdownMenu.querySelectorAll(".pgv-dropdown-option");
           for (let i = 0; i < opts.length; i++) {
@@ -1572,40 +1504,21 @@ export class GraphView {
       }
       downloadGroup.appendChild(dropdownMenu);
 
+      const closeDropdown = () => {
+        this.#downloadDropdownOpen = false;
+        toggleDropdownState(false, dropdownBtn, dropdownMenu);
+      };
+
       dropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
         this.#downloadDropdownOpen = !this.#downloadDropdownOpen;
-        dropdownBtn.setAttribute("aria-expanded", this.#downloadDropdownOpen ? "true" : "false");
-        if (this.#downloadDropdownOpen) {
-          dropdownMenu.classList.add("open");
-          const firstOption = dropdownMenu.querySelector('.pgv-dropdown-option') as HTMLElement;
-          if (firstOption) {
-            firstOption.focus();
-          }
-        } else {
-          dropdownMenu.classList.remove("open");
-        }
-      });
-
-      dropdownMenu.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-          this.#downloadDropdownOpen = false;
-          dropdownBtn.setAttribute("aria-expanded", "false");
-          dropdownMenu.classList.remove("open");
-          dropdownBtn.focus();
-        }
+        toggleDropdownState(this.#downloadDropdownOpen, dropdownBtn, dropdownMenu);
       });
 
       // Close dropdown when clicking outside
       this.#downloadAbortController?.abort();
       this.#downloadAbortController = new AbortController();
-      document.addEventListener("click", () => {
-        if (this.#downloadDropdownOpen) {
-          this.#downloadDropdownOpen = false;
-          dropdownBtn.setAttribute("aria-expanded", "false");
-          dropdownMenu.classList.remove("open");
-        }
-      }, { signal: this.#downloadAbortController.signal });
+      setupDropdownCloseEvents(() => this.#downloadDropdownOpen, closeDropdown, dropdownBtn, dropdownMenu, this.#downloadAbortController);
 
       miscGroup.appendChild(downloadGroup);
 
@@ -1866,21 +1779,7 @@ export class GraphView {
     const selectedColor = computedStyle.getPropertyValue("--pgv-minimap-selected-color").trim() || "#d97706";
 
     // Determine hidden nodes based on collapsed parents
-    const hiddenNodes = new Set<string>();
-    if (layout.hierarchy) {
-      for (const collapsedId of this.#collapsedNodes) {
-        if (layout.hierarchy.has(collapsedId)) {
-          const stack = [...layout.hierarchy.get(collapsedId)!.children];
-          while (stack.length > 0) {
-            const curr = stack.pop()!;
-            hiddenNodes.add(curr);
-            if (layout.hierarchy.has(curr)) {
-              stack.push(...layout.hierarchy.get(curr)!.children);
-            }
-          }
-        }
-      }
-    }
+    const hiddenNodes = getHiddenNodes(layout.hierarchy, this.#collapsedNodes);
 
     const containmentSet = this.#schema.containment ? new Set(this.#schema.containment) : null;
 
@@ -2488,6 +2387,85 @@ export function tagToClassName(tag: string): string {
   return result;
 }
 
+
+
+function handleDropdownKeyboardNavigation(e: KeyboardEvent, option: HTMLElement, dropdownMenu: HTMLElement) {
+  if (e.key === "Enter" || e.key === " ") {
+    e.preventDefault();
+    option.click();
+  } else if (e.key === "ArrowDown") {
+    e.preventDefault();
+    const next = option.nextElementSibling as HTMLElement | null;
+    if (next) {
+      next.focus();
+    } else {
+      (dropdownMenu.firstElementChild as HTMLElement)?.focus();
+    }
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    const prev = option.previousElementSibling as HTMLElement | null;
+    if (prev) {
+      prev.focus();
+    } else {
+      (dropdownMenu.lastElementChild as HTMLElement)?.focus();
+    }
+  }
+}
+
+
+function toggleDropdownState(isOpen: boolean, btn: HTMLButtonElement, menu: HTMLElement) {
+  btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+  if (isOpen) {
+    menu.classList.add("open");
+    const firstOption = menu.querySelector('.pgv-dropdown-option') as HTMLElement;
+    if (firstOption) {
+      firstOption.focus();
+    }
+  } else {
+    menu.classList.remove("open");
+  }
+}
+
+function setupDropdownCloseEvents(
+  getIsOpen: () => boolean,
+  close: () => void,
+  btn: HTMLButtonElement,
+  menu: HTMLElement,
+  abortController: AbortController
+) {
+  menu.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      close();
+      btn.focus();
+    }
+  });
+
+  document.addEventListener("click", () => {
+    if (getIsOpen()) {
+      close();
+    }
+  }, { signal: abortController.signal });
+}
+
+function getHiddenNodes(hierarchy: ReadonlyMap<string, { parent: string | null; children: string[] }> | undefined, collapsedNodes: ReadonlySet<string> | string[]): Set<string> {
+  const hiddenNodes = new Set<string>();
+  if (!hierarchy) return hiddenNodes;
+
+  for (const collapsedId of collapsedNodes) {
+    if (hierarchy.has(collapsedId)) {
+      const stack = [...hierarchy.get(collapsedId)!.children];
+      while (stack.length > 0) {
+        const curr = stack.pop()!;
+        hiddenNodes.add(curr);
+        if (hierarchy.has(curr)) {
+          stack.push(...hierarchy.get(curr)!.children);
+        }
+      }
+    }
+  }
+  return hiddenNodes;
+}
+
 function renderEdges(
   graph: GraphSnapshot,
   layout: LayoutSnapshot,
@@ -2510,21 +2488,7 @@ function renderEdges(
   const containmentSet = schema.containment ? new Set(schema.containment) : null;
 
   // Determine hidden nodes based on collapsed parents
-  const hiddenNodes = new Set<string>();
-  if (layout.hierarchy) {
-    for (const collapsedId of collapsedNodes) {
-      if (layout.hierarchy.has(collapsedId)) {
-        const stack = [...layout.hierarchy.get(collapsedId)!.children];
-        while (stack.length > 0) {
-          const curr = stack.pop()!;
-          hiddenNodes.add(curr);
-          if (layout.hierarchy.has(curr)) {
-            stack.push(...layout.hierarchy.get(curr)!.children);
-          }
-        }
-      }
-    }
-  }
+  const hiddenNodes = getHiddenNodes(layout.hierarchy, collapsedNodes);
 
   for (const edge of graph.edges.values()) {
     if (hiddenNodes.has(edge.source) || hiddenNodes.has(edge.target)) {
@@ -2648,20 +2612,10 @@ function renderNodes(
     if (!layout.hierarchy?.has(nodeId)) return { nodes: 0, edges: 0 };
 
     const children = layout.hierarchy.get(nodeId)!.children;
-    hiddenNodes += children.length;
 
     // Calculate edges connected to these children
-    const hiddenChildIds = new Set<string>();
-    const stack = [...children];
-    while (stack.length > 0) {
-      const curr = stack.pop()!;
-      hiddenChildIds.add(curr);
-      if (layout.hierarchy?.has(curr)) {
-        const grandChildren = layout.hierarchy.get(curr)!.children;
-        hiddenNodes += grandChildren.length;
-        stack.push(...grandChildren);
-      }
-    }
+    const hiddenChildIds = getHiddenNodes(layout.hierarchy, [nodeId]);
+    hiddenNodes = hiddenChildIds.size;
 
     const containmentSet = schema?.containment ? new Set(schema.containment) : null;
 
