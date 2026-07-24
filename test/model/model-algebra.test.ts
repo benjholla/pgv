@@ -127,6 +127,30 @@ describe("Algebraic properties of applyGraphDiff", () => {
         expect(snap.nodes.get("n1")?.tags).toEqual(["new"]);
     });
 
+    it("Idempotence Property (Removals): Applying a removal diff multiple times produces the exact same graph snapshot as applying it once", () => {
+        const base = createGraphSnapshot({
+            nodes: [{ id: "n1" }, { id: "n2" }],
+            edges: [{ id: "e1", source: "n1", target: "n2" }]
+        });
+
+        const diff = createGraphDiff({
+            removedNodes: ["n1"],
+            removedEdges: ["e1"]
+        });
+
+        const snap1 = applyGraphDiff(base, diff);
+        const snap2 = applyGraphDiff(snap1, diff);
+        const snap3 = applyGraphDiff(snap2, diff);
+
+        expect(graphSnapshotToJson(snap1)).toEqual(graphSnapshotToJson(snap2));
+        expect(graphSnapshotToJson(snap1)).toEqual(graphSnapshotToJson(snap3));
+
+        // State should just be n2
+        expect(snap3.nodes.size).toBe(1);
+        expect(snap3.nodes.has("n2")).toBe(true);
+        expect(snap3.edges.size).toBe(0);
+    });
+
     it("Invertibility Property: For any valid diff, an exact inverse diff exists that perfectly restores the original graph state", () => {
         const base = createGraphSnapshot({
             nodes: [
