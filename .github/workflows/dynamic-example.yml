@@ -56,4 +56,4 @@ jobs:
           echo "Frontend is ready!"
 
       - name: Run E2E tests for dynamic example
-        run: pnpm exec playwright test test/e2e/dynamic.spec.ts
+        run: pnpm exec playwright test --config=playwright-dynamic.config.ts
