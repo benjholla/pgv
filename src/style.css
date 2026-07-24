@@ -916,6 +916,30 @@
   justify-content: space-between;
 }
 
+.pgv-compound-node.pgv-node-collapsed {
+  box-shadow:
+    var(--pgv-node-shadow),
+    inset 0 0 0 1px var(--pgv-node-border, #d1d5db),
+    inset 5px 0 0 0 var(--pgv-node-accent);
+}
+
+@media (hover: hover) {
+  .pgv-compound-node.pgv-node-collapsed:hover:not(.pgv-selected) {
+    box-shadow:
+      var(--pgv-node-shadow),
+      inset 0 0 0 1px var(--pgv-node-accent),
+      inset 5px 0 0 0 var(--pgv-node-accent);
+  }
+}
+
+.pgv-compound-node.pgv-node-collapsed.pgv-selected {
+  box-shadow:
+    var(--pgv-node-shadow),
+    inset 0 0 0 2px var(--pgv-selected-color, #2563eb),
+    inset 5px 0 0 0 var(--pgv-selected-color, #2563eb),
+    0 0 0 4px var(--pgv-selected-ring, rgba(37, 99, 235, 0.2));
+}
+
 .pgv-node-header-collapsed {
   display: flex;
   align-items: center;
@@ -980,8 +1004,7 @@
   /* Use box-shadow to simulate borders without shifting the inner coordinate system for absolutely positioned children */
   box-shadow:
     var(--pgv-node-shadow),
-    inset 0 0 0 1px var(--pgv-node-border, #d1d5db),
-    inset 5px 0 0 0 var(--pgv-node-accent);
+    inset 0 0 0 1px var(--pgv-node-border, #d1d5db);
   border-radius: var(--pgv-node-radius, 8px);
   padding: 0;
   transition: transform var(--pgv-transition-speed) ease;
@@ -992,8 +1015,7 @@
   .pgv-compound-node:hover:not(.pgv-selected) {
     box-shadow:
       var(--pgv-node-shadow),
-      inset 0 0 0 1px var(--pgv-node-accent),
-      inset 5px 0 0 0 var(--pgv-node-accent);
+      inset 0 0 0 1px var(--pgv-node-accent);
   }
 
   .pgv-compound-node:hover:not(.pgv-selected) .pgv-compound-node-header {
@@ -1007,7 +1029,6 @@
   box-shadow:
     var(--pgv-node-shadow),
     inset 0 0 0 2px var(--pgv-selected-color, #2563eb),
-    inset 5px 0 0 0 var(--pgv-selected-color, #2563eb),
     0 0 0 4px var(--pgv-selected-ring, rgba(37, 99, 235, 0.2));
 }
 
