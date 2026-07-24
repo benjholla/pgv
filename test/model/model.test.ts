@@ -91,7 +91,7 @@ describe("model", () => {
           { id: "e2", source: "n2", target: "n3", tags: ["contains"] }
         ]
       };
-      const snapshot = createGraphSnapshot(json as any);
+      const snapshot = createGraphSnapshot(json as unknown as GraphSnapshotJson);
       expect(snapshot.schema?.containment).toEqual(["contains"]);
     });
 
@@ -104,7 +104,7 @@ describe("model", () => {
           { id: "e2", source: "n2", target: "n3", tags: ["other2"] }
         ]
       };
-      const snapshot = createGraphSnapshot(json as any);
+      const snapshot = createGraphSnapshot(json as unknown as GraphSnapshotJson);
       expect(snapshot.edges.size).toBe(2);
     });
 
@@ -135,7 +135,7 @@ describe("model", () => {
         nodes: [{ id: "n1" }],
         edges: [{ id: "e1", source: "n1", target: "n1", tags: ["contains"] }]
       };
-      expect(() => createGraphSnapshot(json as any)).toThrow(/containment cycle/i);
+      expect(() => createGraphSnapshot(json as unknown as GraphSnapshotJson)).toThrow(/containment cycle/i);
     });
 
     it("throws on mutual containment cycle", () => {
@@ -147,7 +147,7 @@ describe("model", () => {
           { id: "e2", source: "n2", target: "n1", tags: ["contains"] }
         ]
       };
-      expect(() => createGraphSnapshot(json as any)).toThrow(/containment cycle/i);
+      expect(() => createGraphSnapshot(json as unknown as GraphSnapshotJson)).toThrow(/containment cycle/i);
     });
 
     it("throws on deep containment cycle", () => {
@@ -160,7 +160,7 @@ describe("model", () => {
           { id: "e3", source: "n3", target: "n1", tags: ["contains"] }
         ]
       };
-      expect(() => createGraphSnapshot(json as any)).toThrow(/containment cycle/i);
+      expect(() => createGraphSnapshot(json as unknown as GraphSnapshotJson)).toThrow(/containment cycle/i);
     });
 
     it("throws on duplicate edge ID", () => {
@@ -195,20 +195,20 @@ describe("model", () => {
     it("throws on non-string values for IDs or tags", () => {
 
       expect(() => createGraphSnapshot({
-        nodes: [{ id: 456 as any }], edges: []
+        nodes: [{ id: 456 as unknown as string }], edges: []
       })).toThrow(/non-empty string/);
 
       expect(() => createGraphSnapshot({
-        nodes: [{ id: "n1", tags: [true as any] }], edges: []
+        nodes: [{ id: "n1", tags: [true as unknown as string] }], edges: []
       })).toThrow(/non-empty string/);
     });
 
     it("throws TypeError if sanitizeString is passed a non-string directly", () => {
       // We exported sanitizeString specifically to test this internal defensive invariant
-      expect(() => sanitizeString(123 as any)).toThrow(TypeError);
-      expect(() => sanitizeString(null as any)).toThrow(TypeError);
-      expect(() => sanitizeString(undefined as any)).toThrow(TypeError);
-      expect(() => sanitizeString({} as any)).toThrow(TypeError);
+      expect(() => sanitizeString(123 as unknown as string)).toThrow(TypeError);
+      expect(() => sanitizeString(null as unknown as string)).toThrow(TypeError);
+      expect(() => sanitizeString(undefined as unknown as string)).toThrow(TypeError);
+      expect(() => sanitizeString({} as unknown as string)).toThrow(TypeError);
     });
 
     it("strips inline event handlers containing control characters", () => {
@@ -395,7 +395,7 @@ describe("model", () => {
         edges: [{ id: "e1", source: "A", target: "A", tags: ["t2"], attributes: {} }]
       };
 
-      const snap1 = createGraphSnapshot(json as any);
+      const snap1 = createGraphSnapshot(json as unknown as GraphSnapshotJson);
       const json2 = graphSnapshotToJson(snap1);
       const snap2 = createGraphSnapshot(json2);
 
@@ -411,7 +411,7 @@ describe("model", () => {
         removedEdges: ["e2"]
       };
 
-      const diff1 = createGraphDiff(json as any);
+      const diff1 = createGraphDiff(json as unknown as GraphDiffJson);
       const json2 = graphDiffToJson(diff1);
       const diff2 = createGraphDiff(json2);
 
@@ -498,7 +498,7 @@ describe("model", () => {
 
     it("throws when an attribute has an unsupported value type", () => {
       const attrs = Object.create({ inherited: 1 });
-      attrs.invalid = {} as any;
+      attrs.invalid = {} as unknown as AttributeValue;
       attrs.valid = "ok";
 
       expect(() => createGraphSnapshot({
@@ -507,7 +507,7 @@ describe("model", () => {
       })).toThrow(/unsupported value type/i);
 
       expect(() => createGraphSnapshot({
-        nodes: [{ id: "n1", tags: [], attributes: { invalid: [] as any } }],
+        nodes: [{ id: "n1", tags: [], attributes: { invalid: [] as unknown as AttributeValue } }],
         edges: []
       })).toThrow(/unsupported value type/i);
     });

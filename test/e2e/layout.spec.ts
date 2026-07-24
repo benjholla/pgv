@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 // Helper script to inject graph JSON into the demo app
 async function injectGraph(page: any, graphJson: any) {
   await page.evaluate((json: any) => {
-    (window as any).__setTestGraph(json);
+    (window as unknown as { __setTestGraph: (json: any) => void }).__setTestGraph(json);
   }, graphJson);
 
   // Wait a small amount of time for render
