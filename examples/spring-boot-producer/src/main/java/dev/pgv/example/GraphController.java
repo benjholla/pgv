@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class GraphController {
     @GetMapping("/cfg-main/schema")
     public GraphSchema cfgMainSchema() {
-        return new GraphSchema(List.of("contains"));
+        return new GraphSchema(List.of("XCSG.Contains"));
     }
 
     @GetMapping("/cfg-main")
