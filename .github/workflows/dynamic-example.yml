@@ -1,0 +1,59 @@
+name: Dynamic Example CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  verify-dynamic-example:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps
+
+      - name: Start Spring Boot Backend
+        run: pnpm run dev:backend &
+
+      - name: Wait for Backend
+        run: |
+          echo "Waiting for Spring Boot backend to be ready..."
+          timeout 60 bash -c 'while ! curl -s http://127.0.0.1:8080/api/graphs/cfg-main > /dev/null; do sleep 2; done'
+          echo "Backend is ready!"
+
+      - name: Start Dynamic Frontend
+        run: pnpm run dev:dynamic --port 5173 &
+
+      - name: Wait for Frontend
+        run: |
+          echo "Waiting for Vite frontend to be ready..."
+          timeout 60 bash -c 'while ! curl -s http://127.0.0.1:5173 > /dev/null; do sleep 2; done'
+          echo "Frontend is ready!"
+
+      - name: Run E2E tests for dynamic example
+        run: pnpm exec playwright test --config=playwright-dynamic.config.ts
