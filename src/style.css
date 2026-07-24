@@ -988,6 +988,20 @@
   will-change: transform;
 }
 
+@media (hover: hover) {
+  .pgv-compound-node:hover:not(.pgv-selected) {
+    box-shadow:
+      var(--pgv-node-shadow),
+      inset 0 0 0 1px var(--pgv-node-accent),
+      inset 5px 0 0 0 var(--pgv-node-accent);
+  }
+
+  .pgv-compound-node:hover:not(.pgv-selected) .pgv-compound-node-header {
+    box-shadow:
+      inset 0 -1px 0 0 var(--pgv-node-accent),
+      inset 5px 0 0 0 var(--pgv-node-accent);
+  }
+}
 
 .pgv-compound-node.pgv-selected {
   box-shadow:
