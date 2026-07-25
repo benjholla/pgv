@@ -867,41 +867,20 @@ export class GraphView {
     `;
     searchDropdownContainer.appendChild(dropdownBtn);
 
-    const dropdownMenu = document.createElement("div");
-    dropdownMenu.className = "pgv-dropdown-menu";
-    dropdownMenu.id = "pgv-search-dropdown-menu";
-    dropdownMenu.setAttribute("role", "menu");
-    if (this.#searchDropdownOpen) {
-      dropdownMenu.classList.add("open");
-    }
+    const closeDropdown = () => {
+      this.#searchDropdownOpen = false;
+      toggleDropdownState(false, dropdownBtn, dropdownMenu);
+    };
 
-    for (let i = 0; i < SEARCH_MODES.length; i++) {
-      const mode = SEARCH_MODES[i];
-      const option = document.createElement("div");
-      option.className = "pgv-dropdown-option";
-      option.setAttribute("role", "menuitemradio");
-      option.dataset.value = mode.value;
-      option.setAttribute("tabindex", "0");
-      if (this.#searchMode === mode.value) {
-        option.setAttribute("aria-checked", "true");
-        option.classList.add("selected");
-      } else {
-        option.setAttribute("aria-checked", "false");
-      }
-      option.textContent = mode.label;
-
-      option.addEventListener("keydown", (e) => {
-        if (e.key === "Escape") {
-          this.#searchDropdownOpen = false;
-          toggleDropdownState(false, dropdownBtn, dropdownMenu);
-          dropdownBtn.focus();
-          return;
-        }
-        handleDropdownKeyboardNavigation(e, option, dropdownMenu);
-      });
-
-      option.addEventListener("click", () => {
-        this.#searchMode = mode.value as any;
+    const dropdownMenu = buildDropdownMenu({
+      menuId: "pgv-search-dropdown-menu",
+      isOpen: this.#searchDropdownOpen,
+      options: SEARCH_MODES,
+      currentValue: this.#searchMode,
+      dropdownBtn,
+      onClose: closeDropdown,
+      onSelect: (value) => {
+        this.#searchMode = value as any;
         this.#searchDropdownOpen = false;
         toggleDropdownState(false, dropdownBtn, dropdownMenu);
 
@@ -918,15 +897,11 @@ export class GraphView {
             newBtn.focus();
           }
         }
-      });
-      dropdownMenu.appendChild(option);
-    }
+      }
+    });
     searchDropdownContainer.appendChild(dropdownMenu);
 
-    const closeDropdown = () => {
-      this.#searchDropdownOpen = false;
-      toggleDropdownState(false, dropdownBtn, dropdownMenu);
-    };
+
 
     dropdownBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -1457,13 +1432,10 @@ export class GraphView {
       `;
       downloadGroup.appendChild(dropdownBtn);
 
-      const dropdownMenu = document.createElement("div");
-      dropdownMenu.className = "pgv-dropdown-menu";
-      dropdownMenu.id = "pgv-download-dropdown-menu";
-      dropdownMenu.setAttribute("role", "menu");
-      if (this.#downloadDropdownOpen) {
-        dropdownMenu.classList.add("open");
-      }
+      const closeDropdown = () => {
+        this.#downloadDropdownOpen = false;
+        toggleDropdownState(false, dropdownBtn, dropdownMenu);
+      };
 
       const updateFormatLabel = () => {
         const span = downloadBtn.querySelector("span");
@@ -1473,31 +1445,27 @@ export class GraphView {
       };
 
       const formats = ["svg", "png", "jpeg", "json"] as const;
-      for (let i = 0; i < formats.length; i++) {
-        const format = formats[i];
-        const option = document.createElement("div");
-        option.className = "pgv-dropdown-option";
-        option.setAttribute("role", "menuitemradio");
-        option.setAttribute("tabindex", "0");
-        if (format === this.#downloadFormat) {
-          option.classList.add("selected");
-          option.setAttribute("aria-checked", "true");
-        } else {
-          option.setAttribute("aria-checked", "false");
-        }
-        option.textContent = formatLabels[format];
-        option.addEventListener("keydown", (e) => {
-          handleDropdownKeyboardNavigation(e, option, dropdownMenu);
-        });
-        option.addEventListener("click", () => {
-          this.#downloadFormat = format;
+      const dropdownOptions = formats.map(format => ({
+        value: format,
+        label: formatLabels[format]
+      }));
+
+      const dropdownMenu = buildDropdownMenu({
+        menuId: "pgv-download-dropdown-menu",
+        isOpen: this.#downloadDropdownOpen,
+        options: dropdownOptions,
+        currentValue: this.#downloadFormat,
+        dropdownBtn,
+        onClose: closeDropdown,
+        onSelect: (value) => {
+          this.#downloadFormat = value as any;
           this.#downloadDropdownOpen = false;
           toggleDropdownState(false, dropdownBtn, dropdownMenu);
           updateFormatLabel();
           const opts = dropdownMenu.querySelectorAll(".pgv-dropdown-option");
           for (let i = 0; i < opts.length; i++) {
             const opt = opts[i];
-            if (opt.textContent === formatLabels[format]) {
+            if (opt.textContent === formatLabels[value as any]) {
               opt.classList.add("selected");
               opt.setAttribute("aria-checked", "true");
             } else {
@@ -1506,15 +1474,11 @@ export class GraphView {
             }
           }
           dropdownBtn.focus();
-        });
-        dropdownMenu.appendChild(option);
-      }
+        }
+      });
       downloadGroup.appendChild(dropdownMenu);
 
-      const closeDropdown = () => {
-        this.#downloadDropdownOpen = false;
-        toggleDropdownState(false, dropdownBtn, dropdownMenu);
-      };
+
 
       dropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -2395,6 +2359,63 @@ export function tagToClassName(tag: string): string {
 }
 
 
+
+
+interface DropdownOption<T> {
+  value: T;
+  label: string;
+}
+
+function buildDropdownMenu<T extends string>(options: {
+  menuId: string;
+  isOpen: boolean;
+  options: readonly DropdownOption<T>[];
+  currentValue: T;
+  onSelect: (value: T) => void;
+  onClose: () => void;
+  dropdownBtn: HTMLButtonElement;
+}): HTMLElement {
+  const dropdownMenu = document.createElement("div");
+  dropdownMenu.className = "pgv-dropdown-menu";
+  dropdownMenu.id = options.menuId;
+  dropdownMenu.setAttribute("role", "menu");
+  if (options.isOpen) {
+    dropdownMenu.classList.add("open");
+  }
+
+  for (let i = 0; i < options.options.length; i++) {
+    const optDef = options.options[i];
+    const option = document.createElement("div");
+    option.className = "pgv-dropdown-option";
+    option.setAttribute("role", "menuitemradio");
+    option.dataset.value = optDef.value;
+    option.setAttribute("tabindex", "0");
+    if (options.currentValue === optDef.value) {
+      option.setAttribute("aria-checked", "true");
+      option.classList.add("selected");
+    } else {
+      option.setAttribute("aria-checked", "false");
+    }
+    option.textContent = optDef.label;
+
+    option.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        options.onClose();
+        options.dropdownBtn.focus();
+        return;
+      }
+      handleDropdownKeyboardNavigation(e, option, dropdownMenu);
+    });
+
+    option.addEventListener("click", () => {
+      options.onSelect(optDef.value);
+    });
+
+    dropdownMenu.appendChild(option);
+  }
+
+  return dropdownMenu;
+}
 
 function handleDropdownKeyboardNavigation(e: KeyboardEvent, option: HTMLElement, dropdownMenu: HTMLElement) {
   if (e.key === "Enter" || e.key === " ") {
