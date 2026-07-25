@@ -2,6 +2,7 @@
   /* Make view fit parent */
   height: 100%;
   width: 100%;
+  --pgv-animation-duration: 300ms;
   --pgv-color-fg: #17202a;
   --pgv-color-bg: #f9fbfd;
   --pgv-color-border: #d6dee8;
@@ -142,6 +143,13 @@
   position: relative;
   width: 100%;
   touch-action: none;
+}
+
+.pgv-pan-zoom-layer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-origin: 0 0;
 }
 
 .pgv-viewport:active {
@@ -1082,21 +1090,21 @@
 /* FLIP Animation Classes */
 .pgv-graph-stage.pgv-animating .pgv-graph-node,
 .pgv-graph-stage.pgv-animating .pgv-compound-node,
+.pgv-graph-stage.pgv-animating .pgv-graph-edge,
 .pgv-graph-stage.pgv-animating .pgv-edge-layer {
   transition: transform var(--pgv-animation-duration, 300ms) ease-in-out, opacity var(--pgv-animation-duration, 300ms) ease-in-out;
 }
 
+.pgv-graph-stage .exiting,
 .pgv-graph-stage.exiting {
   opacity: 0;
+  pointer-events: none; /* Prevents ghost clicks during fade-out */
   transition: opacity var(--pgv-animation-duration, 300ms) ease-in-out;
 }
 
-.entering {
+.pgv-graph-node.entering,
+.pgv-graph-edge.entering,
+.pgv-compound-node.entering {
   opacity: 0;
-}
-.pgv-graph-stage.pgv-animating .entering {
-  opacity: 1;
-}
-.pgv-graph-stage.pgv-animating:not(.exiting) {
-  opacity: 1;
+  transition: opacity var(--pgv-animation-duration, 300ms) ease-in-out;
 }
