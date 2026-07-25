@@ -84,7 +84,7 @@ describe('GraphView', () => {
       strokeStyle: '',
       lineWidth: 0,
       stroke: vi.fn(),
-    })) as any;
+    })) as unknown as CanvasRenderingContext2D;
 
     Element.prototype.setPointerCapture = vi.fn();
     Element.prototype.releasePointerCapture = vi.fn();

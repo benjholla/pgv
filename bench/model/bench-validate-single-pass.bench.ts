@@ -5,7 +5,7 @@ describe("validateStructuralInvariants single pass vs Array.from", () => {
   for (let i = 0; i < 50000; i++) {
     edgeArray.push({ id: String(i), source: "1", target: "2", tags: ["a", "b"] });
   }
-  const nodes = new Map([["1", {} as any], ["2", {} as any]]);
+  const nodes = new Map([["1", { id: "1", tags: [], attributes: {} }], ["2", { id: "2", tags: [], attributes: {} }]]);
   const schema = { containment: ["a"] };
 
   function* generateEdges() {

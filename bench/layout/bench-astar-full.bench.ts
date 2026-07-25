@@ -1,7 +1,9 @@
 import { bench, describe } from "vitest";
 import { routeEdgeOrthogonal as routeEdgeOrthogonalOrig } from "../../src/layout.js";
 
-const layout = {
+import type { LayoutSnapshot } from "../../src/model.js";
+
+const layout: LayoutSnapshot = {
   width: 1000,
   height: 1000,
   nodeSize: { width: 100, height: 100 },
@@ -21,6 +23,6 @@ const targetPt = { x: 950, y: 950 };
 
 describe("routeEdgeOrthogonal full", () => {
   bench("orig", () => {
-    routeEdgeOrthogonalOrig(sourcePt, targetPt, layout as any);
+    routeEdgeOrthogonalOrig(sourcePt, targetPt, layout);
   });
 });
