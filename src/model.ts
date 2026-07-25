@@ -307,8 +307,11 @@ function validateStructuralInvariants(
 ) {
   // Build adjacency list for containment edges
   const containmentAdjacency = new Map<string, string[]>();
+  const inDegree = new Map<string, number>();
+
   for (const nodeId of nodes.keys()) {
     containmentAdjacency.set(nodeId, []);
+    inDegree.set(nodeId, 0);
   }
 
   // PERF(Bolt): Consolidate structural validation and containment adjacency building
@@ -325,6 +328,12 @@ function validateStructuralInvariants(
 
     if (containmentSet && isContainmentEdge(edge, containmentSet)) {
       containmentAdjacency.get(edge.source)!.push(edge.target);
+
+      const currentInDegree = inDegree.get(edge.target)! + 1;
+      if (currentInDegree > 1) {
+        throw new GraphModelError(`Containment invariant violation: Node "${edge.target}" has multiple parent nodes.`);
+      }
+      inDegree.set(edge.target, currentInDegree);
     }
   }
 
