@@ -11,6 +11,18 @@ import { toSvg, toPng, toJpeg } from "html-to-image";
 let markerIdSequence = 0;
 const PGV_VIEWPORT_CLASS = "pgv-viewport";
 
+function createSvgElement(tag: string, attrs: Record<string, string>, children: Element[] = []): SVGElement {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
+  for (const [key, val] of Object.entries(attrs)) {
+    el.setAttribute(key, val);
+  }
+  for (const child of children) {
+    el.appendChild(child);
+  }
+  return el;
+}
+
+
 const ATTRIBUTE_SEARCH_MODES = new Set(["node-attribute", "edge-attribute", "attribute"]);
 const NODE_SEARCH_MODES = new Set(["all", "id", "node-id", "node-tag", "node-attribute", "tag", "attribute"]);
 const EDGE_SEARCH_MODES = new Set(["all", "id", "edge-id", "edge-tag", "edge-attribute", "tag", "attribute"]);
@@ -796,11 +808,22 @@ export class GraphView {
     clearBtn.type = "button";
     clearBtn.setAttribute("aria-label", "Clear search");
     clearBtn.title = "Clear";
-    clearBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <circle cx="12" cy="12" r="10"></circle>
-      <line x1="15" y1="9" x2="9" y2="15"></line>
-      <line x1="9" y1="9" x2="15" y2="15"></line>
-    </svg>`;
+    clearBtn.appendChild(
+      createSvgElement("svg", {
+        "viewBox": "0 0 24 24",
+        "width": "16",
+        "height": "16",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      }, [
+        createSvgElement("circle", { "cx": "12", "cy": "12", "r": "10" }),
+        createSvgElement("line", { "x1": "15", "y1": "9", "x2": "9", "y2": "15" }),
+        createSvgElement("line", { "x1": "9", "y1": "9", "x2": "15", "y2": "15" })
+      ])
+    );
 
     const updateClearBtn = () => {
       clearBtn.style.display = input.value ? "flex" : "none";
@@ -857,11 +880,21 @@ export class GraphView {
     dropdownBtn.setAttribute("aria-controls", "pgv-search-dropdown-menu");
     dropdownBtn.setAttribute("aria-expanded", this.#searchDropdownOpen ? "true" : "false");
     const icons = { chevronDown: "M6 9l6 6 6-6" };
-    dropdownBtn.innerHTML = `
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="${icons.chevronDown}"></path>
-      </svg>
-    `;
+    dropdownBtn.appendChild(
+      createSvgElement("svg", {
+        "aria-hidden": "true",
+        "viewBox": "0 0 24 24",
+        "width": "14",
+        "height": "14",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2.5",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      }, [
+        createSvgElement("path", { "d": icons.chevronDown })
+      ])
+    );
     searchDropdownContainer.appendChild(dropdownBtn);
 
     const dropdownMenu = document.createElement("div");
@@ -973,12 +1006,22 @@ export class GraphView {
     searchBtn.type = "button";
     searchBtn.title = "Search";
     searchBtn.setAttribute("aria-label", "Execute search");
-    searchBtn.innerHTML = `
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="11" cy="11" r="8"></circle>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-      </svg>
-    `;
+    searchBtn.appendChild(
+      createSvgElement("svg", {
+        "aria-hidden": "true",
+        "viewBox": "0 0 24 24",
+        "width": "16",
+        "height": "16",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2.5",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      }, [
+        createSvgElement("circle", { "cx": "11", "cy": "11", "r": "8" }),
+        createSvgElement("line", { "x1": "21", "y1": "21", "x2": "16.65", "y2": "16.65" })
+      ])
+    );
     searchBtn.addEventListener("click", () => {
       if (searchBtn.getAttribute("aria-disabled") === "true") return;
       this.#executeSearch();
@@ -989,12 +1032,22 @@ export class GraphView {
     cycleBtn.title = "Cycle Results";
     cycleBtn.setAttribute("aria-label", "Cycle search results");
     cycleBtn.setAttribute("aria-disabled", this.#searchResults.length === 0 ? "true" : "false");
-    cycleBtn.innerHTML = `
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-        <path d="M3 3v5h5"></path>
-      </svg>
-    `;
+    cycleBtn.appendChild(
+      createSvgElement("svg", {
+        "aria-hidden": "true",
+        "viewBox": "0 0 24 24",
+        "width": "16",
+        "height": "16",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2.5",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      }, [
+        createSvgElement("path", { "d": "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" }),
+        createSvgElement("path", { "d": "M3 3v5h5" })
+      ])
+    );
 
     const updateSearchBtnState = () => {
       const isQueryEmpty = isAttributeMode
@@ -1139,12 +1192,22 @@ export class GraphView {
     closeBtn.title = "Close Search (Esc)";
     closeBtn.setAttribute("aria-label", "Close Search");
     closeBtn.style.marginLeft = "auto";
-    closeBtn.innerHTML = `
-      <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-        <line x1="18" y1="6" x2="6" y2="18"></line>
-        <line x1="6" y1="6" x2="18" y2="18"></line>
-      </svg>
-    `;
+    closeBtn.appendChild(
+      createSvgElement("svg", {
+        "aria-hidden": "true",
+        "viewBox": "0 0 24 24",
+        "width": "16",
+        "height": "16",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2.5",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      }, [
+        createSvgElement("line", { "x1": "18", "y1": "6", "x2": "6", "y2": "18" }),
+        createSvgElement("line", { "x1": "6", "y1": "6", "x2": "18", "y2": "18" })
+      ])
+    );
     const handleClose = () => {
       this.#searchOpen = false;
       this.#render();
@@ -1430,12 +1493,24 @@ export class GraphView {
       downloadBtn.className = "pgv-download-action-btn";
       downloadBtn.setAttribute("aria-label", "Download Graph");
       downloadBtn.setAttribute("title", "Download Graph");
-      downloadBtn.innerHTML = `
-        <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="${icons.download}"></path>
-        </svg>
-        <span>${formatLabels[this.#downloadFormat]}</span>
-      `;
+      downloadBtn.appendChild(
+        createSvgElement("svg", {
+          "aria-hidden": "true",
+          "viewBox": "0 0 24 24",
+          "width": "16",
+          "height": "16",
+          "fill": "none",
+          "stroke": "currentColor",
+          "stroke-width": "2.5",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }, [
+          createSvgElement("path", { "d": icons.download })
+        ])
+      );
+      const span = document.createElement("span");
+      span.textContent = formatLabels[this.#downloadFormat];
+      downloadBtn.appendChild(span);
       downloadBtn.addEventListener("click", () => this.#downloadGraph());
       downloadGroup.appendChild(downloadBtn);
 
@@ -1447,11 +1522,21 @@ export class GraphView {
       dropdownBtn.setAttribute("aria-haspopup", "menu");
       dropdownBtn.setAttribute("aria-controls", "pgv-download-dropdown-menu");
       dropdownBtn.setAttribute("aria-expanded", this.#downloadDropdownOpen ? "true" : "false");
-      dropdownBtn.innerHTML = `
-        <svg aria-hidden="true" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="${icons.chevronDown}"></path>
-        </svg>
-      `;
+      dropdownBtn.appendChild(
+        createSvgElement("svg", {
+          "aria-hidden": "true",
+          "viewBox": "0 0 24 24",
+          "width": "14",
+          "height": "14",
+          "fill": "none",
+          "stroke": "currentColor",
+          "stroke-width": "2.5",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }, [
+          createSvgElement("path", { "d": icons.chevronDown })
+        ])
+      );
       downloadGroup.appendChild(dropdownBtn);
 
       const dropdownMenu = document.createElement("div");
@@ -1888,12 +1973,12 @@ export class GraphView {
 
     const downloadBtn = this.container.querySelector<HTMLButtonElement>(".pgv-download-action-btn");
     const dropdownBtn = this.container.querySelector<HTMLButtonElement>(".pgv-download-dropdown-btn");
-    let originalBtnHtml = "";
+    let originalBtnChildren: Element[] = [];
     let originalDownloadTitle = "";
     let originalDropdownTitle = "";
 
     if (downloadBtn && dropdownBtn) {
-      originalBtnHtml = downloadBtn.innerHTML;
+      originalBtnChildren = Array.from(downloadBtn.children);
       originalDownloadTitle = downloadBtn.title;
       originalDropdownTitle = dropdownBtn.title;
 
@@ -1906,19 +1991,32 @@ export class GraphView {
       dropdownBtn.setAttribute("aria-label", dropdownBtn.title);
 
       const formatLabels: Record<string, string> = { svg: " SVG", png: " PNG", jpeg: "JPEG", json: "JSON" };
-      downloadBtn.innerHTML = `
-        <svg class="pgv-spinner" aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <line x1="12" y1="2" x2="12" y2="6"></line>
-          <line x1="12" y1="18" x2="12" y2="22"></line>
-          <line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line>
-          <line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line>
-          <line x1="2" y1="12" x2="6" y2="12"></line>
-          <line x1="18" y1="12" x2="22" y2="12"></line>
-          <line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line>
-          <line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line>
-        </svg>
-        <span>${formatLabels[this.#downloadFormat]}</span>
-      `;
+      downloadBtn.replaceChildren(
+        createSvgElement("svg", {
+          "class": "pgv-spinner",
+          "aria-hidden": "true",
+          "viewBox": "0 0 24 24",
+          "width": "16",
+          "height": "16",
+          "fill": "none",
+          "stroke": "currentColor",
+          "stroke-width": "2.5",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }, [
+          createSvgElement("line", { "x1": "12", "y1": "2", "x2": "12", "y2": "6" }),
+          createSvgElement("line", { "x1": "12", "y1": "18", "x2": "12", "y2": "22" }),
+          createSvgElement("line", { "x1": "4.93", "y1": "4.93", "x2": "7.76", "y2": "7.76" }),
+          createSvgElement("line", { "x1": "16.24", "y1": "16.24", "x2": "19.07", "y2": "19.07" }),
+          createSvgElement("line", { "x1": "2", "y1": "12", "x2": "6", "y2": "12" }),
+          createSvgElement("line", { "x1": "18", "y1": "12", "x2": "22", "y2": "12" }),
+          createSvgElement("line", { "x1": "4.93", "y1": "19.07", "x2": "7.76", "y2": "16.24" }),
+          createSvgElement("line", { "x1": "16.24", "y1": "7.76", "x2": "19.07", "y2": "4.93" })
+        ])
+      );
+      const spinnerSpan = document.createElement("span");
+      spinnerSpan.textContent = formatLabels[this.#downloadFormat];
+      downloadBtn.appendChild(spinnerSpan);
 
       await new Promise(resolve => requestAnimationFrame(resolve));
       await new Promise(resolve => setTimeout(resolve, 0));
@@ -2147,7 +2245,7 @@ export class GraphView {
     }
     } finally {
       if (downloadBtn && dropdownBtn) {
-        downloadBtn.innerHTML = originalBtnHtml;
+        downloadBtn.replaceChildren(...originalBtnChildren);
         downloadBtn.setAttribute("aria-disabled", "false");
         dropdownBtn.setAttribute("aria-disabled", "false");
         downloadBtn.title = originalDownloadTitle;
