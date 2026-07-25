@@ -819,6 +819,7 @@ export class GraphView {
     clearBtn.title = "Clear";
     clearBtn.appendChild(
       createSvgElement("svg", {
+        "aria-hidden": "true",
         "viewBox": "0 0 24 24",
         "width": "16",
         "height": "16",
