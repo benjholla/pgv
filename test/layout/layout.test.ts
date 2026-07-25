@@ -56,7 +56,7 @@ describe("layout", () => {
       });
 
       const schema = { containment: ["contains"] };
-      const layout = verticalLayout(graph, undefined, undefined, schema);
+      const layout = verticalLayout(graph, undefined, schema);
 
       expect(layout.nodeSizes.has("parent1")).toBe(true);
       expect(layout.nodeSizes.has("parent2")).toBe(true);
@@ -75,10 +75,10 @@ describe("layout", () => {
       const schema = { containment: ["contains"] };
 
       const sizes = new Map([["child", { width: 50, height: 50 }]]);
-      const layout = verticalLayout(graph, undefined, undefined, schema);
+      const layout = verticalLayout(graph, undefined, schema);
 
       // Call verticalLayout again to test cache hit
-      const layout2 = verticalLayout(graph, undefined, undefined, schema);
+      const layout2 = verticalLayout(graph, undefined, schema);
       expect(layout2.nodeSizes.has("parent")).toBe(true);
     });
 
@@ -103,7 +103,7 @@ describe("layout", () => {
       });
 
       const schema = { containment: ["contains"] };
-      const layout = verticalLayout(graph, undefined, undefined, schema);
+      const layout = verticalLayout(graph, undefined, schema);
 
       expect(layout.nodeSizes.has("root")).toBe(true);
       expect(layout.positions.has("root")).toBe(true);
@@ -129,7 +129,7 @@ describe("layout", () => {
       });
 
       const schema = { containment: ["contains"] };
-      const layout = verticalLayout(graph, undefined, undefined, schema);
+      const layout = verticalLayout(graph, undefined, schema);
 
       expect(layout.nodeSizes.has("parent1")).toBe(true);
       expect(layout.positions.has("parent1")).toBe(true);
@@ -153,7 +153,7 @@ describe("layout", () => {
       });
 
       const schema = { containment: ["contains"] };
-      const layout = verticalLayout(graph, { collapsedNodes: new Set(["parent1"]) }, undefined, schema);
+      const layout = verticalLayout(graph, { collapsedNodes: new Set(["parent1"]) }, schema);
 
       expect(layout.nodeSizes.get("parent1")!.height).toBe(36);
     });
@@ -226,7 +226,7 @@ describe("layout", () => {
           ]
         });
 
-        const layout = verticalLayout(graph, undefined, undefined, schema);
+        const layout = verticalLayout(graph, undefined, schema);
 
         expect(layout.hierarchy).toBeDefined();
         expect(layout.hierarchy?.get("P")?.children).toEqual(["C1", "C2"]);
@@ -262,7 +262,7 @@ describe("layout", () => {
           ]
         });
 
-        const layout = verticalLayout(graph, undefined, undefined, schema);
+        const layout = verticalLayout(graph, undefined, schema);
 
         const posG = layout.positions.get("G")!;
         const sizeG = layout.nodeSizes!.get("G")!;
@@ -296,7 +296,7 @@ describe("layout", () => {
           edges: []
         });
 
-        const layout = verticalLayout(graph, undefined, undefined, schema);
+        const layout = verticalLayout(graph, undefined, schema);
 
         expect(layout.nodeSizes?.get("EmptyParent")).toEqual(layout.nodeSize);
         expect(layout.positions.has("EmptyParent")).toBe(true);
@@ -309,7 +309,7 @@ describe("layout", () => {
           edges: [{ id: "e1", source: "P", target: "C", tags: ["contains"] }]
         });
 
-        const layout = verticalLayout(graph, { containmentTags: new Set(["contains"]) }, undefined, schema);
+        const layout = verticalLayout(graph, { containmentTags: new Set(["contains"]) }, schema);
 
         // It shouldn't generate edge routing hints for containment edges
         expect(layout.edgeRouting?.has("e1")).toBe(false);
@@ -444,7 +444,7 @@ describe("layout", () => {
           ]
         });
 
-        const nextLayout = verticalLayout(nextGraph, { previousLayout: baseLayout });
+        const nextLayout = verticalLayout(nextGraph);
         const posB2 = nextLayout.positions.get("B")!;
         const posC2 = nextLayout.positions.get("C")!;
 
@@ -873,7 +873,7 @@ describe("layout", () => {
         ]
       });
 
-      const nextLayout = verticalLayout(newGraph, { previousLayout: prevLayout });
+      const nextLayout = verticalLayout(newGraph);
       expect(nextLayout).toBeDefined();
     });
 
@@ -889,7 +889,7 @@ describe("layout", () => {
         edges: []
       });
 
-      const nextLayout = verticalLayout(newGraph, { previousLayout: prevLayout });
+      const nextLayout = verticalLayout(newGraph);
       expect(nextLayout).toBeDefined();
     });
   });

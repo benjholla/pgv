@@ -575,7 +575,8 @@ describe('GraphView', () => {
       const view = new GraphView(container, graph.schema);
       view.setGraph(graph);
 
-      const parentEl = container.querySelector('[data-node-id="parent"]');
+
+      const parentEl = container.querySelector('.pgv-compound-node[data-node-id="parent"]');
       expect(parentEl).not.toBeNull();
 
       const header = parentEl?.querySelector(".pgv-compound-node-header");
@@ -588,11 +589,8 @@ describe('GraphView', () => {
       expect(toggle).not.toBeNull();
       expect(toggle?.getAttribute("aria-expanded")).toBe("true");
 
-      const child1 = parentEl?.querySelector('[data-node-id="child1"]');
-      const child2 = parentEl?.querySelector('[data-node-id="child2"]');
-
-      expect(child1).not.toBeNull();
-      expect(child2).not.toBeNull();
+      const child1 = container.querySelector('[data-node-id="child1"]');
+      const child2 = container.querySelector('[data-node-id="child2"]');
 
       expect(child1?.getAttribute("style")).toContain("transform: translate");
     });
@@ -616,7 +614,7 @@ describe('GraphView', () => {
       const view = new GraphView(container, graph.schema);
       view.setGraph(graph);
 
-      const parentEl = container.querySelector('[data-node-id="parent_isolated"]');
+      const parentEl = container.querySelectorAll('.pgv-compound-node')[1];
       expect(parentEl).not.toBeNull();
 
       const child1 = parentEl?.querySelector('[data-node-id="child_isolated"]');

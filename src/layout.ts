@@ -253,7 +253,6 @@ const DEFAULT_VERTICAL_LAYOUT: Required<VerticalLayoutOptions> = {
 export function verticalLayout(
   graph: GraphSnapshot,
   options: VerticalLayoutOptions = {},
-  previousLayout?: LayoutSnapshot,
   schema?: GraphSchema
 ): LayoutSnapshot {
   const config = { ...DEFAULT_VERTICAL_LAYOUT, ...options };
@@ -263,9 +262,7 @@ export function verticalLayout(
   const depths = assignVerticalDepths(nodeIds, outgoing, incoming);
   const layers = groupByDepth(nodeIds, depths);
 
-  if (previousLayout && previousLayout.positions) {
-    applyPreviousLayoutHints(layers, previousLayout, incoming, outgoing);
-  }
+
 
   const { positions, nodeSizes, width, height } = computeLayerPositions(graph, layers, nodeIds, config);
 
@@ -768,6 +765,10 @@ function groupByDepth(
     layers.set(depth, layer);
   }
 
+  for (const layer of layers.values()) {
+    layer.sort((a, b) => a.localeCompare(b));
+  }
+
   const entries = new Array<[number, readonly string[]]>(layers.size);
   let eIdx = 0;
   for (const entry of layers.entries()) {
@@ -881,64 +882,7 @@ function buildAdjacencyLists(graph: GraphSnapshot, nodeIds: readonly string[], p
   return { outgoing, incoming, edgeOutgoing, edgeIncoming };
 }
 
-function applyPreviousLayoutHints(
-  layers: ReadonlyMap<number, readonly string[]>,
-  previousLayout: LayoutSnapshot,
-  incoming: ReadonlyMap<string, readonly string[]>,
-  outgoing: ReadonlyMap<string, readonly string[]>
-) {
-  for (const ids of layers.values()) {
-    const hintX = new Map<string, number>();
 
-    for (const id of ids) {
-      if (previousLayout.positions.has(id)) {
-        hintX.set(id, previousLayout.positions.get(id)!.x);
-      } else {
-        // Calculate average X of incoming neighbors
-        let sumIn = 0;
-        let countIn = 0;
-
-        const inNeighbors = incoming.get(id) || [];
-        for (const source of inNeighbors) {
-          if (previousLayout.positions.has(source)) {
-            sumIn += previousLayout.positions.get(source)!.x;
-            countIn++;
-          }
-        }
-
-        if (countIn > 0) {
-          hintX.set(id, sumIn / countIn);
-        } else {
-          // Fall back to outgoing neighbors
-          let sumOut = 0;
-          let countOut = 0;
-          const outNeighbors = outgoing.get(id) || [];
-          for (const target of outNeighbors) {
-            if (previousLayout.positions.has(target)) {
-              sumOut += previousLayout.positions.get(target)!.x;
-              countOut++;
-            }
-          }
-
-          if (countOut > 0) {
-            hintX.set(id, sumOut / countOut);
-          } else {
-            hintX.set(id, 0);
-          }
-        }
-      }
-    }
-
-    // Sort nodes in this layer by hintX, falling back to ID for determinism
-    (ids as string[]).sort((a, b) => {
-      const diff = hintX.get(a)! - hintX.get(b)!;
-      if (diff === 0) {
-        return a.localeCompare(b);
-      }
-      return diff;
-    });
-  }
-}
 
 
 function estimateNodeHeight(graph: GraphSnapshot, id: string, config: Required<VerticalLayoutOptions>) {

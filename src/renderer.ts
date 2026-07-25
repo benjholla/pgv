@@ -250,7 +250,7 @@ export class GraphView {
       this.#currentTheme = options.theme;
     }
     this.#layout =
-      this.#options.layout ?? verticalLayout(graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, undefined, this.#schema);
+      this.#options.layout ?? verticalLayout(graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#schema);
 
     this.#render();
 
@@ -281,7 +281,7 @@ export class GraphView {
     if (options.layout !== undefined && options.layout !== oldLayout) {
       this.#layout = options.layout;
     } else if (options.layoutOptions !== undefined && options.layoutOptions !== oldLayoutOptions && this.#graph) {
-      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined, this.#schema);
+      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#schema);
     }
     if (this.#clearSelectionBtn) {
       this.#clearSelectionBtn.setAttribute("aria-disabled", !this.#options.selection || (this.#options.selection.nodes.size === 0 && this.#options.selection.edges.size === 0) ? "true" : "false");
@@ -332,7 +332,7 @@ export class GraphView {
     if (this.#historyIndex === this.#history.length - 2) { // It was at the tip before pushing
       this.#historyIndex = this.#history.length - 1;
       this.#graph = applyGraphDiff(this.#graph, diff);
-      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined, this.#schema);
+      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#schema);
       this.#options.onGraphChange?.(this.#graph);
       this.#render();
     } else {
@@ -581,7 +581,7 @@ export class GraphView {
     }
 
     this.#graph = current;
-    this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined, this.#schema);
+    this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, containmentTags: new Set(this.#schema.containment || []) }, this.#schema);
     this.#options.onGraphChange?.(this.#graph);
     this.#render();
   }
@@ -627,7 +627,7 @@ export class GraphView {
         }
       }
 
-      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#layout ?? undefined, this.#schema);
+      this.#layout = verticalLayout(this.#graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#schema);
       this.#render();
     }
   }
@@ -679,7 +679,10 @@ export class GraphView {
     // We append nodes first then edges in the DOM to ensure natural
     // keyboard tabbing order (nodes then edges) while keeping z-index
     // responsible for visual stacking.
-    stage.append(...renderNodes(graph, layout, this.#options, this.#collapsedNodes, this.#schema, (id) => this.#toggleNodeCollapse(id)));
+    const renderedNodes = renderNodes(graph, layout, this.#options, this.#collapsedNodes, this.#schema, (id) => this.#toggleNodeCollapse(id));
+    for (const node of renderedNodes) {
+      if (node) stage.appendChild(node);
+    }
     stage.appendChild(renderEdges(graph, layout, this.#options, this.#schema, this.#collapsedNodes));
 
     if (this.#options.usePanZoom || this.#options.useThemeToggle || (this.#options.maxHistory && this.#options.maxHistory > 0)) {
@@ -2776,8 +2779,7 @@ function renderNodes(
 
   for (const nodeId of graph.nodes.keys()) {
     const parentId = layout.hierarchy?.get(nodeId)?.parent;
-    // A node is a root element if it has no parent, OR if its parent is not present in the positions (e.g. invalid hierarchy)
-    if (!parentId || !layout.positions.has(parentId)) {
+    if (!parentId) {
       const el = renderSingleNode(nodeId);
       if (el) {
         nodes.push(el);
