@@ -1078,3 +1078,25 @@
   position: static;
   padding: 0 4px;
 }
+
+/* FLIP Animation Classes */
+.pgv-graph-stage.pgv-animating .pgv-graph-node,
+.pgv-graph-stage.pgv-animating .pgv-compound-node,
+.pgv-graph-stage.pgv-animating .pgv-edge-layer {
+  transition: transform var(--pgv-animation-duration, 300ms) ease-in-out, opacity var(--pgv-animation-duration, 300ms) ease-in-out;
+}
+
+.pgv-graph-stage.exiting {
+  opacity: 0;
+  transition: opacity var(--pgv-animation-duration, 300ms) ease-in-out;
+}
+
+.entering {
+  opacity: 0;
+}
+.pgv-graph-stage.pgv-animating .entering {
+  opacity: 1;
+}
+.pgv-graph-stage.pgv-animating:not(.exiting) {
+  opacity: 1;
+}
