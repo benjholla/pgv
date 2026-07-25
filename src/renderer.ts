@@ -264,15 +264,17 @@ export class GraphView {
     this.#layout =
       this.#options.layout ?? verticalLayout(graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#schema);
 
+
+    const isInitialRender = this.#firstRender;
     this.#render();
 
-    if (this.#firstRender && this.#options.usePanZoom) {
+    if (isInitialRender && this.#options.usePanZoom) {
       requestAnimationFrame(() => {
         this.#reset();
-        this.#firstRender = false;
       });
     }
   }
+
 
   /**
    * Updates display options and selectively re-renders without destroying the
@@ -835,8 +837,10 @@ export class GraphView {
             }
 
             flipNodes.push({ element: node, dx, dy });
-            // Invert Step: Set inline transform so they instantly match old positions
-            node.style.transform = `translate(${dx}px, ${dy}px)`;
+            // Invert Step: Add FLIP translate to existing layout transform
+            const currentTransform = node.style.transform;
+            node.dataset.layoutTransform = currentTransform;
+            node.style.transform = `${currentTransform} translate(${dx}px, ${dy}px)`;
           }
         } else {
           // New Node
@@ -862,7 +866,8 @@ export class GraphView {
       // Play Step
       stage.classList.add("pgv-animating");
       for (let i = 0; i < flipNodes.length; i++) {
-        flipNodes[i].element.style.transform = "translate(0px, 0px)";
+        const layoutTransform = flipNodes[i].element.dataset.layoutTransform || "";
+        flipNodes[i].element.style.transform = layoutTransform; // Restore layout transform, removing FLIP offset
       }
 
       // Step 3: Pass 3 - Enter & Final Cleanup
@@ -876,7 +881,8 @@ export class GraphView {
         oldStage.remove();
         stage.classList.remove("pgv-animating", "new-stage");
         for (let i = 0; i < flipNodes.length; i++) {
-          flipNodes[i].element.style.transform = "";
+          // Cleanup done in Play step, so no need to clear transform completely here.
+          flipNodes[i].element.removeAttribute("data-layout-transform");
         }
       }, 300);
     }
