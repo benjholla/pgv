@@ -2951,6 +2951,7 @@ function renderNodes(
        const title = document.createElement("div");
        title.className = "pgv-node-title";
        title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+       title.title = title.textContent;
 
        const toggleBtn = document.createElement("button");
        toggleBtn.className = "pgv-node-collapse-toggle";
@@ -2980,6 +2981,7 @@ function renderNodes(
       const title = document.createElement("div");
       title.className = "pgv-node-title";
       title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+      title.title = title.textContent;
 
       if (isCompound) {
         const hidden = getHiddenCounts(node.id);
@@ -3062,6 +3064,7 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
   content.className = "pgv-node-content";
   title.className = "pgv-node-title";
   title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+  title.title = title.textContent;
   id.className = "pgv-node-id";
   id.textContent = node.id;
 

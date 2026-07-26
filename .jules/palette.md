@@ -70,3 +70,6 @@
 ## 2026-07-25 - Hiding decorative SVGs from screen readers inside clear buttons
 **Learning:** Screen readers may attempt to read or focus on `<svg>` elements inside `<button>` tags even if the button itself has a title. SVGs used strictly as decorative icons within a labelled button do not provide meaningful semantic content and can create redundant or confusing speech output.
 **Action:** When creating icon buttons (like the search clear button), always apply `aria-hidden="true"` to the `<svg>` element inside to ensure a clean, accessible experience where only the button's title or visible text is announced.
+## $(date +%Y-%m-%d) - Native Tooltips for Truncated Text
+**Learning:** In node-based graph visualizations, node names or text can often be long, complex, or truncated by CSS (like `text-overflow: ellipsis`). Adding the `title` attribute directly on these elements ensures that users can always read the full node name by simply hovering over it, relying on native browser tooltips without requiring heavy custom tooltip components.
+**Action:** When generating text elements that are expected to be truncated via CSS `text-overflow: ellipsis` (such as `.pgv-node-title`), always set the HTML `title` attribute to the full `textContent` to provide accessible and robust native hover tooltips.
