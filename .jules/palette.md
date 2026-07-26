@@ -67,3 +67,6 @@
 ## 2026-07-24 - Focus Management on Node Controls
 **Learning:** When rendering nodes in `@pgv/graph-core`, replacing DOM elements (like compound nodes) via `#render()` causes keyboard focus to drop on interactive elements inside them, such as `.pgv-node-collapse-toggle`.
 **Action:** Explicitly manage focus for elements inside nodes by storing the active element's `node.id` (via `data-node-id` on `.pgv-graph-node` or `.pgv-compound-node`) before rendering, and restoring `.focus()` to the newly rendered element afterward.
+## 2026-07-25 - Hiding decorative SVGs from screen readers inside clear buttons
+**Learning:** Screen readers may attempt to read or focus on `<svg>` elements inside `<button>` tags even if the button itself has a title. SVGs used strictly as decorative icons within a labelled button do not provide meaningful semantic content and can create redundant or confusing speech output.
+**Action:** When creating icon buttons (like the search clear button), always apply `aria-hidden="true"` to the `<svg>` element inside to ensure a clean, accessible experience where only the button's title or visible text is announced.
