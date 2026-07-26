@@ -247,7 +247,7 @@ const DEFAULT_VERTICAL_LAYOUT: Required<VerticalLayoutOptions> = {
  *
  * @param graph The logical graph to lay out.
  * @param options Dimensions and spacing parameters.
- * @param previousLayout An optional previous layout to use as an ordering hint for nodes.
+ * @param schema Optional graph schema, for handling specific structural features like compound nodes.
  * @returns A computed `LayoutSnapshot` containing absolute coordinates for all nodes.
  */
 export function verticalLayout(
