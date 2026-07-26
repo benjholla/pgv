@@ -779,6 +779,37 @@ function groupByDepth(
   return new Map(entries);
 }
 
+/**
+ * Recursively collects all hidden descendant nodes of the given collapsed nodes.
+ *
+ * @param collapsedNodes An iterable of node IDs that are currently collapsed.
+ * @param getChildren A function that returns the children of a given node ID, or undefined if none.
+ * @returns A Set containing all descendant node IDs that should be hidden.
+ */
+export function getHiddenNodes(
+  collapsedNodes: Iterable<string>,
+  getChildren: (id: string) => readonly string[] | undefined
+): Set<string> {
+  const hiddenNodes = new Set<string>();
+
+  for (const collapsedId of collapsedNodes) {
+    const children = getChildren(collapsedId);
+    if (!children || children.length === 0) continue;
+
+    const stack = [...children];
+    while (stack.length > 0) {
+      const curr = stack.pop()!;
+      hiddenNodes.add(curr);
+      const currChildren = getChildren(curr);
+      if (currChildren && currChildren.length > 0) {
+        stack.push(...currChildren);
+      }
+    }
+  }
+
+  return hiddenNodes;
+}
+
 function identifyCompoundNodes(graph: GraphSnapshot, config: Required<VerticalLayoutOptions>) {
   const parentNodes = new Set<string>();
 
@@ -801,17 +832,12 @@ function identifyCompoundNodes(graph: GraphSnapshot, config: Required<VerticalLa
       }
     }
 
-    for (const collapsed of config.collapsedNodes) {
-      if (parentNodes.has(collapsed)) {
-        const stack = containmentMap.get(collapsed) ? [...containmentMap.get(collapsed)!] : [];
-        while (stack.length > 0) {
-          const curr = stack.pop()!;
-          hiddenDescendants.add(curr);
-          if (containmentMap.has(curr)) {
-            stack.push(...containmentMap.get(curr)!);
-          }
-        }
-      }
+    // Filter to only include collapsed nodes that are actually parents
+    const collapsedParents = Array.from(config.collapsedNodes).filter(id => parentNodes.has(id));
+
+    const descendants = getHiddenNodes(collapsedParents, id => containmentMap.get(id));
+    for (const descendant of descendants) {
+      hiddenDescendants.add(descendant);
     }
   }
 

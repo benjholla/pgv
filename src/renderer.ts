@@ -4,7 +4,7 @@
  * Interactive graph view and rendering logic using DOM and SVG.
  */
 
-import { edgeEndpoints, verticalLayout, type LayoutSnapshot, type VerticalLayoutOptions } from "./layout";
+import { edgeEndpoints, getHiddenNodes, verticalLayout, type LayoutSnapshot, type VerticalLayoutOptions } from "./layout";
 import { isContainmentEdge, type AttributeValue, type GraphEdge, type GraphNode, type GraphSchema, type GraphSnapshot } from "./model";
 import { toSvg, toPng, toJpeg } from "html-to-image";
 
@@ -611,7 +611,7 @@ export class GraphView {
     if (this.#graph && this.#layout) {
       if (isCollapsing && this.#options.selection) {
         // Clear selection for newly hidden nodes and edges
-        const hiddenNodes = getHiddenNodes(this.#layout.hierarchy, [id]);
+        const hiddenNodes = getHiddenNodes([id], (nodeId) => this.#layout?.hierarchy?.get(nodeId)?.children);
 
         let selectionChanged = false;
         const newSelectedNodes = new Set(this.#options.selection.nodes);
@@ -1991,7 +1991,7 @@ export class GraphView {
     const selectedColor = computedStyle.getPropertyValue("--pgv-minimap-selected-color").trim() || "#d97706";
 
     // Determine hidden nodes based on collapsed parents
-    const hiddenNodes = getHiddenNodes(layout.hierarchy, this.#collapsedNodes);
+    const hiddenNodes = getHiddenNodes(this.#collapsedNodes, (nodeId) => layout.hierarchy?.get(nodeId)?.children);
 
     const containmentSet = this.#schema.containment ? new Set(this.#schema.containment) : null;
 
@@ -2729,25 +2729,6 @@ function setupDropdownCloseEvents(
   }, { signal: abortController.signal });
 }
 
-function getHiddenNodes(hierarchy: ReadonlyMap<string, { parent: string | null; children: string[] }> | undefined, collapsedNodes: ReadonlySet<string> | string[]): Set<string> {
-  const hiddenNodes = new Set<string>();
-  if (!hierarchy) return hiddenNodes;
-
-  for (const collapsedId of collapsedNodes) {
-    if (hierarchy.has(collapsedId)) {
-      const stack = [...hierarchy.get(collapsedId)!.children];
-      while (stack.length > 0) {
-        const curr = stack.pop()!;
-        hiddenNodes.add(curr);
-        if (hierarchy.has(curr)) {
-          stack.push(...hierarchy.get(curr)!.children);
-        }
-      }
-    }
-  }
-  return hiddenNodes;
-}
-
 function renderEdges(
   graph: GraphSnapshot,
   layout: LayoutSnapshot,
@@ -2770,7 +2751,7 @@ function renderEdges(
   const containmentSet = schema.containment ? new Set(schema.containment) : null;
 
   // Determine hidden nodes based on collapsed parents
-  const hiddenNodes = getHiddenNodes(layout.hierarchy, collapsedNodes);
+  const hiddenNodes = getHiddenNodes(collapsedNodes, (nodeId) => layout.hierarchy?.get(nodeId)?.children);
 
   for (const edge of graph.edges.values()) {
     if (hiddenNodes.has(edge.source) || hiddenNodes.has(edge.target)) {
@@ -2896,7 +2877,7 @@ function renderNodes(
     const children = layout.hierarchy.get(nodeId)!.children;
 
     // Calculate edges connected to these children
-    const hiddenChildIds = getHiddenNodes(layout.hierarchy, [nodeId]);
+    const hiddenChildIds = getHiddenNodes([nodeId], (id) => layout.hierarchy?.get(id)?.children);
     hiddenNodes = hiddenChildIds.size;
 
     const containmentSet = schema?.containment ? new Set(schema.containment) : null;
