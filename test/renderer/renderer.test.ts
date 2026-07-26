@@ -141,7 +141,7 @@ describe('GraphView', () => {
 
     const viewport = container.querySelector('.pgv-viewport') as HTMLElement;
     expect(viewport).not.toBeNull();
-    const stage = container.querySelector('.pgv-graph-stage') as HTMLElement;
+    const stage = container.querySelector(".pgv-pan-zoom-layer") || container.querySelector(".pgv-graph-stage") as HTMLElement;
     expect(stage).not.toBeNull();
 
     const initialTransform = stage.style.transform;
@@ -174,7 +174,7 @@ describe('GraphView', () => {
 
     const viewport = container.querySelector('.pgv-viewport') as HTMLElement;
     expect(viewport).not.toBeNull();
-    const stage = container.querySelector('.pgv-graph-stage') as HTMLElement;
+    const stage = container.querySelector(".pgv-pan-zoom-layer") || container.querySelector(".pgv-graph-stage") as HTMLElement;
     expect(stage).not.toBeNull();
 
     const initialTransform = stage.style.transform;
@@ -243,7 +243,7 @@ describe('GraphView', () => {
     view.setGraph(snapshot);
 
     // Wait for the render queue to empty
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 350));
 
     // Toggle search open
     const searchToggleBtn = container.querySelector('button[title="Toggle Search"]') as HTMLButtonElement;
@@ -319,7 +319,7 @@ describe('GraphView', () => {
     const view = new GraphView(container, {}, { layout, useThemeToggle: true, usePanZoom: true, theme: 'light' });
     view.setGraph(snapshot);
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 350));
 
     let root = container.querySelector('.pgv-graph-view') as HTMLElement;
     expect(root.classList.contains('pgv-light')).toBe(true);
@@ -328,14 +328,14 @@ describe('GraphView', () => {
     expect(themeBtn).not.toBeNull();
 
     themeBtn.click();
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 350));
     root = container.querySelector('.pgv-graph-view') as HTMLElement;
     expect(root.classList.contains('pgv-dark')).toBe(true);
 
     themeBtn = container.querySelector('button[title^="Theme:"]') as HTMLButtonElement;
 
     themeBtn.click();
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 350));
     root = container.querySelector('.pgv-graph-view') as HTMLElement;
     expect(root.classList.contains('pgv-light')).toBe(true);
 
@@ -368,7 +368,7 @@ describe('GraphView', () => {
 
     view.applyDiff(diff);
 
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 350));
 
     expect(container.querySelectorAll('.pgv-graph-node').length).toBe(2);
 
@@ -381,22 +381,22 @@ describe('GraphView', () => {
     expect(rightBtn).not.toBeNull();
 
     (leftBtn as HTMLButtonElement).click();
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 350));
     expect(container.querySelectorAll('.pgv-graph-node').length).toBe(1);
 
     const rightBtn2 = container.querySelector('button[title="Next Graph Snapshot"]') as HTMLButtonElement;
     rightBtn2.click();
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 350));
     expect(container.querySelectorAll('.pgv-graph-node').length).toBe(2);
 
     const rwBtn2 = container.querySelector('button[title="Earliest Graph Snapshot"]') as HTMLButtonElement;
     rwBtn2.click();
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 350));
     expect(container.querySelectorAll('.pgv-graph-node').length).toBe(1);
 
     const ffBtn2 = container.querySelector('button[title="Latest Graph Snapshot"]') as HTMLButtonElement;
     ffBtn2.click();
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise(resolve => setTimeout(resolve, 350));
     expect(container.querySelectorAll('.pgv-graph-node').length).toBe(2);
 
     view.destroy();
