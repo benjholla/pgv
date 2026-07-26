@@ -403,13 +403,10 @@ export class GraphView {
       for (let i = 0; i < element.tags.length; i++) {
         if (valueMatcher(element.tags[i])) return true;
       }
-      for (const k in element.attributes) {
-        if (Object.prototype.hasOwnProperty.call(element.attributes, k)) {
-          if (valueMatcher(k)) return true;
-          const v = element.attributes[k];
-          if (v !== null && typeof v !== 'object') {
-            if (valueMatcher(String(v))) return true;
-          }
+      for (const [k, v] of Object.entries(element.attributes)) {
+        if (valueMatcher(k)) return true;
+        if (v !== null && typeof v !== 'object') {
+          if (valueMatcher(String(v))) return true;
         }
       }
       return false;
@@ -421,14 +418,11 @@ export class GraphView {
       }
       return false;
     } else if (mode === `${type}-attribute` || mode === "attribute") {
-      for (const k in element.attributes) {
-        if (Object.prototype.hasOwnProperty.call(element.attributes, k)) {
-          const v = element.attributes[k];
-          const keyMatch = !this.#searchKeyQuery || keyMatcher(k);
-          if (keyMatch) {
-            if (!this.#searchQuery) return true;
-            if (v !== null && typeof v !== 'object' && valueMatcher(String(v))) return true;
-          }
+      for (const [k, v] of Object.entries(element.attributes)) {
+        const keyMatch = !this.#searchKeyQuery || keyMatcher(k);
+        if (keyMatch) {
+          if (!this.#searchQuery) return true;
+          if (v !== null && typeof v !== 'object' && valueMatcher(String(v))) return true;
         }
       }
       return false;
@@ -3052,12 +3046,7 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
   const title = document.createElement("div");
   const id = document.createElement("div");
 
-  const attributes: [string, AttributeValue][] = [];
-  for (const key in node.attributes) {
-    if (Object.prototype.hasOwnProperty.call(node.attributes, key)) {
-      attributes.push([key, node.attributes[key]]);
-    }
-  }
+  const attributes: [string, AttributeValue][] = Object.entries(node.attributes);
 
   content.className = "pgv-node-content";
   title.className = "pgv-node-title";

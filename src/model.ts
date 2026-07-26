@@ -707,44 +707,40 @@ function freezeAttributes(
 ): AttributeMap {
   const sanitizedAttributes: Record<string, AttributeValue> = Object.create(null);
 
-  for (const key in attributes) {
-    if (Object.prototype.hasOwnProperty.call(attributes, key)) {
-      assertNonEmptyString(key, "attribute key");
+  for (const [key, value] of Object.entries(attributes)) {
+    assertNonEmptyString(key, "attribute key");
 
-      const value = attributes[key];
-
-      let isValid = false;
-      if (typeof value === "string" || typeof value === "boolean") {
-        isValid = true;
-      } else if (value !== null && typeof value === "object" && !Array.isArray(value)) {
-        const keys = Object.keys(value);
-        if (keys.length === 1) {
-          const innerKey = keys[0];
-          if (innerKey === "integer" && typeof (value as any).integer === "number") isValid = true;
-          else if (innerKey === "float" && typeof (value as any).float === "number") isValid = true;
-          else if (innerKey === "bytes" && typeof (value as any).bytes === "string") isValid = true;
-        }
+    let isValid = false;
+    if (typeof value === "string" || typeof value === "boolean") {
+      isValid = true;
+    } else if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+      const keys = Object.keys(value);
+      if (keys.length === 1) {
+        const innerKey = keys[0];
+        if (innerKey === "integer" && typeof (value as any).integer === "number") isValid = true;
+        else if (innerKey === "float" && typeof (value as any).float === "number") isValid = true;
+        else if (innerKey === "bytes" && typeof (value as any).bytes === "string") isValid = true;
       }
+    }
 
-      if (!isValid) {
-        throw new GraphModelError(
-          `Attribute "${key}" has unsupported value type.`,
-        );
-      }
+    if (!isValid) {
+      throw new GraphModelError(
+        `Attribute "${key}" has unsupported value type.`,
+      );
+    }
 
-      if (typeof value === "string") {
-        sanitizedAttributes[key] = sanitizeString(value);
-      } else if (typeof value === "object" && value !== null) {
-        if ("bytes" in value) {
-          sanitizedAttributes[key] = Object.freeze({ bytes: sanitizeString((value as any).bytes) });
-        } else if ("integer" in value) {
-          sanitizedAttributes[key] = Object.freeze({ integer: (value as any).integer });
-        } else if ("float" in value) {
-          sanitizedAttributes[key] = Object.freeze({ float: (value as any).float });
-        }
-      } else {
-        sanitizedAttributes[key] = value;
+    if (typeof value === "string") {
+      sanitizedAttributes[key] = sanitizeString(value);
+    } else if (typeof value === "object" && value !== null) {
+      if ("bytes" in value) {
+        sanitizedAttributes[key] = Object.freeze({ bytes: sanitizeString((value as any).bytes) });
+      } else if ("integer" in value) {
+        sanitizedAttributes[key] = Object.freeze({ integer: (value as any).integer });
+      } else if ("float" in value) {
+        sanitizedAttributes[key] = Object.freeze({ float: (value as any).float });
       }
+    } else {
+      sanitizedAttributes[key] = value;
     }
   }
 
