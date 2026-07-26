@@ -19,3 +19,6 @@
 ## 2024-11-20 - Avoid Array.filter allocation in topological sorting roots setup
 **Learning:** In `@pgv/graph-core`, `Array.filter` inside `layoutTopologicalSort` (line 669) creates an intermediate array and closure overhead in a hot layout preprocessing step. Benchmarks confirm a standard `for` loop with `push` is significantly faster.
 **Action:** Replaced `.filter` with a standard loop pushing directly to an array to avoid closures and memory allocations, improving layout graph initialization speed.
+## 2024-02-14 - Replace for...in with Object.keys/entries
+**Learning:** In V8/Node.js, iterating over a dictionary object (like `node.attributes`) using `for...in` combined with `Object.prototype.hasOwnProperty.call` is significantly slower than modern built-ins.
+**Action:** When counting properties, use `Object.keys(obj).length`. When iterating over keys and values, use `Object.keys(obj)` or `Object.entries(obj)` with a standard `for` loop. This avoids prototype chain traversal and explicit property checks on every iteration.

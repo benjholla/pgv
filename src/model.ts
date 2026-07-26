@@ -707,11 +707,13 @@ function freezeAttributes(
 ): AttributeMap {
   const sanitizedAttributes: Record<string, AttributeValue> = Object.create(null);
 
-  for (const key in attributes) {
-    if (Object.prototype.hasOwnProperty.call(attributes, key)) {
-      assertNonEmptyString(key, "attribute key");
+  // PERF(Bolt): Object.keys loop is faster than for...in + hasOwnProperty
+  const attrKeys = Object.keys(attributes);
+  for (let i = 0; i < attrKeys.length; i++) {
+    const key = attrKeys[i];
+    assertNonEmptyString(key, "attribute key");
 
-      const value = attributes[key];
+    const value = attributes[key];
 
       let isValid = false;
       if (typeof value === "string" || typeof value === "boolean") {
@@ -745,7 +747,6 @@ function freezeAttributes(
       } else {
         sanitizedAttributes[key] = value;
       }
-    }
   }
 
   return Object.freeze(sanitizedAttributes);
