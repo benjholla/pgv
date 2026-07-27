@@ -631,6 +631,26 @@ export class GraphView {
   }
 
   /**
+   * Converts physical pixel coordinates (relative to the viewport container) into logical layout coordinates.
+   */
+  viewportToLogical(x: number, y: number): { x: number; y: number } {
+    return {
+      x: (x - this.#viewportState.x) / this.#viewportState.scale,
+      y: (y - this.#viewportState.y) / this.#viewportState.scale,
+    };
+  }
+
+  /**
+   * Converts logical layout coordinates into physical pixel coordinates (relative to the viewport container).
+   */
+  logicalToViewport(x: number, y: number): { x: number; y: number } {
+    return {
+      x: x * this.#viewportState.scale + this.#viewportState.x,
+      y: y * this.#viewportState.scale + this.#viewportState.y,
+    };
+  }
+
+  /**
    * Cleans up all resources, abort controllers, observers, and removes DOM elements.
    * Must be called when the view is no longer needed to prevent memory leaks.
    */
