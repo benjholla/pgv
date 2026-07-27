@@ -4,7 +4,7 @@
  * Interactive graph view and rendering logic using DOM and SVG.
  */
 
-import { edgeEndpoints, getHiddenNodes, verticalLayout, type LayoutSnapshot, type VerticalLayoutOptions } from "./layout";
+import { edgeEndpoints, getHiddenNodes, traverseDfs, verticalLayout, type LayoutSnapshot, type VerticalLayoutOptions } from "./layout";
 import { isContainmentEdge, type AttributeValue, type GraphEdge, type GraphNode, type GraphSchema, type GraphSnapshot } from "./model";
 import { toSvg, toPng, toJpeg } from "html-to-image";
 
@@ -1992,8 +1992,6 @@ export class GraphView {
     // Draw nodes - Ensure parents are rendered before their children
     const renderOrder: string[] = [];
     if (layout.hierarchy) {
-      const visited = new Set<string>();
-
       // Find root nodes
       const roots = [];
       for (const [id, data] of layout.hierarchy.entries()) {
@@ -2003,19 +2001,11 @@ export class GraphView {
       }
 
       // Add to render order using a stack for DFS
-      const stack = [...roots];
-      while (stack.length > 0) {
-        const curr = stack.pop()!;
-        if (!visited.has(curr)) {
-          visited.add(curr);
-          renderOrder.push(curr);
-          const children = layout.hierarchy.get(curr)?.children;
-          if (children && children.length > 0) {
-            // Push children so they are processed next
-            stack.push(...children);
-          }
-        }
-      }
+      const visited = traverseDfs(
+        roots,
+        (id) => layout.hierarchy!.get(id)?.children,
+        (id) => renderOrder.push(id)
+      );
 
       // Fallback for any nodes not reached (e.g. disconnected from hierarchy or malformed)
       for (const id of this.#graph.nodes.keys()) {
