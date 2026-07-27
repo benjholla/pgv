@@ -22,7 +22,6 @@ function createSvgElement(tag: string, attrs: Record<string, string>, children: 
   return el;
 }
 
-
 const ATTRIBUTE_SEARCH_MODES = new Set(["node-attribute", "edge-attribute", "attribute"]);
 const NODE_SEARCH_MODES = new Set(["all", "id", "node-id", "node-tag", "node-attribute", "tag", "attribute"]);
 const EDGE_SEARCH_MODES = new Set(["all", "id", "edge-id", "edge-tag", "edge-attribute", "tag", "attribute"]);
@@ -39,7 +38,6 @@ const SEARCH_MODES = [
   { value: "tag", label: "Element Tag" },
   { value: "attribute", label: "Element Attribute" }
 ];
-
 
 /**
  * Represents the currently selected or highlighted elements in the graph view.
@@ -120,11 +118,6 @@ export interface GraphViewOptions {
    * undo/redo navigation. Set to 0 to disable history tracking.
    */
   readonly maxHistory?: number;
-
-  /**
-   * If true, enables a multi-mode search panel for filtering nodes and edges.
-   */
-  readonly useSearch?: boolean;
 
   /**
    * Callback invoked when the user toggles the theme via the built-in control.
@@ -264,7 +257,6 @@ export class GraphView {
     this.#layout =
       this.#options.layout ?? verticalLayout(graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#schema);
 
-
     const isInitialRender = this.#firstRender;
     this.#render();
 
@@ -274,7 +266,6 @@ export class GraphView {
       });
     }
   }
-
 
   /**
    * Updates display options and selectively re-renders without destroying the
@@ -355,7 +346,6 @@ export class GraphView {
       this.#render();
     }
   }
-
 
   #compileMatcher(query: string, exact: boolean, caseSensitive: boolean, isRegex: boolean): (text: string) => boolean {
     if (!query) return () => false;
@@ -900,8 +890,6 @@ export class GraphView {
     this.#firstRender = false;
   }
 
-
-
   #createSearchToggle(label: string, active: boolean, iconNode: Node, onClick: () => void): HTMLButtonElement {
     const btn = document.createElement("button");
     btn.type = "button";
@@ -1015,7 +1003,6 @@ export class GraphView {
 
   #renderSearchModeDropdown(bar: HTMLElement): HTMLElement {
 
-
     const searchDropdownContainer = document.createElement("div");
     searchDropdownContainer.className = "pgv-search-dropdown-container";
 
@@ -1078,8 +1065,6 @@ export class GraphView {
       }
     });
     searchDropdownContainer.appendChild(dropdownMenu);
-
-
 
     dropdownBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -1707,8 +1692,6 @@ export class GraphView {
         }
       });
       downloadGroup.appendChild(dropdownMenu);
-
-
 
       dropdownBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -2606,9 +2589,6 @@ export function tagToClassName(tag: string): string {
   return result;
 }
 
-
-
-
 interface DropdownOption<T> {
   value: T;
   label: string;
@@ -2687,7 +2667,6 @@ function handleDropdownKeyboardNavigation(e: KeyboardEvent, option: HTMLElement,
     }
   }
 }
-
 
 function toggleDropdownState(isOpen: boolean, btn: HTMLButtonElement, menu: HTMLElement) {
   btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
@@ -3041,7 +3020,6 @@ function renderNodes(
 
   return nodes;
 }
-
 
 function defaultNodeContent(node: GraphNode): HTMLElement {
   const content = document.createElement("div");

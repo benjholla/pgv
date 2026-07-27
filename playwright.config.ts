@@ -14,8 +14,14 @@ export default defineConfig({
 
   projects: [
     {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      name: "static",
+      testDir: "./test/e2e",
+      use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:5174" },
+    },
+    {
+      name: "dynamic",
+      testDir: "./test/e2e-dynamic",
+      use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:5173" },
     },
   ],
 
