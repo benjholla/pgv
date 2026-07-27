@@ -780,6 +780,39 @@ function groupByDepth(
 }
 
 /**
+ * Performs an iterative depth-first search starting from the provided root nodes.
+ *
+ * @param roots An iterable of root node IDs to start the traversal from.
+ * @param getChildren A function that returns the children of a given node ID.
+ * @param onVisit An optional callback invoked when a node is visited for the first time.
+ * @returns A Set containing all visited node IDs.
+ */
+export function traverseDfs(
+  roots: Iterable<string>,
+  getChildren: (id: string) => readonly string[] | undefined,
+  onVisit?: (id: string) => void
+): Set<string> {
+  const visited = new Set<string>();
+  const stack = [...roots];
+
+  while (stack.length > 0) {
+    const curr = stack.pop()!;
+    if (!visited.has(curr)) {
+      visited.add(curr);
+      if (onVisit) {
+        onVisit(curr);
+      }
+      const children = getChildren(curr);
+      if (children && children.length > 0) {
+        stack.push(...children);
+      }
+    }
+  }
+
+  return visited;
+}
+
+/**
  * Recursively collects all hidden descendant nodes of the given collapsed nodes.
  *
  * @param collapsedNodes An iterable of node IDs that are currently collapsed.
@@ -790,24 +823,15 @@ export function getHiddenNodes(
   collapsedNodes: Iterable<string>,
   getChildren: (id: string) => readonly string[] | undefined
 ): Set<string> {
-  const hiddenNodes = new Set<string>();
-
+  const roots: string[] = [];
   for (const collapsedId of collapsedNodes) {
     const children = getChildren(collapsedId);
-    if (!children || children.length === 0) continue;
-
-    const stack = [...children];
-    while (stack.length > 0) {
-      const curr = stack.pop()!;
-      hiddenNodes.add(curr);
-      const currChildren = getChildren(curr);
-      if (currChildren && currChildren.length > 0) {
-        stack.push(...currChildren);
-      }
+    if (children && children.length > 0) {
+      roots.push(...children);
     }
   }
 
-  return hiddenNodes;
+  return traverseDfs(roots, getChildren);
 }
 
 function identifyCompoundNodes(graph: GraphSnapshot, config: Required<VerticalLayoutOptions>) {
