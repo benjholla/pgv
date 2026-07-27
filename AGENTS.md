@@ -162,6 +162,7 @@ Prioritize:
 * accessibility
 * visual regressions
 * serialization compatibility
+* algebraic inverse properties (e.g., coordinate transforms)
 * performance benchmarks
 
 If failing tests are encountered that are important to the health of the project, prioritize fixing them.
