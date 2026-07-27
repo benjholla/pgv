@@ -3044,6 +3044,7 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
   title.title = title.textContent;
   id.className = "pgv-node-id";
   id.textContent = node.id;
+  id.title = node.id;
 
   content.append(title, id);
 
@@ -3057,7 +3058,9 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
       const description = document.createElement("dd");
 
       term.textContent = key;
+      term.title = term.textContent;
       description.textContent = attributeToText(value);
+      description.title = description.textContent;
       list.append(term, description);
     }
 
