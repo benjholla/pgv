@@ -1,5 +1,7 @@
 # @pgv/graph-core
 
+[![CI](https://github.com/benjholla/pgv/actions/workflows/ci.yml/badge.svg)](https://github.com/benjholla/pgv/actions/workflows/ci.yml)
+
 ## What is this?
 Frontend-only graph visualization primitives for immutable attributed program-analysis graphs.
 
