@@ -73,3 +73,6 @@
 ## $(date +%Y-%m-%d) - Native Tooltips for Truncated Text
 **Learning:** In node-based graph visualizations, node names or text can often be long, complex, or truncated by CSS (like `text-overflow: ellipsis`). Adding the `title` attribute directly on these elements ensures that users can always read the full node name by simply hovering over it, relying on native browser tooltips without requiring heavy custom tooltip components.
 **Action:** When generating text elements that are expected to be truncated via CSS `text-overflow: ellipsis` (such as `.pgv-node-title`), always set the HTML `title` attribute to the full `textContent` to provide accessible and robust native hover tooltips.
+## 2026-07-27 - Native Tooltips for Truncated Attributes and IDs
+**Learning:** In addition to node titles, node identifiers (`.pgv-node-id`) and node attribute keys/values (`dt` and `dd`) may also become truncated due to CSS limitations or data bounds. Applying the `title` attribute to the full text content allows users to rely on robust, native browser hover tooltips.
+**Action:** Applied the native hover tooltips technique by setting `element.title = element.textContent` to `.pgv-node-id` and the `dl` elements (`dt`, `dd`) used for attributes.
