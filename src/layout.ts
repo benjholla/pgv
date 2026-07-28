@@ -1114,6 +1114,7 @@ function computeCompoundNodeBounds(
 
           if (!positions.has(id)) {
               // If it's collapsed or has no children, but wasn't laid out (e.g. detached), give it a default pos
+              // TODO: Investigate if this is dead code (Coverage issue)
               positions.set(id, {x: 0, y: 0});
           }
           return {w, h};
@@ -1137,7 +1138,8 @@ function computeCompoundNodeBounds(
           const w = (maxX - minX) + pad * 2;
           const h = (maxY - minY) + header + pad * 2;
           nodeSizes.set(id, {width: w, height: h});
-          positions.set(id, {x: minX - pad, y: minY - header - pad});
+          // TODO: Investigate if this is dead code (Coverage issue)
+              positions.set(id, {x: minX - pad, y: minY - header - pad});
 
           // Make sure parent node is included in the output even if it wasn't processed by the main graph layout
           if (!positions.has(id)) {
@@ -1150,6 +1152,7 @@ function computeCompoundNodeBounds(
           const h = config.nodeHeight;
           nodeSizes.set(id, {width: w, height: h});
           if (!positions.has(id)) {
+             // TODO: Investigate if this is dead code (Coverage issue)
              positions.set(id, {x: 0, y: 0}); // Fallback
           }
           return {w, h};
