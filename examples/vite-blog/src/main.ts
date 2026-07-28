@@ -1,0 +1,113 @@
+import {
+  createGraphSnapshot,
+  GraphView,
+  type GraphSnapshot,
+  type GraphSnapshotJson,
+  type SelectionState,
+} from "../../../src";
+import "../../../src/style.css";
+import "./demo.css";
+
+const graphElement = requireElement("#graph");
+
+let currentGraph: GraphSnapshot | null = null;
+let currentSchema: any = {};
+let currentSelection: SelectionState = {
+  nodes: new Set(),
+  edges: new Set(),
+};
+let graphView: any = null;
+
+const layoutOptions = {
+  nodeWidth: 240,
+  nodeHeight: 94,
+  layerSpacing: 152,
+  nodeSpacing: 290,
+  margin: 36,
+};
+
+function requireElement(selector: string): HTMLElement {
+  const element = document.querySelector<HTMLElement>(selector);
+
+  if (!element) {
+    throw new Error(`Demo shell is missing "${selector}".`);
+  }
+
+  return element;
+}
+
+async function loadGraph(): Promise<void> {
+  const [graphRes, schemaRes] = await Promise.all([
+    fetch("./sample-cfg.json"),
+    fetch("./sample-schema.json")
+  ]);
+
+  if (!graphRes.ok) {
+    throw new Error(`Unable to load graph JSON: ${graphRes.status}`);
+  }
+  if (!schemaRes.ok) {
+    throw new Error(`Unable to load schema JSON: ${schemaRes.status}`);
+  }
+
+  const json = (await graphRes.json()) as GraphSnapshotJson;
+  currentGraph = createGraphSnapshot(json);
+  currentSchema = await schemaRes.json();
+
+  updateGraph();
+}
+
+function updateGraph(): void {
+  if (!currentGraph) return;
+
+  const options = {
+    layoutOptions,
+    selection: currentSelection,
+    usePanZoom: true,
+    useThemeToggle: true,
+    maxHistory: 0,
+    onGraphChange: (graph: GraphSnapshot) => {
+      currentGraph = graph;
+    },
+    onThemeChange: (theme: string) => {
+      document.documentElement.classList.remove("pgv-light", "pgv-dark");
+      document.documentElement.classList.add(`pgv-${theme}`);
+    },
+    onNodeClick: (nodeId: string) => {
+      const nodes = new Set(currentSelection.nodes);
+      if (nodes.has(nodeId)) {
+        nodes.delete(nodeId);
+      } else {
+        nodes.add(nodeId);
+      }
+      currentSelection = { ...currentSelection, nodes };
+      updateGraph();
+    },
+    onEdgeClick: (edgeId: string) => {
+      const edges = new Set(currentSelection.edges);
+      if (edges.has(edgeId)) {
+        edges.delete(edgeId);
+      } else {
+        edges.add(edgeId);
+      }
+      currentSelection = { ...currentSelection, edges };
+      updateGraph();
+    },
+    onSelectionChange: (selection: SelectionState) => {
+      currentSelection = selection;
+      updateGraph();
+    },
+  };
+
+  if (!graphView) {
+    graphView = new GraphView(graphElement, currentSchema, options);
+    graphView.setGraph(currentGraph);
+  } else {
+    graphView.updateOptions(options);
+  }
+}
+
+loadGraph().catch((error: unknown) => {
+  const message = error instanceof Error ? error.message : String(error);
+
+  graphElement.textContent = message;
+});
