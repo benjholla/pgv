@@ -96,6 +96,37 @@ describe('GraphView', () => {
     vi.restoreAllMocks();
   });
 
+  it('handles the controlsCollapsed option', () => {
+    const json: GraphSnapshotJson = {
+      graphId: "test-graph",
+      version: 1,
+      nodes: [{ id: "n1", tags: [], attributes: {} }],
+      edges: []
+    };
+
+    // Test that default is not collapsed
+    const defaultView = new GraphView(document.createElement("div"), {}, { usePanZoom: true, useThemeToggle: true });
+    defaultView.setGraph(createGraphSnapshot(json));
+
+    const defaultControls = defaultView.container.querySelector('.pgv-controls');
+    expect(defaultControls).not.toBeNull();
+    const defaultExpandBtn = defaultControls?.querySelector('[aria-label="Expand Controls"]');
+    expect(defaultExpandBtn).toBeNull();
+    const defaultCollapseBtn = defaultControls?.querySelector('[aria-label="Collapse Controls"]');
+    expect(defaultCollapseBtn).not.toBeNull();
+
+    // Test that controlsCollapsed=true collapses them initially
+    const collapsedView = new GraphView(document.createElement("div"), {}, { usePanZoom: true, useThemeToggle: true, controlsCollapsed: true });
+    collapsedView.setGraph(createGraphSnapshot(json));
+
+    const collapsedControls = collapsedView.container.querySelector('.pgv-controls');
+    expect(collapsedControls).not.toBeNull();
+    const collapsedExpandBtn = collapsedControls?.querySelector('[aria-label="Expand Controls"]');
+    expect(collapsedExpandBtn).not.toBeNull();
+    const collapsedCollapseBtn = collapsedControls?.querySelector('[aria-label="Collapse Controls"]');
+    expect(collapsedCollapseBtn).toBeNull();
+  });
+
   it('initializes and renders a graph with basic layout properties', () => {
     const json: GraphSnapshotJson = {
       graphId: "test-graph",

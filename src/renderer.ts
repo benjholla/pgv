@@ -114,6 +114,11 @@ export interface GraphViewOptions {
   readonly useThemeToggle?: boolean;
 
   /**
+   * If true, initializes the graph with the controls panel collapsed.
+   */
+  readonly controlsCollapsed?: boolean;
+
+  /**
    * The maximum number of historical `GraphDiff` changes to keep in memory for
    * undo/redo navigation. Set to 0 to disable history tracking.
    */
@@ -238,6 +243,9 @@ export class GraphView {
     this.#schema = schema;
     this.#options = options;
     this.#currentTheme = options.theme ?? (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    if (options.controlsCollapsed !== undefined) {
+      this.#controlsCollapsed = options.controlsCollapsed;
+    }
   }
 
   /**
@@ -254,6 +262,9 @@ export class GraphView {
     this.#options = { ...this.#options, ...options };
     if (options.theme !== undefined) {
       this.#currentTheme = options.theme;
+    }
+    if (options.controlsCollapsed !== undefined) {
+      this.#controlsCollapsed = options.controlsCollapsed;
     }
     this.#layout =
       this.#options.layout ?? verticalLayout(graph, { ...this.#options.layoutOptions, collapsedNodes: this.#collapsedNodes, containmentTags: new Set(this.#schema.containment || []) }, this.#schema);
