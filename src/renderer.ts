@@ -2799,7 +2799,6 @@ function renderEdges(
     // Optimized string builder: avoids array allocations and .map() inside the hot loop.
     let className = "graph-edge pgv-graph-edge";
     for (let i = 0; i < edge.tags.length; i++) {
-      // TODO: Investigate if this is dead code (Coverage issue)
       className += " " + tagToClassName(edge.tags[i]);
     }
 
@@ -2910,7 +2909,6 @@ function renderNodes(
     for (const edge of graph.edges.values()) {
       if (!containmentSet || !isContainmentEdge(edge, containmentSet)) {
         if (hiddenChildIds.has(edge.source) || hiddenChildIds.has(edge.target)) {
-          // TODO: Investigate if this is dead code (Coverage issue)
           hiddenEdges++;
         }
       }
@@ -2920,11 +2918,6 @@ function renderNodes(
   };
 
   const renderSingleNode = (nodeId: string): HTMLElement | null => {
-    if (renderedElements.has(nodeId)) {
-      // TODO: Investigate if this is dead code (Coverage issue)
-      return renderedElements.get(nodeId)!;
-    }
-
     const node = graph.nodes.get(nodeId);
     if (!node) return null;
 
