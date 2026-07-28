@@ -35,6 +35,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./examples/vite-static/dist
+          publish_dir: ./examples/vite-blog/dist
           publish_branch: demo
           force_orphan: true
