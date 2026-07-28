@@ -8,15 +8,8 @@ import {
 import "../../../src/style.css";
 import "./demo.css";
 
-const graphElement = requireElement("#graph");
-
-let currentGraph: GraphSnapshot | null = null;
-let currentSchema: any = {};
-let currentSelection: SelectionState = {
-  nodes: new Set(),
-  edges: new Set(),
-};
-let graphView: any = null;
+const graph1Element = requireElement("#graph1");
+const graph2Element = requireElement("#graph2");
 
 const layoutOptions = {
   nodeWidth: 240,
@@ -36,7 +29,70 @@ function requireElement(selector: string): HTMLElement {
   return element;
 }
 
-async function loadGraph(): Promise<void> {
+class GraphController {
+  private currentGraph: GraphSnapshot | null = null;
+  private currentSelection: SelectionState = {
+    nodes: new Set(),
+    edges: new Set(),
+  };
+  private graphView: GraphView | null = null;
+
+  constructor(private container: HTMLElement, private schema: any) {}
+
+  setGraph(graph: GraphSnapshot) {
+    this.currentGraph = graph;
+    this.updateGraph();
+  }
+
+  private updateGraph(): void {
+    if (!this.currentGraph) return;
+
+    const options = {
+      layoutOptions,
+      selection: this.currentSelection,
+      usePanZoom: true,
+      useThemeToggle: true,
+      maxHistory: 0,
+      theme: "light" as const, // Default to light mode as requested for clinical blog
+      onGraphChange: (graph: GraphSnapshot) => {
+        this.currentGraph = graph;
+      },
+      onNodeClick: (nodeId: string) => {
+        const nodes = new Set(this.currentSelection.nodes);
+        if (nodes.has(nodeId)) {
+          nodes.delete(nodeId);
+        } else {
+          nodes.add(nodeId);
+        }
+        this.currentSelection = { ...this.currentSelection, nodes };
+        this.updateGraph();
+      },
+      onEdgeClick: (edgeId: string) => {
+        const edges = new Set(this.currentSelection.edges);
+        if (edges.has(edgeId)) {
+          edges.delete(edgeId);
+        } else {
+          edges.add(edgeId);
+        }
+        this.currentSelection = { ...this.currentSelection, edges };
+        this.updateGraph();
+      },
+      onSelectionChange: (selection: SelectionState) => {
+        this.currentSelection = selection;
+        this.updateGraph();
+      },
+    };
+
+    if (!this.graphView) {
+      this.graphView = new GraphView(this.container, this.schema, options);
+      this.graphView.setGraph(this.currentGraph);
+    } else {
+      this.graphView.updateOptions(options);
+    }
+  }
+}
+
+async function loadGraphs(): Promise<void> {
   const [graphRes, schemaRes] = await Promise.all([
     fetch("./sample-cfg.json"),
     fetch("./sample-schema.json")
@@ -50,64 +106,19 @@ async function loadGraph(): Promise<void> {
   }
 
   const json = (await graphRes.json()) as GraphSnapshotJson;
-  currentGraph = createGraphSnapshot(json);
-  currentSchema = await schemaRes.json();
+  const initialGraph = createGraphSnapshot(json);
+  const schema = await schemaRes.json();
 
-  updateGraph();
+  const controller1 = new GraphController(graph1Element, schema);
+  controller1.setGraph(initialGraph);
+
+  const controller2 = new GraphController(graph2Element, schema);
+  controller2.setGraph(initialGraph);
 }
 
-function updateGraph(): void {
-  if (!currentGraph) return;
-
-  const options = {
-    layoutOptions,
-    selection: currentSelection,
-    usePanZoom: true,
-    useThemeToggle: true,
-    maxHistory: 0,
-    onGraphChange: (graph: GraphSnapshot) => {
-      currentGraph = graph;
-    },
-    onThemeChange: (theme: string) => {
-      document.documentElement.classList.remove("pgv-light", "pgv-dark");
-      document.documentElement.classList.add(`pgv-${theme}`);
-    },
-    onNodeClick: (nodeId: string) => {
-      const nodes = new Set(currentSelection.nodes);
-      if (nodes.has(nodeId)) {
-        nodes.delete(nodeId);
-      } else {
-        nodes.add(nodeId);
-      }
-      currentSelection = { ...currentSelection, nodes };
-      updateGraph();
-    },
-    onEdgeClick: (edgeId: string) => {
-      const edges = new Set(currentSelection.edges);
-      if (edges.has(edgeId)) {
-        edges.delete(edgeId);
-      } else {
-        edges.add(edgeId);
-      }
-      currentSelection = { ...currentSelection, edges };
-      updateGraph();
-    },
-    onSelectionChange: (selection: SelectionState) => {
-      currentSelection = selection;
-      updateGraph();
-    },
-  };
-
-  if (!graphView) {
-    graphView = new GraphView(graphElement, currentSchema, options);
-    graphView.setGraph(currentGraph);
-  } else {
-    graphView.updateOptions(options);
-  }
-}
-
-loadGraph().catch((error: unknown) => {
+loadGraphs().catch((error: unknown) => {
   const message = error instanceof Error ? error.message : String(error);
 
-  graphElement.textContent = message;
+  graph1Element.textContent = message;
+  graph2Element.textContent = message;
 });

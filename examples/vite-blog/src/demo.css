@@ -1,32 +1,55 @@
 html {
-  --demo-bg: #eef2f6;
-  --demo-fg: #17202a;
+  /* Clean, clinical white and gray theme */
+  --demo-bg: #fdfdfd;
+  --demo-fg: #2c3e50;
+  --demo-accent: #0f172a;
+  --demo-border: #e2e8f0;
+  --demo-muted: #64748b;
+
   background: var(--demo-bg);
   color: var(--demo-fg);
-  font-family: system-ui, -apple-system, sans-serif;
-  line-height: 1.5;
-}
-
-html.pgv-dark {
-  --demo-bg: #0f172a;
-  --demo-fg: #e2e8f0;
-}
-
-html.pgv-light {
-  --demo-bg: #eef2f6;
-  --demo-fg: #17202a;
-}
-
-@media (prefers-color-scheme: dark) {
-  html:not(.pgv-light) {
-    --demo-bg: #0f172a;
-    --demo-fg: #e2e8f0;
-  }
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.6;
 }
 
 body {
   margin: 0;
   padding: 0;
+  background-color: var(--demo-bg);
+}
+
+.blog-header {
+  background-color: var(--demo-accent);
+  color: white;
+  padding: 1rem 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.header-content {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 1.25rem;
+  letter-spacing: 0.5px;
+}
+
+.blog-header nav a {
+  color: #cbd5e1;
+  text-decoration: none;
+  margin-left: 1.5rem;
+  font-size: 0.9rem;
+  transition: color 0.2s;
+}
+
+.blog-header nav a:hover {
+  color: white;
 }
 
 .demo-shell {
@@ -34,33 +57,48 @@ body {
   display: block;
   max-width: 1000px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 3rem 1rem;
 }
 
 .demo-shell h1 {
-  text-align: center;
+  text-align: left;
+  font-size: 2.5rem;
+  color: var(--demo-accent);
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+.demo-shell h2 {
+  font-size: 1.5rem;
+  color: var(--demo-accent);
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--demo-border);
+  padding-bottom: 0.5rem;
+}
+
+.author-date {
+  color: var(--demo-muted);
+  font-size: 0.9rem;
+  margin-top: 0;
+  margin-bottom: 2.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .demo-shell p {
   margin-bottom: 1.5rem;
+  font-size: 1.1rem;
 }
 
-#graph {
-  width: 80%;
-  height: 500px;
-  margin: 2rem auto;
+.graph-container {
+  width: 100%;
+  height: 600px;
+  margin: 2.5rem 0;
   overflow: hidden;
-  border: 1px solid rgba(0, 0, 0, 0.1);
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-html.pgv-dark #graph {
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-@media (prefers-color-scheme: dark) {
-  html:not(.pgv-light) #graph {
-    border-color: rgba(255, 255, 255, 0.1);
-  }
+  border: 1px solid var(--demo-border);
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  background: white; /* Base background for graph container */
 }
