@@ -393,10 +393,14 @@ export class GraphView {
       for (let i = 0; i < element.tags.length; i++) {
         if (valueMatcher(element.tags[i])) return true;
       }
-      for (const [k, v] of Object.entries(element.attributes)) {
-        if (valueMatcher(k)) return true;
-        if (v !== null && typeof v !== 'object') {
-          if (valueMatcher(String(v))) return true;
+      // PERF(Bolt): Using for...in avoids intermediate array allocation from Object.entries
+      for (const k in element.attributes) {
+        if (Object.prototype.hasOwnProperty.call(element.attributes, k)) {
+          if (valueMatcher(k)) return true;
+          const v = element.attributes[k];
+          if (v !== null && typeof v !== 'object') {
+            if (valueMatcher(String(v))) return true;
+          }
         }
       }
       return false;
@@ -408,11 +412,15 @@ export class GraphView {
       }
       return false;
     } else if (mode === `${type}-attribute` || mode === "attribute") {
-      for (const [k, v] of Object.entries(element.attributes)) {
-        const keyMatch = !this.#searchKeyQuery || keyMatcher(k);
-        if (keyMatch) {
-          if (!this.#searchQuery) return true;
-          if (v !== null && typeof v !== 'object' && valueMatcher(String(v))) return true;
+      // PERF(Bolt): Using for...in avoids intermediate array allocation from Object.entries
+      for (const k in element.attributes) {
+        if (Object.prototype.hasOwnProperty.call(element.attributes, k)) {
+          const keyMatch = !this.#searchKeyQuery || keyMatcher(k);
+          if (keyMatch) {
+            if (!this.#searchQuery) return true;
+            const v = element.attributes[k];
+            if (v !== null && typeof v !== 'object' && valueMatcher(String(v))) return true;
+          }
         }
       }
       return false;
