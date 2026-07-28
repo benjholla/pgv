@@ -403,6 +403,23 @@ describe('GraphView', () => {
   });
 
   describe("Edge Labels and Custom Node Content", () => {
+    it("renders edges with tags and applies pgv-tag classes", () => {
+      const container = document.createElement("div");
+      const json: GraphSnapshotJson = {
+        nodes: [{ id: "n1" }, { id: "n2" }],
+        edges: [{ id: "e1", source: "n1", target: "n2", tags: ["my-tag"] }]
+      };
+      const snap = createGraphSnapshot(json);
+      const view = new GraphView(container, snap.schema || {});
+      view.setGraph(snap);
+
+      const edgeEl = container.querySelector(".pgv-graph-edge");
+      expect(edgeEl).not.toBeNull();
+      expect(edgeEl?.getAttribute("class")).toContain("tag-my-tag");
+
+      view.destroy();
+    });
+
     it("renders edge labels correctly", () => {
       const container = document.createElement("div");
       const json: GraphSnapshotJson = {
@@ -476,6 +493,34 @@ describe('GraphView', () => {
     });
   });
   describe("Graph Node Collapse Rendering", () => {
+    it("counts hidden edges correctly when a parent is collapsed", () => {
+      const graph = createGraphSnapshot({
+        schema: { containment: ["contains"] },
+        nodes: [{ id: "parent" }, { id: "child" }, { id: "other" }],
+        edges: [
+          { id: "e1", source: "parent", target: "child", tags: ["contains"] },
+          { id: "e2", source: "child", target: "other" }
+        ]
+      });
+
+      const container = document.createElement("div");
+      const view = new GraphView(container, graph.schema || {});
+      view.setGraph(graph);
+
+      const nodeA = container.querySelector(".pgv-compound-node[data-node-id='parent']");
+      const toggleBtn = nodeA?.querySelector(".pgv-node-collapse-toggle") as HTMLButtonElement;
+      toggleBtn.click(); // Collapse
+
+      const collapsedNodeA = container.querySelector(".pgv-compound-node[data-node-id='parent']");
+      const indicator = collapsedNodeA?.querySelector('.pgv-node-hidden-indicator');
+
+      expect(indicator).not.toBeNull();
+      // Should show 1 hidden node (child) and 1 hidden edge (e2)
+      expect(indicator?.getAttribute("title")).toContain("1 edges hidden");
+
+      view.destroy();
+    });
+
     it("handles node collapse UI interaction and state isolation", () => {
       const graph = createGraphSnapshot({
         nodes: [{ id: "A" }, { id: "B" }],
