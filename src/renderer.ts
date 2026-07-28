@@ -207,6 +207,7 @@ export class GraphView {
   #historyIndex: number = -1;
 
   #controlsCollapsed: boolean = false;
+  #isFullscreen: boolean = false;
 
   #searchOpen: boolean = false;
   #searchMode: "all" | "id" | "node-id" | "edge-id" | "node-tag" | "node-attribute" | "edge-tag" | "edge-attribute" | "tag" | "attribute" = "all";
@@ -1447,8 +1448,10 @@ export class GraphView {
       chevronDown: "M6 9l6 6 6-6",
       search: "M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z",
       history: "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
-      collapse: "M10 10L4 4M10 10V5M10 10H5M14 14l6 6M14 14v5M14 14h5", // implosion (inward arrows)
-      expand: "M20 4L14 10M20 4v5M20 4h-5M4 20l6-6M4 20v-5M4 20h5",   // explosion (outward arrows)
+      collapse: "M5 12h14", // window minimize
+      expand: "M4 4h16v16H4z", // window maximize
+      fullscreenEnter: "M4 4h6m-6 0v6m16-6h-6m6 0v6m0 10h-6m6 0v-6m-16 6h6m-6 0v-6",
+      fullscreenExit: "M10 10H4m6 0V4m4 6h6m-6 0V4m0 10h6m-6 0v6m-4-6H4m6 0v6",
       placeholder: ""
     };
 
@@ -1597,6 +1600,15 @@ export class GraphView {
       });
       collapseBtn.setAttribute("aria-expanded", "true");
       topButtonsContainer.appendChild(collapseBtn);
+
+      // Add fullscreen toggle button
+      const fullscreenBtn = this.#createControlButton({
+        icon: this.#isFullscreen ? icons.fullscreenExit : icons.fullscreenEnter,
+        action: () => this.#toggleFullscreen(),
+        label: this.#isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen",
+      });
+      fullscreenBtn.setAttribute("aria-expanded", this.#isFullscreen ? "true" : "false");
+      topButtonsContainer.appendChild(fullscreenBtn);
 
       miscGroup.appendChild(topButtonsContainer);
 
@@ -2366,6 +2378,18 @@ export class GraphView {
     }
   }
 
+  async #toggleFullscreen(): Promise<void> {
+    try {
+      if (!document.fullscreenElement) {
+        await this.container.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error("Error attempting to toggle fullscreen:", err);
+    }
+  }
+
   #updateMinimapViewport(): void {
     if (!this.#minimapOpen || !this.#layout) return;
 
@@ -2508,6 +2532,11 @@ export class GraphView {
   }
 
   #setupEvents(element: HTMLElement): void {
+    element.addEventListener("fullscreenchange", () => {
+      this.#isFullscreen = document.fullscreenElement === element;
+      this.#render();
+    });
+
     const handleInteraction = (target: HTMLElement, event: Event) => {
       const nodeElement = target.closest<HTMLElement>(".pgv-graph-node, .pgv-compound-node");
       if (nodeElement && nodeElement.dataset.nodeId) {
