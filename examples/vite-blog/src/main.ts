@@ -54,6 +54,7 @@ class GraphController {
       useThemeToggle: true,
       maxHistory: 0,
       theme: "light" as const, // Default to light mode as requested for clinical blog
+      controlsCollapsed: true,
       onGraphChange: (graph: GraphSnapshot) => {
         this.currentGraph = graph;
       },
