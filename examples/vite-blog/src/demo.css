@@ -1,0 +1,66 @@
+html {
+  --demo-bg: #eef2f6;
+  --demo-fg: #17202a;
+  background: var(--demo-bg);
+  color: var(--demo-fg);
+  font-family: system-ui, -apple-system, sans-serif;
+  line-height: 1.5;
+}
+
+html.pgv-dark {
+  --demo-bg: #0f172a;
+  --demo-fg: #e2e8f0;
+}
+
+html.pgv-light {
+  --demo-bg: #eef2f6;
+  --demo-fg: #17202a;
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.pgv-light) {
+    --demo-bg: #0f172a;
+    --demo-fg: #e2e8f0;
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+.demo-shell {
+  box-sizing: border-box;
+  display: block;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.demo-shell h1 {
+  text-align: center;
+}
+
+.demo-shell p {
+  margin-bottom: 1.5rem;
+}
+
+#graph {
+  width: 80%;
+  height: 500px;
+  margin: 2rem auto;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+html.pgv-dark #graph {
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.pgv-light) #graph {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+}
