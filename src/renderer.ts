@@ -2535,6 +2535,10 @@ export class GraphView {
     element.addEventListener("fullscreenchange", () => {
       this.#isFullscreen = document.fullscreenElement === element;
       this.#render();
+      if (this.#options.usePanZoom) {
+        // Use rAF to ensure layout has updated to new viewport bounds before resetting
+        requestAnimationFrame(() => this.#reset());
+      }
     });
 
     const handleInteraction = (target: HTMLElement, event: Event) => {
