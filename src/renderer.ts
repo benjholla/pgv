@@ -4,7 +4,7 @@
  * Interactive graph view and rendering logic using DOM and SVG.
  */
 
-import { edgeEndpoints, getHiddenNodes, traverseDfs, verticalLayout, type LayoutSnapshot, type VerticalLayoutOptions } from "./layout";
+import { edgeEndpoints, getHiddenNodes, traverseDfs, verticalLayout, type LayoutSnapshot, type Point, type VerticalLayoutOptions } from "./layout";
 import { isContainmentEdge, type AttributeValue, type GraphEdge, type GraphNode, type GraphSchema, type GraphSnapshot } from "./model";
 import { toSvg, toPng, toJpeg } from "html-to-image";
 
@@ -633,7 +633,7 @@ export class GraphView {
   /**
    * Converts physical pixel coordinates (relative to the viewport container) into logical layout coordinates.
    */
-  viewportToLogical(x: number, y: number): { x: number; y: number } {
+  viewportToLogical(x: number, y: number): Point {
     return {
       x: (x - this.#viewportState.x) / this.#viewportState.scale,
       y: (y - this.#viewportState.y) / this.#viewportState.scale,
@@ -643,7 +643,7 @@ export class GraphView {
   /**
    * Converts logical layout coordinates into physical pixel coordinates (relative to the viewport container).
    */
-  logicalToViewport(x: number, y: number): { x: number; y: number } {
+  logicalToViewport(x: number, y: number): Point {
     return {
       x: x * this.#viewportState.scale + this.#viewportState.x,
       y: y * this.#viewportState.scale + this.#viewportState.y,
