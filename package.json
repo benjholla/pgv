@@ -26,7 +26,7 @@
     "dev:static": "vite --config examples/vite-static/vite.config.ts --host 127.0.0.1",
     "dev:blog": "vite --config examples/vite-blog/vite.config.ts --host 127.0.0.1",
     "dev:tester": "vite --config examples/static-tester/vite.config.ts --host 127.0.0.1 --port 5174",
-    "dev:backend": "mvn -f examples/spring-boot-producer/pom.xml spring-boot:run",
+    "dev:backend": "mvn -f pgv-exporter/pom.xml install && mvn -f examples/spring-boot-producer/pom.xml spring-boot:run",
     "dev:dynamic": "vite --config examples/vite-dynamic/vite.config.ts --host 127.0.0.1",
     "build": "pnpm run typecheck && vite build && tsc -p tsconfig.build.json && pnpm run copy:css",
     "build:demo": "vite build --config examples/vite-blog/vite.config.ts",
