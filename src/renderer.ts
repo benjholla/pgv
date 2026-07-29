@@ -13,8 +13,10 @@ const PGV_VIEWPORT_CLASS = "pgv-viewport";
 
 function createSvgElement(tag: string, attrs: Record<string, string>, children: Element[] = []): SVGElement {
   const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
-  for (const [key, val] of Object.entries(attrs)) {
-    el.setAttribute(key, val);
+  for (const key in attrs) {
+    if (Object.prototype.hasOwnProperty.call(attrs, key)) {
+      el.setAttribute(key, attrs[key]);
+    }
   }
   for (const child of children) {
     el.appendChild(child);
@@ -3084,8 +3086,6 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
   const title = document.createElement("div");
   const id = document.createElement("div");
 
-  const attributes: [string, AttributeValue][] = Object.entries(node.attributes);
-
   content.className = "pgv-node-content";
   title.className = "pgv-node-title";
   title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
@@ -3096,20 +3096,31 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
 
   content.append(title, id);
 
-  if (attributes.length > 0) {
+  let hasAttributes = false;
+  for (const key in node.attributes) {
+    if (Object.prototype.hasOwnProperty.call(node.attributes, key)) {
+      hasAttributes = true;
+      break;
+    }
+  }
+
+  if (hasAttributes) {
     const list = document.createElement("dl");
 
     list.className = "pgv-node-attributes";
 
-    for (const [key, value] of attributes) {
-      const term = document.createElement("dt");
-      const description = document.createElement("dd");
+    for (const key in node.attributes) {
+      if (Object.prototype.hasOwnProperty.call(node.attributes, key)) {
+        const value = node.attributes[key];
+        const term = document.createElement("dt");
+        const description = document.createElement("dd");
 
-      term.textContent = key;
-      term.title = term.textContent;
-      description.textContent = attributeToText(value);
-      description.title = description.textContent;
-      list.append(term, description);
+        term.textContent = key;
+        term.title = term.textContent;
+        description.textContent = attributeToText(value);
+        description.title = description.textContent;
+        list.append(term, description);
+      }
     }
 
     content.appendChild(list);

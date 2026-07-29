@@ -704,7 +704,10 @@ function freezeAttributes(
 ): AttributeMap {
   const sanitizedAttributes: Record<string, AttributeValue> = Object.create(null);
 
-  for (const [key, value] of Object.entries(attributes)) {
+  for (const key in attributes) {
+    if (!Object.prototype.hasOwnProperty.call(attributes, key)) continue;
+    const value = attributes[key];
+
     assertNonEmptyString(key, "attribute key");
 
     let isValid = false;

@@ -22,3 +22,6 @@
 ## 2023-10-27 - Object.entries vs for...in
 **Learning:** In `@pgv/graph-core`, contrary to common anti-pattern assumptions, iterating over `node.attributes` (or similar objects) in hot paths using a `for...in` loop combined with `Object.prototype.hasOwnProperty.call` is significantly faster (~4-6x) than `Object.entries()`, as it avoids intermediate array allocations.
 **Action:** When iterating over dynamic objects (like attributes) in performance-critical areas like search matching, prefer `for...in` loops with `hasOwnProperty` checks over `Object.entries` or `Object.keys` to avoid array allocation overhead.
+## 2024-07-29 - Avoid array allocation from Object.entries in rendering and validation loops
+**Learning:** In `@pgv/graph-core`, using `Object.entries()` to iterate over objects like attributes inside hot rendering or validation loops (`createSvgElement`, `defaultNodeContent`, `freezeAttributes`) creates intermediate array allocations. This impacts performance, especially for graphs with many nodes and attributes.
+**Action:** Replace `Object.entries()` with `for...in` loops combined with `Object.prototype.hasOwnProperty.call()` checks to avoid intermediate array allocations in performance-critical paths, matching the pattern already used elsewhere in the codebase.
