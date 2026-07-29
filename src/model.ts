@@ -337,30 +337,27 @@ function validateStructuralInvariants(
     }
   }
 
-  const visited = new Set<string>();
-  const visiting = new Set<string>();
-
-  function dfs(nodeId: string) {
-    if (visiting.has(nodeId)) {
-      throw new GraphModelError(`Containment cycle detected involving node "${nodeId}".`);
+  const roots: string[] = [];
+  for (const [nodeId, degree] of inDegree.entries()) {
+    if (degree === 0) {
+      roots.push(nodeId);
     }
-    if (visited.has(nodeId)) return;
-
-    visiting.add(nodeId);
-
-    const children = containmentAdjacency.get(nodeId);
-    if (children) {
-      for (const childId of children) {
-        dfs(childId);
-      }
-    }
-
-    visiting.delete(nodeId);
-    visited.add(nodeId);
   }
 
-  for (const startId of nodes.keys()) {
-    dfs(startId);
+  // A generic reachability traversal (traverseDfs) safely detects cycles here because
+  // the graph is constrained to a maximum in-degree of 1 (a forest).
+  // In a forest, any node in a cycle will have exactly an in-degree of 1 from within the cycle.
+  // Therefore, no node in a cycle is reachable from any root (in-degree 0).
+  // If the number of visited nodes from all roots is less than the total nodes,
+  // the unvisited nodes must be part of (or downstream from) a disjoint cycle.
+  const visited = traverseDfs(roots, (id) => containmentAdjacency.get(id));
+
+  if (visited.size !== nodes.size) {
+    for (const nodeId of nodes.keys()) {
+      if (!visited.has(nodeId)) {
+        throw new GraphModelError(`Containment cycle detected involving node "${nodeId}".`);
+      }
+    }
   }
 }
 
@@ -878,4 +875,37 @@ export function isContainmentEdge(edge: GraphEdge, tags: ReadonlySet<string>): b
     }
   }
   return false;
+}
+
+/**
+ * Performs an iterative depth-first search starting from the provided root nodes.
+ *
+ * @param roots An iterable of root node IDs to start the traversal from.
+ * @param getChildren A function that returns the children of a given node ID.
+ * @param onVisit An optional callback invoked when a node is visited for the first time.
+ * @returns A Set containing all visited node IDs.
+ */
+export function traverseDfs(
+  roots: Iterable<string>,
+  getChildren: (id: string) => readonly string[] | undefined,
+  onVisit?: (id: string) => void
+): Set<string> {
+  const visited = new Set<string>();
+  const stack = [...roots];
+
+  while (stack.length > 0) {
+    const curr = stack.pop()!;
+    if (!visited.has(curr)) {
+      visited.add(curr);
+      if (onVisit) {
+        onVisit(curr);
+      }
+      const children = getChildren(curr);
+      if (children && children.length > 0) {
+        stack.push(...children);
+      }
+    }
+  }
+
+  return visited;
 }

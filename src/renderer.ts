@@ -4,8 +4,8 @@
  * Interactive graph view and rendering logic using DOM and SVG.
  */
 
-import { edgeEndpoints, getHiddenNodes, traverseDfs, verticalLayout, type LayoutSnapshot, type Point, type VerticalLayoutOptions } from "./layout";
-import { isContainmentEdge, type AttributeValue, type GraphEdge, type GraphNode, type GraphSchema, type GraphSnapshot } from "./model";
+import { edgeEndpoints, getHiddenNodes, verticalLayout, type LayoutSnapshot, type Point, type VerticalLayoutOptions } from "./layout";
+import { isContainmentEdge, traverseDfs, type AttributeValue, type GraphEdge, type GraphNode, type GraphSchema, type GraphSnapshot } from "./model";
 import { toSvg, toPng, toJpeg } from "html-to-image";
 
 let markerIdSequence = 0;
