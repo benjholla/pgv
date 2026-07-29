@@ -16,7 +16,16 @@ From the root of the repository, execute:
 pnpm run dev:static
 ```
 
-### 2. Static History Demo (`vite-static-history`)
+### 2. Static Vite Blog Frontend (`vite-blog`)
+A static frontend demo that simulates a blog post containing interactive graphs.
+
+**To run:**
+From the root of the repository, execute:
+```bash
+pnpm run dev:blog
+```
+
+### 3. Static History Demo (`vite-static-history`)
 Demonstrates how to use the `GraphDiff` model to navigate through a sequence of graph snapshots, showing additions and removals.
 
 **To run:**
@@ -25,7 +34,7 @@ From the root of the repository, execute:
 pnpm run dev:static-history
 ```
 
-### 3. Dynamic Vite Frontend (`vite-dynamic`)
+### 4. Dynamic Vite Frontend (`vite-dynamic`)
 A frontend that fetches graph data dynamically from a backend API. To use this, you must first start the `spring-boot-producer`.
 
 **To run:**
@@ -34,7 +43,7 @@ Ensure the backend is running first (see below), then from the root of the repos
 pnpm run dev:dynamic
 ```
 
-### 4. Spring Boot Backend (`spring-boot-producer`)
+### 5. Spring Boot Backend (`spring-boot-producer`)
 A sample Java Spring Boot backend that serves graph snapshots as JSON to be consumed by the dynamic frontend.
 
 **To run:**
@@ -44,7 +53,7 @@ pnpm run dev:backend
 ```
 Alternatively, navigate to `examples/spring-boot-producer` and run `mvn spring-boot:run`.
 
-### 5. Static Tester (`static-tester`)
+### 6. Static Tester (`static-tester`)
 A test environment used internally for validating changes and layouts during development.
 
 **To run:**

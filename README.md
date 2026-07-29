@@ -84,6 +84,7 @@ Please see [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct
 | :--- | :--- |
 | `pnpm run docs` | Generate the full HTML API documentation (using TypeDoc) in `docs/` |
 | `pnpm run dev:static` | Run the static Vite frontend demo |
+| `pnpm run dev:blog` | Run the static Vite blog frontend demo |
 | `pnpm run dev:static-history` | Run the static history diff demo |
 | `pnpm run dev:backend &` | Run the Spring Boot graph producer example (or use `mvn -f examples/spring-boot-producer/pom.xml spring-boot:run`) |
 | `pnpm run dev:dynamic &` | Run the Dynamic Vite demo (requires backend to be running) |
@@ -112,6 +113,7 @@ src/
   style.css       Base graph visualization theme
 
 examples/
+  vite-blog/                Static blog post frontend demo
   vite-static/              Static TypeScript frontend demo
   vite-static-history/      Static demo showcasing graph diff history navigation
   vite-dynamic/             Dynamic demo fetching from backend
