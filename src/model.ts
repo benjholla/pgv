@@ -852,8 +852,87 @@ export function sanitizeString(value: string): string {
     return "#blocked-uri";
   }
 
-  return sanitized;
+
+
+
+
+
+  // Protect external links from reverse tabnabbing safely using string manipulation
+  let finalHtml = sanitized;
+
+  // We match anchor tags, correctly skipping > inside quotes
+  finalHtml = finalHtml.replace(/<a\s+((?:[^>"']|"[^"]*"|'[^']*')+)>/gi, (match, attrsString) => {
+    // 1. Tokenize attributes securely.
+    const attrRegex = /([a-zA-Z0-9_-]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s>]+))?/g;
+    let m;
+    let hasTargetBlank = false;
+    let relMatch = null;
+    let seenAttrs = new Set<string>();
+
+    while ((m = attrRegex.exec(attrsString)) !== null) {
+      const name = m[1].toLowerCase();
+      let val = m[2];
+
+      if (!seenAttrs.has(name)) {
+        seenAttrs.add(name);
+        if (name === 'target' && val) {
+           const cleanVal = val.replace(/^["']|["']$/g, '').trim().toLowerCase();
+           if (cleanVal && !['_self', '_parent', '_top'].includes(cleanVal)) {
+               hasTargetBlank = true;
+           }
+        }
+        if (name === 'rel') {
+           relMatch = {
+             value: val,
+             index: m.index,
+             length: m[0].length
+           };
+        }
+      }
+    }
+
+    if (!hasTargetBlank) return match;
+
+    let newAttrsString = attrsString;
+
+    if (relMatch) {
+       const val = relMatch.value || '""';
+       const cleanVal = val.replace(/^["']|["']$/g, '');
+       const rels = cleanVal.split(/\s+/).filter(Boolean);
+       let updated = false;
+
+       if (!rels.some(r => r.toLowerCase() === 'noopener')) {
+           rels.push('noopener');
+           updated = true;
+       }
+       if (!rels.some(r => r.toLowerCase() === 'noreferrer')) {
+           rels.push('noreferrer');
+           updated = true;
+       }
+
+       if (updated) {
+           const newRelStr = `rel="${rels.join(' ')}"`;
+           newAttrsString = newAttrsString.substring(0, relMatch.index) + newRelStr + newAttrsString.substring(relMatch.index + relMatch.length);
+       }
+    } else {
+       const appendStr = ' rel="noopener noreferrer"';
+       if (newAttrsString.endsWith('/')) {
+           newAttrsString = newAttrsString.slice(0, -1) + appendStr + '/';
+       } else {
+           newAttrsString += appendStr;
+       }
+    }
+
+    return `<a ${newAttrsString}>`;
+  });
+
+  return finalHtml;
 }
+
+
+
+
+
 
 function assertNonEmptyString(value: unknown, fieldName: string): asserts value is string {
   if (typeof value === "string") {
