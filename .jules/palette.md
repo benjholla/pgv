@@ -72,7 +72,6 @@
 **Action:** When creating icon buttons (like the search clear button), always apply `aria-hidden="true"` to the `<svg>` element inside to ensure a clean, accessible experience where only the button's title or visible text is announced.
 ## $(date +%Y-%m-%d) - Native Tooltips for Truncated Text
 **Learning:** In node-based graph visualizations, node names or text can often be long, complex, or truncated by CSS (like `text-overflow: ellipsis`). Adding the `title` attribute directly on these elements ensures that users can always read the full node name by simply hovering over it, relying on native browser tooltips without requiring heavy custom tooltip components.
-**Action:** When generating text elements that are expected to be truncated via CSS `text-overflow: ellipsis` (such as `.pgv-node-title`), always set the HTML `title` attribute to the full `textContent` to provide accessible and robust native hover tooltips.
-## 2026-07-27 - Native Tooltips for Truncated Attributes and IDs
-**Learning:** In addition to node titles, node identifiers (`.pgv-node-id`) and node attribute keys/values (`dt` and `dd`) may also become truncated due to CSS limitations or data bounds. Applying the `title` attribute to the full text content allows users to rely on robust, native browser hover tooltips.
-**Action:** Applied the native hover tooltips technique by setting `element.title = element.textContent` to `.pgv-node-id` and the `dl` elements (`dt`, `dd`) used for attributes.
+## $(date +%Y-%m-%d) - Scope Escape Key Listeners to Container
+**Learning:** Attaching `Escape` key listeners to the global `document` to close dropdowns can cause event conflicts when a component is embedded within larger applications (like VS Code or Jupyter Notebooks) or when multiple instances of the component exist on the same page.
+**Action:** When implementing dismissible popovers or dropdown menus, attach the `Escape` keydown listener to the component's root `container` rather than the global `document`. Ensure it still covers focus points outside the immediate menu but within the component itself.
