@@ -1116,7 +1116,7 @@ export class GraphView {
 
     this.#searchAbortController?.abort();
     this.#searchAbortController = new AbortController();
-    setupDropdownCloseEvents(() => this.#searchDropdownOpen, closeDropdown, dropdownBtn, dropdownMenu, this.#searchAbortController);
+    setupDropdownCloseEvents(() => this.#searchDropdownOpen, closeDropdown, dropdownBtn, dropdownMenu, this.container, this.#searchAbortController);
 
     return searchDropdownContainer;
   }
@@ -1755,7 +1755,7 @@ export class GraphView {
       // Close dropdown when clicking outside
       this.#downloadAbortController?.abort();
       this.#downloadAbortController = new AbortController();
-      setupDropdownCloseEvents(() => this.#downloadDropdownOpen, closeDropdown, dropdownBtn, dropdownMenu, this.#downloadAbortController);
+      setupDropdownCloseEvents(() => this.#downloadDropdownOpen, closeDropdown, dropdownBtn, dropdownMenu, this.container, this.#downloadAbortController);
 
       miscGroup.appendChild(downloadGroup);
 
@@ -2750,16 +2750,18 @@ function setupDropdownCloseEvents(
   close: () => void,
   btn: HTMLButtonElement,
   menu: HTMLElement,
+  container: HTMLElement,
   abortController: AbortController
 ) {
-  menu.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") {
+  container.addEventListener("keydown", (e) => {
+    if (getIsOpen() && e.key === "Escape") {
+      e.stopPropagation();
       close();
       btn.focus();
     }
-  });
+  }, { signal: abortController.signal });
 
-  document.addEventListener("click", () => {
+  document.addEventListener("click", (e) => {
     if (getIsOpen()) {
       close();
     }

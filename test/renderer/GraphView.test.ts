@@ -156,8 +156,7 @@ describe('GraphView - Advanced Interaction Tests', () => {
     expect(container.querySelector('.pgv-dropdown-menu')?.classList.contains('open')).toBeFalsy();
 
     dropdownBtn.click();
-    const dropdownMenu = container.querySelector('.pgv-dropdown-menu') as HTMLDivElement;
-    dropdownMenu.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    container.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     expect(container.querySelector('.pgv-dropdown-menu')?.classList.contains('open')).toBeFalsy();
 
     dropdownBtn.click();
