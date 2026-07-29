@@ -13,3 +13,4 @@ When a parameter (like `schema` in `GraphView` constructor) appears unused but s
 **Learning:** Internal utilities like `tagToClassName` were mistakenly exported in `src/index.ts`, leading to an unnecessarily large public API surface.
 
 **Action:** Removed internal exports from the `src/index.ts` file and added `@internal` to their TSDocs to hide them from the public API and generated TypeDoc documentation. Keep the public API minimal.
+## 2026-07-09 - Repository Hygiene and Debt Cleanup\n- Updated `README.md` and `examples/README.md` to accurately document the `vite-blog` example, improving discoverability.
