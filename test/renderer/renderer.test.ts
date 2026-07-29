@@ -46,6 +46,15 @@ describe('tagToClassName', () => {
     const result = tagToClassName('cache-test-overflow');
     expect(result).toBe('tag-cache-test-overflow');
   });
+
+  it('Idempotence Property: calling tagToClassName multiple times with the same input yields identical results without corrupting the cache', () => {
+    const inputs = ['!@#foo bar$%^', 'normal-tag', '   padded   ', '', '---'];
+    for (const input of inputs) {
+      const first = tagToClassName(input);
+      const second = tagToClassName(input);
+      expect(first).toBe(second);
+    }
+  });
 });
 
 describe('GraphView', () => {
