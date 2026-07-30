@@ -39,6 +39,7 @@
     "test:e2e": "playwright test --project=static",
     "test:e2e:update": "playwright test --update-snapshots --project=static",
     "test:e2e-dynamic": "playwright test --project=dynamic",
+    "test:e2e-server": "playwright test test/e2e/server.spec.ts --project=static",
     "bench": "vitest bench",
     "docs": "typedoc src/index.ts --out docs",
     "dev:static-history": "vite --config examples/vite-static-history/vite.config.ts --host 127.0.0.1",

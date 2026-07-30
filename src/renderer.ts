@@ -1,3 +1,5 @@
+import { routeEdgeOrthogonal } from "./layout";
+
 /**
  * @module
  * @packageDocumentation
@@ -3157,4 +3159,176 @@ function attributeToText(value: AttributeValue): string {
     if ("bytes" in value) return `[bytes: ${value.bytes}]`;
   }
   return String(value);
+}
+
+/**
+ * Renders an entire graph to a standalone SVG string, capable of being used purely on the server.
+ * This utilizes layout coordinates directly without needing a headless browser.
+ *
+ * @param snapshot - The graph model to render.
+ * @param schema - The schema describing the graph containment structure.
+ * @param options - Graph view options for styling layout dimensions and themes.
+ * @param cssText - Optional CSS block to inject into the SVG `<style>` tag for offline styling.
+ * @returns The SVG string representing the graph.
+ */
+export function renderGraphToSvg(
+  snapshot: GraphSnapshot,
+  schema: GraphSchema,
+  options: GraphViewOptions = {},
+  cssText: string = ""
+): string {
+  const layout = options.layout ?? verticalLayout(snapshot, { ...options.layoutOptions, containmentTags: new Set(schema.containment || []) }, schema);
+  const theme = options.theme || "light";
+
+  let html = `<svg xmlns="http://www.w3.org/2000/svg" width="${layout.width}" height="${layout.height}">`;
+  if (cssText) {
+    html += `<style>${cssText}</style>`;
+  }
+
+  // Create HTML structure for nodes using foreignObject
+  html += `<foreignObject x="0" y="0" width="${layout.width}" height="${layout.height}">`;
+
+  let className = "pgv-graph-view";
+  if (theme === "light") className += " pgv-light";
+  if (theme === "dark") className += " pgv-dark";
+
+  html += `<div xmlns="http://www.w3.org/1999/xhtml" class="${className}" style="--pgv-canvas-width: ${layout.width}px; --pgv-canvas-height: ${layout.height}px; --pgv-node-width: ${layout.nodeSize.width}px; --pgv-node-height: ${layout.nodeSize.height}px;">`;
+  html += `<div class="pgv-graph-stage" style="width: ${layout.width}px; height: ${layout.height}px; background-color: var(--pgv-color-bg, #ffffff);">`;
+
+  const processNode = (nodeId: string, parentPos = { x: 0, y: 0 }) => {
+    const node = snapshot.nodes.get(nodeId);
+    if (!node) return;
+    const position = layout.positions.get(nodeId);
+    if (!position) return;
+
+    const size = layout.nodeSizes?.get(nodeId) || layout.nodeSize;
+
+    let nodeClass = "graph-node pgv-graph-node";
+    const isCompound = layout.hierarchy?.has(nodeId);
+    if (isCompound) {
+      nodeClass = "pgv-compound-node";
+    }
+
+    for (let i = 0; i < node.tags.length; i++) {
+      nodeClass += " " + tagToClassName(node.tags[i]);
+    }
+
+    const title = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+
+    let x = parentPos.x ? position.x - parentPos.x : position.x;
+    let y = parentPos.y ? position.y - parentPos.y : position.y;
+
+    let elStr = `<div class="${nodeClass}" data-node-id="${nodeId}" tabindex="0" role="button" aria-label="Node ${title}" style="width: ${size.width}px; height: ${size.height}px; transform: translate(${x}px, ${y}px);">`;
+
+    if (isCompound) {
+      elStr += `<div class="pgv-compound-node-header"><div class="pgv-node-title" title="${title}">${title}</div></div>`;
+      const children = layout.hierarchy!.get(nodeId)!.children;
+      for (const childId of children) {
+        elStr += processNode(childId, position) || "";
+      }
+    } else {
+      let contentStr = `<div class="pgv-node-content"><div class="pgv-node-title" title="${title}">${title}</div><div class="pgv-node-id" title="${nodeId}">${nodeId}</div>`;
+
+      let hasAttributes = false;
+      for (const key in node.attributes) {
+        if (Object.prototype.hasOwnProperty.call(node.attributes, key)) {
+          hasAttributes = true;
+          break;
+        }
+      }
+
+      if (hasAttributes) {
+        contentStr += `<dl class="pgv-node-attributes">`;
+        for (const key in node.attributes) {
+          if (Object.prototype.hasOwnProperty.call(node.attributes, key)) {
+            const value = node.attributes[key];
+            const strVal = typeof value === "object" && value !== null ? JSON.stringify(value) : String(value);
+            contentStr += `<dt title="${key}">${key}</dt><dd title='${strVal}'>${strVal}</dd>`;
+          }
+        }
+        contentStr += `</dl>`;
+      }
+      contentStr += `</div>`;
+      elStr += contentStr;
+    }
+
+    elStr += `</div>`;
+    return elStr;
+  };
+
+  // Render root nodes
+  const parentNodes = new Set<string>();
+  if (schema.containment) {
+    const containmentSet = new Set(schema.containment);
+    for (const edge of snapshot.edges.values()) {
+      if (isContainmentEdge(edge, containmentSet)) {
+        parentNodes.add(edge.source);
+      }
+    }
+  }
+
+  for (const nodeId of snapshot.nodes.keys()) {
+    let isChild = false;
+    if (schema.containment) {
+      const containmentSet = new Set(schema.containment);
+      for (const edge of snapshot.edges.values()) {
+        if (isContainmentEdge(edge, containmentSet) && edge.target === nodeId) {
+          isChild = true;
+          break;
+        }
+      }
+    }
+    if (!isChild) {
+      html += processNode(nodeId) || "";
+    }
+  }
+
+  html += `</div></div></foreignObject>`;
+
+  // Render Edges layer natively in SVG
+  html += `<g class="pgv-edge-layer">`;
+
+  const markerDef = `<defs><marker id="pgv-arrow-end-server" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" class="pgv-arrow-head"></path></marker></defs>`;
+  html += markerDef;
+
+  for (const edge of snapshot.edges.values()) {
+    if (schema.containment && isContainmentEdge(edge, new Set(schema.containment))) {
+      continue;
+    }
+    const endpoints = edgeEndpoints(edge, layout);
+    if (!endpoints) continue;
+
+    const routing = layout.edgeRouting?.get(edge.id) || {
+      sourceOffsetPx: 0, targetOffsetPx: 0, outIndex: 0, inIndex: 0, outTotal: 1, inTotal: 1
+    };
+
+    let path = routeEdgeOrthogonal(
+      endpoints.source,
+      endpoints.target,
+      layout,
+      routing.outIndex,
+      routing.inIndex,
+      routing.outTotal,
+      routing.inTotal,
+      edge.source,
+      edge.target
+    );
+
+    let d = `M ${path[0].x} ${path[0].y}`;
+    for (let i = 1; i < path.length; i++) {
+      d += ` L ${path[i].x} ${path[i].y}`;
+    }
+
+    let edgeClass = "pgv-graph-edge";
+    for (let i = 0; i < edge.tags.length; i++) {
+      edgeClass += " " + tagToClassName(edge.tags[i]);
+    }
+
+    html += `<g class="${edgeClass}" data-edge-id="${edge.id}">`;
+    html += `<path d="${d}" marker-end="url(#pgv-arrow-end-server)"></path>`;
+    html += `</g>`;
+  }
+
+  html += `</g></svg>`;
+  return html;
 }
