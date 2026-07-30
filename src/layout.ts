@@ -783,6 +783,7 @@ function groupByDepth(
 /**
  * Recursively collects all hidden descendant nodes of the given collapsed nodes.
  *
+ * @internal
  * @param collapsedNodes An iterable of node IDs that are currently collapsed.
  * @param getChildren A function that returns the children of a given node ID, or undefined if none.
  * @returns A Set containing all descendant node IDs that should be hidden.

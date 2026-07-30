@@ -959,6 +959,7 @@ export function isContainmentEdge(edge: GraphEdge, tags: ReadonlySet<string>): b
 /**
  * Performs an iterative depth-first search starting from the provided root nodes.
  *
+ * @internal
  * @param roots An iterable of root node IDs to start the traversal from.
  * @param getChildren A function that returns the children of a given node ID.
  * @param onVisit An optional callback invoked when a node is visited for the first time.
