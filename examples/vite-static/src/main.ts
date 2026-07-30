@@ -69,8 +69,8 @@ function updateGraph(): void {
       currentGraph = graph;
     },
     onThemeChange: (theme: string) => {
-      document.documentElement.classList.remove("pgv-light", "pgv-dark");
-      document.documentElement.classList.add(`pgv-${theme}`);
+      graphElement.classList.remove("pgv-light", "pgv-dark");
+      graphElement.classList.add(`pgv-${theme}`);
     },
     onNodeClick: (nodeId: string) => {
       const nodes = new Set(currentSelection.nodes);
