@@ -862,7 +862,7 @@ export function sanitizeString(value: string): string {
   let finalHtml = sanitized;
 
   // We match anchor tags, correctly skipping > inside quotes
-  finalHtml = finalHtml.replace(/<a\s+((?:[^>"']|"[^"]*"|'[^']*')+)>/gi, (match, attrsString) => {
+  finalHtml = finalHtml.replace(/<a\s+((?:[^>"']|"[^"]*"|'[^']*')+?)(\/?>)/gi, (match, attrsString, bracket) => {
     // 1. Tokenize attributes securely.
     const attrRegex = /([a-zA-Z0-9_-]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s>]+))?/g;
     let m;
@@ -917,14 +917,10 @@ export function sanitizeString(value: string): string {
        }
     } else {
        const appendStr = ' rel="noopener noreferrer"';
-       if (newAttrsString.endsWith('/')) {
-           newAttrsString = newAttrsString.slice(0, -1) + appendStr + '/';
-       } else {
-           newAttrsString += appendStr;
-       }
+       newAttrsString += appendStr;
     }
 
-    return `<a ${newAttrsString}>`;
+    return `<a ${newAttrsString}${bracket}`;
   });
 
   return finalHtml;
