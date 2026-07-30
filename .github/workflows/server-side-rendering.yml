@@ -1,0 +1,37 @@
+name: Server-Side Rendering E2E
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test-server-svg:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Install Playwright Browsers
+        run: pnpm exec playwright install --with-deps
+
+      - name: Build Library
+        run: pnpm run build
+
+      - name: Run Server-side E2E tests
+        run: pnpm run test:e2e-server
