@@ -798,7 +798,7 @@ export function sanitizeString(value: string): string {
   let scriptIterations = 0;
   do {
     previous = sanitized;
-    sanitized = sanitized.replace(/<\/?(script|iframe|object|embed|style|link|meta|base|form|math)\b[^>]*>?/gi, "");
+    sanitized = sanitized.replace(/<\/?(script|iframe|object|embed|style|link|meta|base|form|math|set|animate)\b[^>]*>?/gi, "");
     scriptIterations++;
     if (scriptIterations > 50) {
       throw new GraphModelError("String is too complex to sanitize safely.");
@@ -847,7 +847,8 @@ export function sanitizeString(value: string): string {
     clean.includes("data:text/html") ||
     clean.includes("data:image/svg+xml") ||
     clean.includes("data:text/xml") ||
-    clean.includes("data:application/xhtml+xml")
+    clean.includes("data:application/xhtml+xml") ||
+    clean.includes("data:application/xml")
   ) {
     return "#blocked-uri";
   }
