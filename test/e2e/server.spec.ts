@@ -10,6 +10,7 @@ test.describe("Server Side SVG Rendering", () => {
   test.beforeAll(async () => {
     const cssPath = path.resolve(process.cwd(), "src/style.css");
     cssText = fs.readFileSync(cssPath, "utf-8");
+    // @ts-ignore
     const module = await import("../../dist/index.js");
     renderGraphToSvg = module.renderGraphToSvg;
     createGraphSnapshot = module.createGraphSnapshot;
