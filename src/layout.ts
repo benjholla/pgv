@@ -826,7 +826,13 @@ function identifyCompoundNodes(graph: GraphSnapshot, config: Required<VerticalLa
     }
 
     // Filter to only include collapsed nodes that are actually parents
-    const collapsedParents = Array.from(config.collapsedNodes).filter(id => parentNodes.has(id));
+    // PERF(Bolt): Avoid intermediate Array.from() allocation and filter chain on Sets
+    const collapsedParents: string[] = [];
+    for (const id of config.collapsedNodes) {
+      if (parentNodes.has(id)) {
+        collapsedParents.push(id);
+      }
+    }
 
     const descendants = getHiddenNodes(collapsedParents, id => containmentMap.get(id));
     for (const descendant of descendants) {
