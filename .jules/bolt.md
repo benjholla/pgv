@@ -25,3 +25,6 @@
 ## 2024-07-29 - Avoid array allocation from Object.entries in rendering and validation loops
 **Learning:** In `@pgv/graph-core`, using `Object.entries()` to iterate over objects like attributes inside hot rendering or validation loops (`createSvgElement`, `defaultNodeContent`, `freezeAttributes`) creates intermediate array allocations. This impacts performance, especially for graphs with many nodes and attributes.
 **Action:** Replace `Object.entries()` with `for...in` loops combined with `Object.prototype.hasOwnProperty.call()` checks to avoid intermediate array allocations in performance-critical paths, matching the pattern already used elsewhere in the codebase.
+## 2024-11-21 - Avoid Array.from allocation and filter chain on Sets
+**Learning:** In `@pgv/graph-core`, `Array.from(set).filter(...)` creates an intermediate array and closure overhead in hot layout preprocessing steps like `identifyCompoundNodes` (line 829). Benchmarks confirm a standard `for...of` loop with an `if` check and `push` is significantly faster and avoids memory chunk allocation.
+**Action:** Always prefer a single-pass `for...of` loop over a `Set` instead of `Array.from` followed by higher-order array methods in performance-critical hot paths.
