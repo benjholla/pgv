@@ -2762,7 +2762,7 @@ function setupDropdownCloseEvents(
   }, { signal: abortController.signal });
 
   document.addEventListener("click", (e) => {
-    if (getIsOpen()) {
+    if (getIsOpen() && e.target instanceof Node && !container.contains(e.target)) {
       close();
     }
   }, { signal: abortController.signal });
