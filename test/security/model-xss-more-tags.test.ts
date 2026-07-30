@@ -12,5 +12,7 @@ describe("sanitizeString XSS various tags", () => {
     expect(sanitizeString("hello <base href='x'>")).toBe("hello ");
     expect(sanitizeString("hello <form action='x'>")).toBe("hello ");
     expect(sanitizeString("hello <math>")).toBe("hello ");
+    expect(sanitizeString("hello <set attributeName='onmouseover' to='alert(1)'></set>")).toBe("hello ");
+    expect(sanitizeString("hello <animate attributeName='href' values='javascript:alert(1)'></animate>")).toBe("hello ");
   });
 });
