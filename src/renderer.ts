@@ -2842,6 +2842,10 @@ function renderEdges(
     }
     group.setAttribute("aria-label", edgeAriaLabel);
 
+    const groupTitle = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    groupTitle.textContent = edgeAriaLabel;
+    group.appendChild(groupTitle);
+
     path.setAttribute("d", pathData);
     path.setAttribute("marker-end", `url(#${markerId})`);
 
