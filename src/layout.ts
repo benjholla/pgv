@@ -713,40 +713,39 @@ function assignVerticalDepths(
 
   let currentMaxDepth = -1;
   let qIdx = 0;
+  let processedFakeRoots = false;
 
-  const processQueue = () => {
-    while (qIdx < queue.length) {
-      const u = queue[qIdx++];
-      const d = depths.get(u)!;
-      if (d > currentMaxDepth) currentMaxDepth = d;
-
-      for (const v of acyclicOutgoing.get(u)!) {
-        const newD = d + 1;
-        const currentVD = depths.get(v);
-        if (currentVD === undefined || newD > currentVD) {
-          depths.set(v, newD);
-        }
-
-        const inDeg = dagIncoming.get(v)! - 1;
-        dagIncoming.set(v, inDeg);
-        if (inDeg === 0) {
-          queue.push(v);
+  while (qIdx < queue.length || !processedFakeRoots) {
+    if (qIdx === queue.length && !processedFakeRoots) {
+      processedFakeRoots = true;
+      const nextDepth = currentMaxDepth + 1;
+      for (const id of fakeRoots) {
+        if (!depths.has(id)) {
+          depths.set(id, nextDepth);
+          queue.push(id);
         }
       }
+      continue;
     }
-  };
 
-  processQueue();
+    const u = queue[qIdx++];
+    const d = depths.get(u)!;
+    if (d > currentMaxDepth) currentMaxDepth = d;
 
-  let nextDepth = currentMaxDepth + 1;
-  for (const id of fakeRoots) {
-    if (!depths.has(id)) {
-      depths.set(id, nextDepth);
-      queue.push(id);
+    for (const v of acyclicOutgoing.get(u)!) {
+      const newD = d + 1;
+      const currentVD = depths.get(v);
+      if (currentVD === undefined || newD > currentVD) {
+        depths.set(v, newD);
+      }
+
+      const inDeg = dagIncoming.get(v)! - 1;
+      dagIncoming.set(v, inDeg);
+      if (inDeg === 0) {
+        queue.push(v);
+      }
     }
   }
-
-  processQueue();
 
   return depths;
 }
