@@ -35,6 +35,7 @@ class GraphController {
     nodes: new Set(),
     edges: new Set(),
   };
+  private currentTheme: "light" | "dark" = "light";
   private graphView: GraphView | null = null;
 
   constructor(private container: HTMLElement, private schema: any) {}
@@ -53,10 +54,13 @@ class GraphController {
       usePanZoom: true,
       useThemeToggle: true,
       maxHistory: 0,
-      theme: "light" as const, // Default to light mode as requested for clinical blog
+      theme: this.currentTheme, // Default to light mode as requested for clinical blog
       controlsCollapsed: true,
       onGraphChange: (graph: GraphSnapshot) => {
         this.currentGraph = graph;
+      },
+      onThemeChange: (theme: "light" | "dark") => {
+        this.currentTheme = theme;
       },
       onNodeClick: (nodeId: string) => {
         const nodes = new Set(this.currentSelection.nodes);
