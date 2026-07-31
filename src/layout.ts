@@ -916,7 +916,13 @@ function estimateNodeHeight(graph: GraphSnapshot, id: string, config: Required<V
   const node = graph.nodes.get(id);
   if (!node) return config.nodeHeight;
 
-  const attrCount = Object.keys(node.attributes).length;
+  // PERF(Bolt): Avoid Object.keys() array allocation in hot path
+  let attrCount = 0;
+  for (const key in node.attributes) {
+    if (Object.prototype.hasOwnProperty.call(node.attributes, key)) {
+      attrCount++;
+    }
+  }
 
   if (attrCount === 0) {
     return config.nodeHeight;
