@@ -654,6 +654,10 @@ export class GraphView {
 
   /**
    * Converts physical pixel coordinates (relative to the viewport container) into logical layout coordinates.
+   *
+   * @param x The physical X coordinate relative to the viewport container.
+   * @param y The physical Y coordinate relative to the viewport container.
+   * @returns The corresponding logical layout point.
    */
   viewportToLogical(x: number, y: number): Point {
     return {
@@ -664,6 +668,10 @@ export class GraphView {
 
   /**
    * Converts logical layout coordinates into physical pixel coordinates (relative to the viewport container).
+   *
+   * @param x The logical X coordinate.
+   * @param y The logical Y coordinate.
+   * @returns The corresponding physical pixel point relative to the viewport container.
    */
   logicalToViewport(x: number, y: number): Point {
     return {
