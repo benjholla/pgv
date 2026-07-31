@@ -28,3 +28,6 @@
 ## 2024-11-21 - Avoid Array.from allocation and filter chain on Sets
 **Learning:** In `@pgv/graph-core`, `Array.from(set).filter(...)` creates an intermediate array and closure overhead in hot layout preprocessing steps like `identifyCompoundNodes` (line 829). Benchmarks confirm a standard `for...of` loop with an `if` check and `push` is significantly faster and avoids memory chunk allocation.
 **Action:** Always prefer a single-pass `for...of` loop over a `Set` instead of `Array.from` followed by higher-order array methods in performance-critical hot paths.
+## 2025-02-12 - Avoid Object.keys() array allocation in hot paths
+**Learning:** In `@pgv/graph-core`, using `Object.keys()` to count attributes inside hot layout sizing logic (`estimateNodeHeight`) or attribute validation (`isValid` for model validation) creates intermediate array allocations. This impacts performance, especially for graphs with many nodes and attributes.
+**Action:** Replace `Object.keys(obj).length` or `Object.keys(obj)[0]` with a `for...in` loop combined with an `Object.prototype.hasOwnProperty.call(obj, key)` check to count keys and extract values without generating intermediate arrays.
