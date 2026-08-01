@@ -842,6 +842,8 @@ export class GraphView {
       const newNodes = stage.querySelectorAll<HTMLElement>(".pgv-graph-node, .pgv-compound-node");
       const enterNodes: HTMLElement[] = [];
       const flipNodes: { element: HTMLElement, dx: number, dy: number }[] = [];
+      // PERF(Bolt): Replaced O(N) Array.prototype.find() with O(1) Map lookup
+      const flipNodesMap = new Map<HTMLElement, { dx: number, dy: number }>();
 
       const scale = this.#viewportState.scale;
 
@@ -863,7 +865,7 @@ export class GraphView {
             // Check for parent delta to subtract
             const parentCompound = node.parentElement?.closest<HTMLElement>(".pgv-compound-node");
             if (parentCompound && parentCompound.dataset.nodeId) {
-              const parentFlip = flipNodes.find(f => f.element === parentCompound);
+              const parentFlip = flipNodesMap.get(parentCompound);
               if (parentFlip) {
                 dx -= parentFlip.dx;
                 dy -= parentFlip.dy;
@@ -871,6 +873,7 @@ export class GraphView {
             }
 
             flipNodes.push({ element: node, dx, dy });
+            flipNodesMap.set(node, { dx, dy });
             // Invert Step: Add FLIP translate to existing layout transform
             const currentTransform = node.style.transform;
             node.dataset.layoutTransform = currentTransform;
