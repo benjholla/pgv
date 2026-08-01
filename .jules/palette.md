@@ -78,3 +78,6 @@
 ## $(date +%Y-%m-%d) - Native SVG Tooltips for Edges
 **Learning:** While HTML elements support the `title` attribute for native browser tooltips on hover, standard SVG `<g>` or `<path>` elements do not expose a tooltip from just the `title` attribute in all browser contexts. The correct semantic approach for SVGs is to append a `<title>` element as a child of the SVG group. This provides native hover tooltips for interactive SVG primitives (like graph edges), making them discoverable and readable for sighted users even if the text labels are hidden or truncated.
 **Action:** When creating interactive SVG elements (like graph edges) that have `aria-label`s, always append a `<title>` element inside the `<g>` group to ensure native browser tooltip support for visual users.
+## 2025-08-01 - Improve accessibility of collapsed node hidden counts
+**Learning:** Informative `title` attributes on generic nested elements like `<span>`s are not reliably announced by screen readers when focusing parent interactive nodes (like the `<div role="button">` nodes in the graph).
+**Action:** Always append critical summary information directly to the parent interactive node's `aria-label`, and use `aria-hidden="true"` on the visual-only nested elements to avoid messy or redundant partial announcements.
