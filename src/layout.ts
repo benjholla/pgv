@@ -6,21 +6,6 @@
 
 
 
-function binarySearch(arr: readonly string[], target: string): number {
-  let left = 0;
-  let right = arr.length - 1;
-  while (left <= right) {
-    const mid = (left + right) >> 1;
-    if (arr[mid] === target) return mid;
-    if (arr[mid] < target) left = mid + 1;
-    else right = mid - 1;
-  }
-  return -1;
-}
-
-/**
- * PERF(Bolt): Replaced O(N) scan with O(log N) binary search since coordinate arrays are sorted
- */
 function findClosestCoordinateIndex(arr: readonly number[], val: number): number {
   let low = 0;
   let high = arr.length - 1;
@@ -1017,7 +1002,7 @@ function computeEdgeRoutingHints(
     }
 
     const outList = edgeOutgoing.get(edge.source) || [];
-    const outIndex = binarySearch(outList, edge.id);
+    const outIndex = outList.indexOf(edge.id);
     const outTotal = outList.length;
     let sOffset = 0;
     if (outTotal > 1) {
@@ -1026,7 +1011,7 @@ function computeEdgeRoutingHints(
     }
 
     const inList = edgeIncoming.get(edge.target) || [];
-    const inIndex = binarySearch(inList, edge.id);
+    const inIndex = inList.indexOf(edge.id);
     const inTotal = inList.length;
     let tOffset = 0;
     if (inTotal > 1) {

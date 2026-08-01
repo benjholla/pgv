@@ -2917,7 +2917,6 @@ function renderNodes(
   onToggleCollapse: (id: string) => void = () => {},
 ): HTMLElement[] {
   const nodes: HTMLElement[] = [];
-  const renderedElements = new Map<string, HTMLElement>();
 
   const getHiddenCounts = (nodeId: string): { nodes: number, edges: number } => {
     let hiddenNodes = 0;
@@ -3078,7 +3077,6 @@ function renderNodes(
       }
     }
 
-    renderedElements.set(nodeId, element);
     return element;
   };
 
