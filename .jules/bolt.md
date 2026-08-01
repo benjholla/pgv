@@ -31,3 +31,7 @@
 ## 2025-02-12 - Avoid Object.keys() array allocation in hot paths
 **Learning:** In `@pgv/graph-core`, using `Object.keys()` to count attributes inside hot layout sizing logic (`estimateNodeHeight`) or attribute validation (`isValid` for model validation) creates intermediate array allocations. This impacts performance, especially for graphs with many nodes and attributes.
 **Action:** Replace `Object.keys(obj).length` or `Object.keys(obj)[0]` with a `for...in` loop combined with an `Object.prototype.hasOwnProperty.call(obj, key)` check to count keys and extract values without generating intermediate arrays.
+
+## 2024-05-18 - [Optimization] O(N^2) Array.find() in Animation Loop
+**Learning:** Found that `applyDiff` inside `src/renderer.ts` utilized an `Array.prototype.find()` on a large `flipNodes` array inside a loop running for each node that is rendered, resulting in an $O(N^2)$ algorithm right in the hot animation/render loop. The DOM manipulation already takes time, but for graphs with a large number of nodes, nested linear scans heavily degrade framerates during animations.
+**Action:** Always verify that search operations within array iterations mapped over DOM elements use O(1) structures like `Map` or `Set`, particularly in hot paths like `requestAnimationFrame` render loops or graph diffing.
