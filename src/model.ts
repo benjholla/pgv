@@ -886,9 +886,10 @@ export function sanitizeString(value: string): string {
   let finalHtml = sanitized;
 
   // We match anchor tags, correctly skipping > inside quotes
-  finalHtml = finalHtml.replace(/<a\s+((?:[^>"']|"[^"]*"|'[^']*')+?)(\/?>)/gi, (match, attrsString, bracket) => {
+  // We capture the leading separator separately to preserve it.
+  finalHtml = finalHtml.replace(/<a([\s/])((?:[^>"']|"[^"]*"|'[^']*')+?)(\/?>)/gi, (match, separator, attrsString, bracket) => {
     // 1. Tokenize attributes securely.
-    const attrRegex = /([a-zA-Z0-9_-]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s>]+))?/g;
+    const attrRegex = /([^\s/=>]+)(?:\s*=\s*("[^"]*"|'[^']*'|[^\s>]+))?/g;
     let m;
     let hasTargetBlank = false;
     let relMatch = null;
@@ -944,7 +945,7 @@ export function sanitizeString(value: string): string {
        newAttrsString += appendStr;
     }
 
-    return `<a ${newAttrsString}${bracket}`;
+    return `<a${separator}${newAttrsString}${bracket}`;
   });
 
   return finalHtml;
