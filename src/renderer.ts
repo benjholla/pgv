@@ -3034,9 +3034,12 @@ function renderNodes(
 
       if (isCompound) {
         const hidden = getHiddenCounts(node.id);
+        element.setAttribute("aria-label", `Node ${nodeTitle}, ${hidden.nodes} nodes, ${hidden.edges} edges hidden`);
+
         const indicator = document.createElement("span");
         indicator.className = "pgv-node-hidden-indicator";
         indicator.title = `${hidden.nodes} nodes, ${hidden.edges} edges hidden`;
+        indicator.setAttribute("aria-hidden", "true");
         indicator.textContent = " [...]";
         indicator.style.opacity = "0.6";
         indicator.style.fontSize = "0.9em";
