@@ -4,8 +4,14 @@
  * Frontend-owned vertical layout and geometric routing calculations.
  */
 
-
-
+/**
+ * Performs an O(log N) binary search on a sorted array of strings.
+ *
+ * Maintained intentionally over native `Array.prototype.indexOf` (which is O(N))
+ * to ensure scalable routing performance when processing "hub" nodes with
+ * exceptionally high edge degrees (thousands of incoming/outgoing edges)
+ * where the adjacency lists are explicitly pre-sorted.
+ */
 function binarySearch(arr: readonly string[], target: string): number {
   let left = 0;
   let right = arr.length - 1;
