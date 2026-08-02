@@ -2842,6 +2842,7 @@ function renderEdges(
     group.dataset.edgeId = edge.id;
     group.setAttribute("tabindex", "0");
     group.setAttribute("role", "button");
+    group.setAttribute("aria-pressed", options.selection?.edges.has(edge.id) ? "true" : "false");
 
     const markerId = `pgv-arrowhead-${markerIdSequence++}`;
     group.appendChild(createArrowMarker(markerId));
@@ -2975,6 +2976,7 @@ function renderNodes(
     element.dataset.nodeId = node.id;
     element.setAttribute("tabindex", "0");
     element.setAttribute("role", "button");
+    element.setAttribute("aria-pressed", options.selection?.nodes.has(node.id) ? "true" : "false");
 
     const nodeTitle = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
     element.setAttribute("aria-label", `Node ${nodeTitle}`);
