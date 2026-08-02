@@ -970,6 +970,9 @@ function assertNonEmptyString(value: unknown, fieldName: string): asserts value 
 
 /**
  * @internal
+ * @param edge The edge to check.
+ * @param tags The set of tags that indicate a containment relationship.
+ * @returns True if the edge is a containment edge, false otherwise.
  */
 export function isContainmentEdge(edge: GraphEdge, tags: ReadonlySet<string>): boolean {
   if (edge.tags.length === 0) return false;
