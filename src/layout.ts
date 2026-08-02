@@ -266,7 +266,7 @@ export function verticalLayout(
   const { outgoing, incoming, edgeOutgoing, edgeIncoming } = buildAdjacencyLists(graph, nodeIds, parentNodes, config);
 
   const depths = assignVerticalDepths(nodeIds, outgoing, incoming);
-  const layers = groupByDepth(nodeIds, depths);
+  const layers = groupByDepth(nodeIds, depths, incoming);
 
 
 
@@ -759,6 +759,7 @@ function assignVerticalDepths(
 function groupByDepth(
   nodeIds: readonly string[],
   depths: ReadonlyMap<string, number>,
+  incoming: ReadonlyMap<string, readonly string[]>
 ): ReadonlyMap<number, readonly string[]> {
   const layers = new Map<number, string[]>();
 
@@ -770,8 +771,57 @@ function groupByDepth(
     layers.set(depth, layer);
   }
 
-  for (const layer of layers.values()) {
-    layer.sort((a, b) => a.localeCompare(b));
+  // To compute barycenters, we need to process layers in order of depth.
+  const sortedDepths = Array.from(layers.keys()).sort((a, b) => a - b);
+
+  // Keep track of the computed index in the layer for barycenter calculation
+  const nodeIndexInLayer = new Map<string, number>();
+
+  for (const depth of sortedDepths) {
+    const layer = layers.get(depth)!;
+
+    if (depth === sortedDepths[0]) {
+      // First layer: just sort alphabetically for determinism
+      layer.sort((a, b) => a.localeCompare(b));
+    } else {
+      // Calculate barycenter for each node in this layer based on its incoming edges
+      const barycenters = new Map<string, number>();
+
+      for (const id of layer) {
+        const inNodes = incoming.get(id) ?? [];
+        let sum = 0;
+        let count = 0;
+
+        for (const inNode of inNodes) {
+          const idx = nodeIndexInLayer.get(inNode);
+          if (idx !== undefined) {
+            sum += idx;
+            count++;
+          }
+        }
+
+        // If count is 0, we can use a neutral value or 0
+        barycenters.set(id, count > 0 ? sum / count : -1);
+      }
+
+      layer.sort((a, b) => {
+        const baryA = barycenters.get(a)!;
+        const baryB = barycenters.get(b)!;
+
+        if (baryA !== baryB) {
+          // If a node has no incoming edges (barycenter = -1), keep it at the start
+          // or end? Let's just sort by barycenter. Nodes without incoming will be at -1.
+          return baryA - baryB;
+        }
+        // Tie-breaker: determinism
+        return a.localeCompare(b);
+      });
+    }
+
+    // Save the computed indices for the next layer
+    for (let i = 0; i < layer.length; i++) {
+      nodeIndexInLayer.set(layer[i], i);
+    }
   }
 
   const entries = new Array<[number, readonly string[]]>(layers.size);
