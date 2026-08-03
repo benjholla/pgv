@@ -23,4 +23,31 @@ describe("sanitizeString XSS named entities bypass", () => {
     expect(sanitizeString("java\u202Ascript:alert(1)")).toBe("#blocked-uri");
     expect(sanitizeString("java\u202Escript:alert(1)")).toBe("#blocked-uri");
   });
+
+  it("permits safe substrings containing dangerous scheme keywords if not in a dangerous context", () => {
+    // These should not be blocked because they don't match the regex anchor/context
+    expect(sanitizeString("I love javascript: it is great")).toBe("I love javascript: it is great");
+    expect(sanitizeString("Some text =\"javascript: destroyed")).toBe("#blocked-uri");
+    // This should be blocked as it starts at the beginning
+    expect(sanitizeString("javascript:alert(1)")).toBe("#blocked-uri");
+    // This should be blocked as it follows an attribute wrapper
+    expect(sanitizeString('href="javascript:alert(1)"')).toBe("#blocked-uri");
+  });
+
+  it("handles anchor tags with missing rel attribute but target _blank", () => {
+    const input = '<a target="_blank">Link</a>';
+    const result = sanitizeString(input);
+    expect(result).toBe('<a target="_blank" rel="noopener noreferrer">Link</a>');
+  });
+  it("handles anchor tags where target does not have a value", () => {
+    const input = '<a target rel="opener">Link</a>';
+    const result = sanitizeString(input);
+    expect(result).toBe('<a target rel="opener">Link</a>');
+  });
+
+  it("handles anchor tags where target has a safe value", () => {
+    const input = '<a target="_self" rel="opener">Link</a>';
+    const result = sanitizeString(input);
+    expect(result).toBe('<a target="_self" rel="opener">Link</a>');
+  });
 });
