@@ -446,13 +446,14 @@ export function routeEdgeOrthogonal(
   ySet.add(sourcePt.y + sourceVerticalOffset);
   ySet.add(targetPt.y - targetVerticalOffset);
 
-  for (const pos of layout.positions.values()) {
+  for (const [id, pos] of layout.positions.entries()) {
+    const size = layout.nodeSizes?.get(id) || layout.nodeSize;
     xSet.add(pos.x - margin);
-    xSet.add(pos.x + layout.nodeSize.width + margin);
+    xSet.add(pos.x + size.width + margin);
     ySet.add(pos.y - margin);
-    ySet.add(pos.y + layout.nodeSize.height + margin);
+    ySet.add(pos.y + size.height + margin);
 
-    xSet.add(pos.x + layout.nodeSize.width / 2);
+    xSet.add(pos.x + size.width / 2);
   }
 
   xSet.add(-margin);
