@@ -600,7 +600,12 @@ export function routeEdgeOrthogonal(
         }
 
         const g = curr.g + dist + penalty;
-        const h = Math.abs(xCoords[endXIdx] - x2) + Math.abs(yCoords[endYIdx] - y2);
+        const dx1 = xCoords[endXIdx] - x2;
+        const dy1 = yCoords[endYIdx] - y2;
+        const dx2 = xCoords[endXIdx] - xCoords[startXIdx];
+        const dy2 = yCoords[endYIdx] - yCoords[startYIdx];
+        const crossProduct = Math.abs(dx1 * dy2 - dx2 * dy1);
+        const h = Math.abs(dx1) + Math.abs(dy1) + crossProduct * 0.001;
         const f = g + h;
 
         openList.push({ xIdx: nxIdx, yIdx: nyIdx, g, f, parent: curr, dirX: dx, dirY: dy, dir: i });
