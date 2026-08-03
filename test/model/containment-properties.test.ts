@@ -72,4 +72,25 @@ describe("Containment Structural Invariants", () => {
             ]
         })).toThrow(/cycle/i);
     });
+
+    it("Disconnected Cycle Property: Containment edges forming a cycle in a disjoint subgraph throw", () => {
+        expect(() => createGraphSnapshot({
+            schema: { containment: ["contains"] },
+            nodes: [{ id: "A" }, { id: "B" }, { id: "C" }, { id: "D" }],
+            edges: [
+                { id: "e1", source: "A", target: "B", tags: ["contains"] },
+                { id: "e2", source: "C", target: "D", tags: ["contains"] },
+                { id: "e3", source: "D", target: "C", tags: ["contains"] }
+            ]
+        })).toThrow(GraphModelError);
+        expect(() => createGraphSnapshot({
+            schema: { containment: ["contains"] },
+            nodes: [{ id: "A" }, { id: "B" }, { id: "C" }, { id: "D" }],
+            edges: [
+                { id: "e1", source: "A", target: "B", tags: ["contains"] },
+                { id: "e2", source: "C", target: "D", tags: ["contains"] },
+                { id: "e3", source: "D", target: "C", tags: ["contains"] }
+            ]
+        })).toThrow(/Containment cycle detected involving node/i);
+    });
 });

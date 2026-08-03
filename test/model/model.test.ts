@@ -496,6 +496,51 @@ describe("model", () => {
       expect(attrs.b).toEqual({ bytes: "base64" });
     });
 
+
+    it("correctly handles validation edge cases for float, integer, and bytes", () => {
+      expect(() => createGraphSnapshot({
+        nodes: [{ id: "n1", tags: [], attributes: { i: { integer: "42" } as any } }],
+        edges: []
+      })).toThrow(/unsupported value type/i);
+
+      expect(() => createGraphSnapshot({
+        nodes: [{ id: "n1", tags: [], attributes: { f: { float: "3.14" } as any } }],
+        edges: []
+      })).toThrow(/unsupported value type/i);
+
+      expect(() => createGraphSnapshot({
+        nodes: [{ id: "n1", tags: [], attributes: { b: { bytes: 42 } as any } }],
+        edges: []
+      })).toThrow(/unsupported value type/i);
+
+      expect(() => createGraphSnapshot({
+        nodes: [{ id: "n1", tags: [], attributes: { x: { unknown: 42 } as any } }],
+        edges: []
+      })).toThrow(/unsupported value type/i);
+    });
+
+    it("correctly handles validation edge cases for inherited properties where innerKey remains undefined", () => {
+      const badObj = Object.create({ integer: 42 });
+      expect(() => createGraphSnapshot({
+        nodes: [{ id: "n1", tags: [], attributes: { i: badObj as any } }],
+        edges: []
+      })).toThrow(/unsupported value type/i);
+    });
+
+    // To hit line 746 `} else if ("float" in value) {` false path inside `} else if (typeof value === "object" && value !== null) {`
+    // We need an object that passes isValid (e.g. keyCount=1, innerKey=integer, typeof value.integer=number)
+    // BUT does not have bytes, integer, or float in `value` natively, which is impossible due to the check.
+    // However, if we construct a valid integer attribute object, we hit line 744: `} else if ("integer" in value) {`.
+    // Wait, since we are doing coverage on branches, maybe we just need a valid object that IS an Array?
+    // Arrays fail the isValid check unless we mock it, wait, `Array.isArray(value)` is checked!
+    // Ah, line 721 is `} else if (value !== null && typeof value === "object" && !Array.isArray(value)) {`
+    // We already covered strings, numbers, booleans (which set isValid=true initially).
+    it("correctly evaluates Arrays as unsupported value types", () => {
+      expect(() => createGraphSnapshot({
+        nodes: [{ id: "n1", tags: [], attributes: { arr: [] as any } }],
+        edges: []
+      })).toThrow(/unsupported value type/i);
+    });
     it("throws when an attribute has an unsupported value type", () => {
       const attrs = Object.create({ inherited: 1 });
       attrs.invalid = {} as unknown as AttributeValue;
