@@ -1108,3 +1108,10 @@
   opacity: 0;
   transition: opacity var(--pgv-animation-duration, 300ms) ease-in-out;
 }
+
+.pgv-control-split-button button:focus-visible {
+  outline: none;
+  border-color: var(--pgv-selected-color);
+  box-shadow: var(--pgv-selected-shadow);
+  z-index: 1;
+}
