@@ -35,3 +35,7 @@
 ## 2024-05-18 - [Optimization] O(N^2) Array.find() in Animation Loop
 **Learning:** Found that `applyDiff` inside `src/renderer.ts` utilized an `Array.prototype.find()` on a large `flipNodes` array inside a loop running for each node that is rendered, resulting in an $O(N^2)$ algorithm right in the hot animation/render loop. The DOM manipulation already takes time, but for graphs with a large number of nodes, nested linear scans heavily degrade framerates during animations.
 **Action:** Always verify that search operations within array iterations mapped over DOM elements use O(1) structures like `Map` or `Set`, particularly in hot paths like `requestAnimationFrame` render loops or graph diffing.
+
+## 2026-08-04 - [Eliminated Redundant Array Allocation in FLIP Animation]
+**Learning:** The FLIP animation in `src/renderer.ts` was maintaining both an array (`flipNodes`) and a Map (`flipNodesMap`) for the exact same set of DOM elements and state changes. This is a common performance anti-pattern where a Map is introduced to fix O(N) lookup issues, but the original array is left behind.
+**Action:** When migrating from arrays to Maps for O(1) lookups, fully commit to the Map. Iterate directly over the Map using `for (const item of map.keys())` or `for (const [key, value] of map)` to avoid maintaining redundant data structures and save memory allocation overhead.
