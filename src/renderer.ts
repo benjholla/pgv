@@ -2595,6 +2595,10 @@ export class GraphView {
     element.addEventListener("keydown", (event) => {
       if (event.key === "Enter" || event.key === " ") {
         const target = event.target as HTMLElement;
+        if (target.closest(".pgv-node-collapse-toggle")) {
+          return;
+        }
+
         const isGraphElement = target.closest(".pgv-graph-node, .pgv-compound-node") || target.closest(".pgv-graph-edge");
 
         if (isGraphElement) {
