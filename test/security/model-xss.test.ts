@@ -34,11 +34,16 @@ describe("sanitizeString XSS named entities bypass", () => {
     expect(sanitizeString('href="javascript:alert(1)"')).toBe("#blocked-uri");
   });
 
+  it("blocks javascript URIs using backticks as attribute wrapper", () => {
+    expect(sanitizeString("<a href=`javascript:alert(1)`>Click me</a>")).toBe("#blocked-uri");
+  });
+
   it("handles anchor tags with missing rel attribute but target _blank", () => {
     const input = '<a target="_blank">Link</a>';
     const result = sanitizeString(input);
     expect(result).toBe('<a target="_blank" rel="noopener noreferrer">Link</a>');
   });
+
   it("handles anchor tags where target does not have a value", () => {
     const input = '<a target rel="opener">Link</a>';
     const result = sanitizeString(input);

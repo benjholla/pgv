@@ -866,7 +866,7 @@ export function sanitizeString(value: string): string {
     // However, since we decoded the string into `clean`, we know exactly if it's in a dangerous context.
 
     // We check if the dangerous scheme starts at the beginning of the string or explicitly follows an attribute/URL wrapper.
-    const dangerousUrisRegex = /(?:^|["'=]|\burl\()\s*(?:javascript|vbscript|data:text\/html|data:image\/svg\+xml|data:text\/xml|data:application\/xhtml\+xml|data:application\/xml)(?:,|:|;)/i;
+    const dangerousUrisRegex = /(?:^|["'`=]|\burl\()\s*(?:javascript|vbscript|data:text\/html|data:image\/svg\+xml|data:text\/xml|data:application\/xhtml\+xml|data:application\/xml)(?:,|:|;)/i;
     if (dangerousUrisRegex.test(clean)) {
       // If it matches in `clean`, it is an executable vector (e.g. `href="javascript:..."` or a full URL).
       // We return "#blocked-uri" for the ENTIRE string.
