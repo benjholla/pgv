@@ -81,3 +81,6 @@
 ## 2025-08-01 - Improve accessibility of collapsed node hidden counts
 **Learning:** Informative `title` attributes on generic nested elements like `<span>`s are not reliably announced by screen readers when focusing parent interactive nodes (like the `<div role="button">` nodes in the graph).
 **Action:** Always append critical summary information directly to the parent interactive node's `aria-label`, and use `aria-hidden="true"` on the visual-only nested elements to avoid messy or redundant partial announcements.
+## 2024-05-18 - Use `aria-pressed` for toggle buttons instead of `aria-expanded`
+**Learning:** `aria-expanded` is semantically intended for elements that explicitly control the visibility of a collapsible grouping of other elements (typically using `aria-controls`), like dropdowns. For standalone toggle buttons that simply switch a boolean state on or off (e.g. Fullscreen, Minimap), `aria-pressed` is the correctly specified semantic attribute to provide accurate state feedback to screen readers.
+**Action:** Default to `aria-pressed` for boolean toggle states. Only use `aria-expanded` when the button acts as an accordion/dropdown toggle that reveals an associated submenu.

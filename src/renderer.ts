@@ -1561,7 +1561,7 @@ export class GraphView {
         label: "Toggle Search",
       });
       searchToggleBtn.classList.add("pgv-search-toggle-btn");
-      searchToggleBtn.setAttribute("aria-expanded", this.#searchOpen ? "true" : "false");
+      searchToggleBtn.setAttribute("aria-pressed", this.#searchOpen ? "true" : "false");
       topButtonsContainer.appendChild(searchToggleBtn);
 
       if (this.#options.maxHistory && this.#options.maxHistory > 0) {
@@ -1574,7 +1574,7 @@ export class GraphView {
           label: "Toggle History Navigation",
         });
 
-        historyToggleBtn.setAttribute("aria-expanded", this.#historyOpen ? "true" : "false");
+        historyToggleBtn.setAttribute("aria-pressed", this.#historyOpen ? "true" : "false");
         topButtonsContainer.appendChild(historyToggleBtn);
       }
 
@@ -1584,7 +1584,7 @@ export class GraphView {
           action: () => this.#toggleMinimap(),
           label: "Toggle Minimap",
         });
-        minimapToggleBtn.setAttribute("aria-expanded", this.#minimapOpen ? "true" : "false");
+        minimapToggleBtn.setAttribute("aria-pressed", this.#minimapOpen ? "true" : "false");
         topButtonsContainer.appendChild(minimapToggleBtn);
 
         const mobileResetBtn = this.#createControlButton({
@@ -1639,7 +1639,7 @@ export class GraphView {
         action: () => this.#toggleFullscreen(),
         label: this.#isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen",
       });
-      fullscreenBtn.setAttribute("aria-expanded", this.#isFullscreen ? "true" : "false");
+      fullscreenBtn.setAttribute("aria-pressed", this.#isFullscreen ? "true" : "false");
       topButtonsContainer.appendChild(fullscreenBtn);
 
       miscGroup.appendChild(topButtonsContainer);
