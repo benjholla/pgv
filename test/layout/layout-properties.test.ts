@@ -69,4 +69,20 @@ describe("Layout Properties", () => {
     // Width should be same or greater
     expect(tallerLayout.width).toBeGreaterThanOrEqual(baseLayout.width);
   });
+
+  it("Translation Invariance: Scaling grid settings spaces elements proportionally without violating relative topological orders", () => {
+    const snap = createGraphSnapshot({
+      nodes: [{ id: "A" }, { id: "B" }, { id: "C" }],
+      edges: [{ id: "e1", source: "A", target: "B" }, { id: "e2", source: "B", target: "C" }]
+    });
+
+    const baseLayout = verticalLayout(snap, { nodeWidth: 100, nodeHeight: 50, layerSpacing: 50, nodeSpacing: 20 });
+    const scaledLayout = verticalLayout(snap, { nodeWidth: 100, nodeHeight: 50, layerSpacing: 100, nodeSpacing: 40 });
+
+    expect(scaledLayout.height).toBeGreaterThan(baseLayout.height);
+
+    // Relative ordering must remain the same
+    expect(scaledLayout.positions.get("A")!.y).toBeLessThan(scaledLayout.positions.get("B")!.y);
+    expect(scaledLayout.positions.get("B")!.y).toBeLessThan(scaledLayout.positions.get("C")!.y);
+  });
 });
