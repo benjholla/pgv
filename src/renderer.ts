@@ -841,8 +841,7 @@ export class GraphView {
 
       const newNodes = stage.querySelectorAll<HTMLElement>(".pgv-graph-node, .pgv-compound-node");
       const enterNodes: HTMLElement[] = [];
-      const flipNodes: { element: HTMLElement, dx: number, dy: number }[] = [];
-      // PERF(Bolt): Replaced O(N) Array.prototype.find() with O(1) Map lookup
+      // PERF(Bolt): Replaced O(N) Array.prototype.find() with O(1) Map lookup and removed redundant array allocation
       const flipNodesMap = new Map<HTMLElement, { dx: number, dy: number }>();
 
       const scale = this.#viewportState.scale;
@@ -872,7 +871,6 @@ export class GraphView {
               }
             }
 
-            flipNodes.push({ element: node, dx, dy });
             flipNodesMap.set(node, { dx, dy });
             // Invert Step: Add FLIP translate to existing layout transform
             const currentTransform = node.style.transform;
@@ -902,9 +900,9 @@ export class GraphView {
 
       // Play Step
       stage.classList.add("pgv-animating");
-      for (let i = 0; i < flipNodes.length; i++) {
-        const layoutTransform = flipNodes[i].element.dataset.layoutTransform || "";
-        flipNodes[i].element.style.transform = layoutTransform; // Restore layout transform, removing FLIP offset
+      for (const element of flipNodesMap.keys()) {
+        const layoutTransform = element.dataset.layoutTransform || "";
+        element.style.transform = layoutTransform; // Restore layout transform, removing FLIP offset
       }
 
       // Step 3: Pass 3 - Enter & Final Cleanup
@@ -917,9 +915,9 @@ export class GraphView {
       setTimeout(() => {
         oldStage.remove();
         stage.classList.remove("pgv-animating", "new-stage");
-        for (let i = 0; i < flipNodes.length; i++) {
+        for (const element of flipNodesMap.keys()) {
           // Cleanup done in Play step, so no need to clear transform completely here.
-          flipNodes[i].element.removeAttribute("data-layout-transform");
+          element.removeAttribute("data-layout-transform");
         }
       }, 300);
     }
