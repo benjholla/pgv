@@ -644,37 +644,6 @@ function assignVerticalDepths(
 
   const state = new Map<string, "visiting" | "visited">();
 
-  function dfsBreakCyclesIterative(startNode: string) {
-    const stack: { u: string; edges: readonly string[]; index: number }[] = [];
-    stack.push({ u: startNode, edges: outgoing.get(startNode)!, index: 0 });
-    state.set(startNode, "visiting");
-
-    while (stack.length > 0) {
-      const top = stack[stack.length - 1];
-      const { u, edges, index } = top;
-
-      if (index < edges.length) {
-        top.index++;
-        const v = edges[index];
-        const vState = state.get(v);
-
-        if (vState === "visiting") {
-          continue; // Break cycle
-        }
-
-        acyclicOutgoing.get(u)!.push(v);
-
-        if (vState !== "visited") {
-          state.set(v, "visiting");
-          stack.push({ u: v, edges: outgoing.get(v)!, index: 0 });
-        }
-      } else {
-        state.set(u, "visited");
-        stack.pop();
-      }
-    }
-  }
-
   // PERF(Bolt): Avoid Array.filter allocation in topological sorting roots setup
   const roots: string[] = [];
   for (let i = 0; i < nodeIds.length; i++) {
@@ -683,14 +652,70 @@ function assignVerticalDepths(
       roots.push(id);
     }
   }
+
+  const stack: { u: string; edges: readonly string[]; index: number }[] = [];
+
   for (const id of roots) {
     if (state.get(id) !== "visited") {
-      dfsBreakCyclesIterative(id);
+      stack.push({ u: id, edges: outgoing.get(id)!, index: 0 });
+      state.set(id, "visiting");
+
+      while (stack.length > 0) {
+        const top = stack[stack.length - 1];
+        const { u, edges, index } = top;
+
+        if (index < edges.length) {
+          top.index++;
+          const v = edges[index];
+          const vState = state.get(v);
+
+          if (vState === "visiting") {
+            continue; // Break cycle
+          }
+
+          acyclicOutgoing.get(u)!.push(v);
+
+          if (vState !== "visited") {
+            state.set(v, "visiting");
+            stack.push({ u: v, edges: outgoing.get(v)!, index: 0 });
+          }
+        } else {
+          state.set(u, "visited");
+          stack.pop();
+        }
+      }
     }
   }
+
   for (const id of nodeIds) {
     if (state.get(id) !== "visited") {
-      dfsBreakCyclesIterative(id);
+      stack.push({ u: id, edges: outgoing.get(id)!, index: 0 });
+      state.set(id, "visiting");
+
+      while (stack.length > 0) {
+        const top = stack[stack.length - 1];
+        const { u, edges, index } = top;
+
+        if (index < edges.length) {
+          top.index++;
+          const v = edges[index];
+          const vState = state.get(v);
+
+          if (vState === "visiting") {
+            continue; // Break cycle
+          }
+
+          acyclicOutgoing.get(u)!.push(v);
+
+          if (vState !== "visited") {
+            state.set(v, "visiting");
+            stack.push({ u: v, edges: outgoing.get(v)!, index: 0 });
+          }
+        } else {
+          state.set(u, "visited");
+          stack.pop();
+        }
+      }
     }
   }
 
