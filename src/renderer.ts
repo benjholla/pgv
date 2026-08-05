@@ -986,6 +986,8 @@ export class GraphView {
     input.maxLength = 1000;
     const label = isKey ? `Search ${modeLabel} Key` : (isAttributeMode ? `Search ${modeLabel} Value` : `Search ${modeLabel}`);
     input.setAttribute("aria-label", label);
+    input.setAttribute("role", "searchbox");
+    input.setAttribute("aria-controls", "pgv-search-results-info");
     input.placeholder = `${label}...`;
     input.value = initialValue;
 
@@ -1133,6 +1135,7 @@ export class GraphView {
   #renderSearchControls(): HTMLElement {
     const bar = document.createElement("div");
     bar.className = "pgv-search-bar";
+    bar.setAttribute("role", "search");
 
     const searchDropdownContainer = this.#renderSearchModeDropdown(bar);
     bar.appendChild(searchDropdownContainer);
@@ -1158,6 +1161,7 @@ export class GraphView {
 
     const info = document.createElement("div");
     info.className = "pgv-search-results-info";
+    info.id = "pgv-search-results-info";
     info.setAttribute("aria-live", "polite");
     info.setAttribute("aria-atomic", "true");
 

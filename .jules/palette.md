@@ -84,3 +84,6 @@
 ## 2024-05-18 - Use `aria-pressed` for toggle buttons instead of `aria-expanded`
 **Learning:** `aria-expanded` is semantically intended for elements that explicitly control the visibility of a collapsible grouping of other elements (typically using `aria-controls`), like dropdowns. For standalone toggle buttons that simply switch a boolean state on or off (e.g. Fullscreen, Minimap), `aria-pressed` is the correctly specified semantic attribute to provide accurate state feedback to screen readers.
 **Action:** Default to `aria-pressed` for boolean toggle states. Only use `aria-expanded` when the button acts as an accordion/dropdown toggle that reveals an associated submenu.
+## $(date +%Y-%m-%d) - Adding searchbox semantics to search inputs
+**Learning:** For interactive search components, providing a clear programmatic association between the search input and the results readout enhances screen reader utility.
+**Action:** Always assign `role="search"` to the top-level search form/container, and explicitly use `role="searchbox"` on the input along with `aria-controls="[results-id]"` to point to the `aria-live` region containing the result count.
