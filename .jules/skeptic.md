@@ -9,3 +9,5 @@
 ## 2024-05-30 - Inline nested closures capturing mutable state
 **Learning:** In `@pgv/graph-core`, Kahn's algorithm in `assignVerticalDepths` (within `src/layout.ts`) was implementing cycle-breaking via a nested `dfsBreakCyclesIterative` function that captured several outer scope variables (`stack`, `state`, `acyclicOutgoing`).
 **Action:** Inline nested iterative loops directly into the main function body to avoid capturing mutable state across scopes and to reduce the cognitive load of distributed reasoning.- Refactored `assignVerticalDepths` in `src/layout.ts` to eliminate a large block of duplicated Kahn's topological sorting traversal logic without introducing closures (which was discouraged per trace memory), improving maintainability while preserving strict correctness and determinism.
+## 2024-10-27 - Remove unused parameters from internal signatures
+- Cleaned up the `routeEdgeOrthogonal` function signature in `src/layout.ts` by removing the unused `sourceId` and `targetId` parameters. This reduces cognitive load for readers and removes dead code without changing functionality, in alignment with the "Skeptic" persona guidelines.
