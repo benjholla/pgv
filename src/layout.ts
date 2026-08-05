@@ -772,7 +772,13 @@ function groupByDepth(
   }
 
   // To compute barycenters, we need to process layers in order of depth.
-  const sortedDepths = Array.from(layers.keys()).sort((a, b) => a - b);
+  // PERF(Bolt): Avoid intermediate Array.from() allocation when extracting layers keys
+  const sortedDepths = new Array<number>(layers.size);
+  let depthIdx = 0;
+  for (const depth of layers.keys()) {
+    sortedDepths[depthIdx++] = depth;
+  }
+  sortedDepths.sort((a, b) => a - b);
 
   // Keep track of the computed index in the layer for barycenter calculation
   const nodeIndexInLayer = new Map<string, number>();
