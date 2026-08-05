@@ -452,6 +452,7 @@ export function routeEdgeOrthogonal(
     ySet.add(pos.y + size.height + margin);
 
     xSet.add(pos.x + size.width / 2);
+    ySet.add(pos.y + size.height / 2);
   }
 
   xSet.add(-margin);
