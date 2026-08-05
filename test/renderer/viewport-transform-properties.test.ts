@@ -136,4 +136,49 @@ describe('Viewport Coordinate Transform Inverses', () => {
 
     view.destroy();
   });
+
+
+  it('Translation Additivity Property: Panning by (dx1, dy1) and then (dx2, dy2) is mathematically equivalent to panning by (dx1+dx2, dy1+dy2)', () => {
+    const json: GraphSnapshotJson = {
+      nodes: [{ id: "n1", tags: ["A"], attributes: {} }],
+      edges: []
+    };
+    const snapshot = createGraphSnapshot(json);
+    const layout = verticalLayout(snapshot);
+
+    // First View: sequential pans
+    const view1 = new GraphView(container, {}, { layout, usePanZoom: true });
+    view1.setGraph(snapshot);
+    const viewport1 = container.querySelector('.pgv-viewport') as HTMLElement;
+    const stage1 = container.querySelector(".pgv-pan-zoom-layer") || container.querySelector(".pgv-graph-stage") as HTMLElement;
+
+    // Pan 1 (dx: 100, dy: -50)
+    viewport1.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 1, clientX: 500, clientY: 400, pointerType: 'mouse', button: 0 }));
+    viewport1.dispatchEvent(new PointerEvent('pointermove', { pointerId: 1, clientX: 600, clientY: 350, pointerType: 'mouse' }));
+    viewport1.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1, clientX: 600, clientY: 350, pointerType: 'mouse' }));
+
+    // Pan 2 (dx: -30, dy: 150)
+    viewport1.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 2, clientX: 500, clientY: 400, pointerType: 'mouse', button: 0 }));
+    viewport1.dispatchEvent(new PointerEvent('pointermove', { pointerId: 2, clientX: 470, clientY: 550, pointerType: 'mouse' }));
+    viewport1.dispatchEvent(new PointerEvent('pointerup', { pointerId: 2, clientX: 470, clientY: 550, pointerType: 'mouse' }));
+
+    const finalTransform1 = stage1.style.transform;
+    view1.destroy();
+
+    // Second View: single combined pan
+    const view2 = new GraphView(container, {}, { layout, usePanZoom: true });
+    view2.setGraph(snapshot);
+    const viewport2 = container.querySelector('.pgv-viewport') as HTMLElement;
+    const stage2 = container.querySelector(".pgv-pan-zoom-layer") || container.querySelector(".pgv-graph-stage") as HTMLElement;
+
+    // Combined Pan (dx: 70, dy: 100)
+    viewport2.dispatchEvent(new PointerEvent('pointerdown', { pointerId: 3, clientX: 500, clientY: 400, pointerType: 'mouse', button: 0 }));
+    viewport2.dispatchEvent(new PointerEvent('pointermove', { pointerId: 3, clientX: 570, clientY: 500, pointerType: 'mouse' }));
+    viewport2.dispatchEvent(new PointerEvent('pointerup', { pointerId: 3, clientX: 570, clientY: 500, pointerType: 'mouse' }));
+
+    const finalTransform2 = stage2.style.transform;
+    view2.destroy();
+
+    expect(finalTransform1).toEqual(finalTransform2);
+  });
 });
