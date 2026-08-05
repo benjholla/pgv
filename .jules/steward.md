@@ -14,3 +14,7 @@ When a parameter (like `schema` in `GraphView` constructor) appears unused but s
 
 **Action:** Removed internal exports from the `src/index.ts` file and added `@internal` to their TSDocs to hide them from the public API and generated TypeDoc documentation. Keep the public API minimal.
 ## 2026-07-09 - Repository Hygiene and Debt Cleanup\n- Updated `README.md` and `examples/README.md` to accurately document the `vite-blog` example, improving discoverability.
+## 2026-08-05 - Continuous Cleanup
+- Removed the out-of-place `pgv-exporter` Java project from the `@pgv/graph-core` repository as it was completely disconnected from the core frontend library.
+- Removed the obsolete `fix-xss.sh` script from the root directory to reduce visual clutter.
+- Refactored `examples/spring-boot-producer/src/main/java/dev/pgv/example/GraphController.java` to use the standard Jackson `ObjectMapper` instead of relying on the removed custom exporter classes. Rebuilt the Java application using `mvn compile` and verified the `dynamic` E2E frontend tests still pass successfully.

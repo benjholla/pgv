@@ -1,11 +1,5 @@
 package dev.pgv.example;
 
-import dev.pgv.exporter.ExportEdge;
-import dev.pgv.exporter.ExportGraph;
-import dev.pgv.exporter.ExportNode;
-import dev.pgv.exporter.ExportSchema;
-import dev.pgv.exporter.PgvExporter;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -16,34 +10,23 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 @RestController
 @RequestMapping("/api/graphs")
 @CrossOrigin(origins = {"http://localhost:5173", "http://127.0.0.1:5173"})
 public class GraphController {
 
-    private final PgvExporter exporter = new PgvExporter();
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @GetMapping("/cfg-main/schema")
     public void cfgMainSchema(HttpServletResponse response) throws IOException {
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
-        ExportGraph schemaGraph = new ExportGraph() {
-            @Override
-            public ExportSchema schema() {
-                return () -> List.of("XCSG.Contains");
-            }
-            @Override
-            public Iterable<? extends ExportNode> nodes() {
-                return null;
-            }
-            @Override
-            public Iterable<? extends ExportEdge> edges() {
-                return null;
-            }
-        };
-
-        exporter.exportGraph(schemaGraph, response.getOutputStream());
+        Map<String, Object> schema = Map.of("containment", List.of("XCSG.Contains"));
+        GraphSnapshot schemaSnapshot = new GraphSnapshot(schema, List.of(), List.of());
+        mapper.writeValue(response.getOutputStream(), schemaSnapshot);
     }
 
     @GetMapping("/cfg-main")
@@ -52,8 +35,7 @@ public class GraphController {
         response.setCharacterEncoding("UTF-8");
 
         GraphSnapshot snapshot = new GraphSnapshot(
-            "cfg-main",
-            1,
+            null,
             List.of(
                 new GraphNode("entry", List.of("XCSG.ControlFlow_Node", "XCSG.controlFlowRoot"), Map.of(
                     "XCSG.name", "Entry"
@@ -104,34 +86,21 @@ public class GraphController {
             )
         );
 
-        exporter.exportGraph(snapshot, response.getOutputStream());
+        mapper.writeValue(response.getOutputStream(), snapshot);
     }
 
     record GraphSnapshot(
-        String graphId,
-        long version,
-        List<GraphNode> nodesList,
-        List<GraphEdge> edgesList
-    ) implements ExportGraph {
-        @Override
-        public ExportSchema schema() {
-            return null; // The frontend currently queries /schema separately in this demo
-        }
-        @Override
-        public Iterable<? extends ExportNode> nodes() {
-            return nodesList;
-        }
-        @Override
-        public Iterable<? extends ExportEdge> edges() {
-            return edgesList;
-        }
+        Map<String, Object> schema,
+        List<GraphNode> nodes,
+        List<GraphEdge> edges
+    ) {
     }
 
     record GraphNode(
         String id,
         List<String> tags,
         Map<String, Object> attributes
-    ) implements ExportNode {
+    ) {
     }
 
     record GraphEdge(
@@ -140,7 +109,7 @@ public class GraphController {
         String target,
         List<String> tags,
         Map<String, Object> attributes
-    ) implements ExportEdge {
+    ) {
     }
 
 }
