@@ -352,7 +352,7 @@ export function edgeEndpoints(
     y: target.y,
   };
 
-  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout, routing.outIndex, routing.inIndex, routing.outTotal, routing.inTotal, edge.source, edge.target);
+  const path = routeEdgeOrthogonal(sourcePt, targetPt, layout, routing.outIndex, routing.inIndex, routing.outTotal, routing.inTotal);
 
   return {
     source: sourcePt,
@@ -385,8 +385,6 @@ export function routeEdgeOrthogonal(
   inIndex: number = 0,
   outTotal: number = 1,
   inTotal: number = 1,
-  sourceId?: string,
-  targetId?: string,
 ): readonly Point[] {
   const margin = 20;
 
