@@ -21,7 +21,6 @@ function binarySearch(arr: readonly string[], target: string): number {
     if (arr[mid] < target) left = mid + 1;
     else right = mid - 1;
   }
-  /* istanbul ignore next */
   return -1;
 }
 
@@ -48,12 +47,9 @@ function findClosestCoordinateIndex(arr: readonly number[], val: number): number
       }
   }
 
-  /* istanbul ignore next */
   const dHigh = val - arr[high];
-  /* istanbul ignore next */
   const dLow = arr[low] - val;
 
-  /* istanbul ignore next */
   return dHigh <= dLow ? high : low;
 }
 
@@ -575,8 +571,7 @@ export function routeEdgeOrthogonal(
         if (nxIdx === endXIdx && nyIdx === endYIdx) {
              if (curr.xIdx === nxIdx && curr.yIdx === nyIdx - 1) {
                 // OK
-             } /* istanbul ignore else */
-          else {
+             } else {
                  if (dx !== 0 || dy !== 1) continue;
              }
         }
@@ -597,8 +592,7 @@ export function routeEdgeOrthogonal(
         if (dx !== 0) {
           if (y1 !== allowedY1 && y1 !== allowedY2) {
             penalty += 5000;
-          } /* istanbul ignore else */
-          else {
+          } else {
             if (outIndex > inIndex && y1 === allowedY2) penalty += 10;
             else if (inIndex > outIndex && y1 === allowedY1) penalty += 10;
             else if (outIndex === inIndex && y1 === allowedY2) penalty += 10;
@@ -619,7 +613,6 @@ export function routeEdgeOrthogonal(
     }
   }
 
-  /* istanbul ignore next */
   return Object.freeze([
     sourcePt,
     { x: sourcePt.x, y: allowedY1 },
@@ -688,8 +681,7 @@ function assignVerticalDepths(
               state.set(v, "visiting");
               stack.push({ u: v, edges: outgoing.get(v)!, index: 0 });
             }
-          } /* istanbul ignore else */
-          else {
+          } else {
             state.set(u, "visited");
             stack.pop();
           }
@@ -947,7 +939,6 @@ function buildAdjacencyLists(graph: GraphSnapshot, nodeIds: readonly string[], p
     edgeOutgoing.get(edge.source)!.push(edge.id);
     edgeIncoming.get(edge.target)!.push(edge.id);
 
-    /* istanbul ignore next */
     if (!graph.nodes.has(edge.source) || !graph.nodes.has(edge.target)) {
       continue;
     }
@@ -1155,14 +1146,10 @@ function computeCompoundNodeBounds(
           if (s) {
             w = s.width;
             h = s.height;
-          } /* istanbul ignore else */
-          else {
-            /* istanbul ignore next */
-            /* istanbul ignore next */
-          nodeSizes.set(id, {width: w, height: h});
+          } else {
+            nodeSizes.set(id, {width: w, height: h});
           }
 
-          /* istanbul ignore next */
           return {w, h};
        }
        let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -1183,22 +1170,14 @@ function computeCompoundNodeBounds(
           const header = 40;
           const w = (maxX - minX) + pad * 2;
           const h = (maxY - minY) + header + pad * 2;
-          /* istanbul ignore next */
           nodeSizes.set(id, {width: w, height: h});
           positions.set(id, {x: minX - pad, y: minY - header - pad});
-          /* istanbul ignore next */
           return {w, h};
-       } /* istanbul ignore else */
-       else {
-          /* istanbul ignore next */
+       } else {
           // Empty parent node
-          /* istanbul ignore next */
           const w = config.nodeWidth;
-          /* istanbul ignore next */
           const h = config.nodeHeight;
-          /* istanbul ignore next */
           nodeSizes.set(id, {width: w, height: h});
-          /* istanbul ignore next */
           return {w, h};
        }
     };
