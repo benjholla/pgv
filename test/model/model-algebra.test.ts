@@ -203,4 +203,67 @@ describe("Algebraic properties of applyGraphDiff", () => {
         expect(restoredSnap.nodes).toEqual(base.nodes);
         expect(restoredSnap.edges).toEqual(base.edges);
     });
+
+
+    it("Edge Subgraph Closure Property: Removing any arbitrary combination of edges from a valid graph ALWAYS yields a valid graph", () => {
+        // Build a moderately complex valid graph
+        const base = createGraphSnapshot({
+            schema: { containment: ["contains"] },
+            nodes: [
+                { id: "A" }, { id: "B" }, { id: "C" }, { id: "D" }, { id: "E" }
+            ],
+            edges: [
+                { id: "e1", source: "A", target: "B", tags: ["contains"] },
+                { id: "e2", source: "A", target: "C", tags: ["contains"] },
+                { id: "e3", source: "B", target: "D" },
+                { id: "e4", source: "C", target: "D" },
+                { id: "e5", source: "D", target: "E" },
+                { id: "e6", source: "E", target: "A" } // Non-containment cycle
+            ]
+        });
+
+        // Test removing a subset of edges
+        const diff1 = createGraphDiff({
+            removedEdges: ["e1", "e4", "e5"]
+        });
+
+        // Test removing all edges
+        const diff2 = createGraphDiff({
+            removedEdges: ["e1", "e2", "e3", "e4", "e5", "e6"]
+        });
+
+        // The property asserts that applying these diffs should not throw any Structural/Model errors.
+        const snap1 = applyGraphDiff(base, diff1);
+        expect(snap1.nodes.size).toBe(5);
+        expect(snap1.edges.size).toBe(3);
+
+        const snap2 = applyGraphDiff(base, diff2);
+        expect(snap2.nodes.size).toBe(5);
+        expect(snap2.edges.size).toBe(0);
+    });
+
+    it("Node Induced Subgraph Closure Property: Removing any arbitrary subset of nodes, provided all incident edges are also removed, ALWAYS yields a valid graph", () => {
+        const base = createGraphSnapshot({
+            schema: { containment: ["contains"] },
+            nodes: [
+                { id: "A" }, { id: "B" }, { id: "C" }
+            ],
+            edges: [
+                { id: "e1", source: "A", target: "B", tags: ["contains"] },
+                { id: "e2", source: "B", target: "C", tags: ["contains"] }
+            ]
+        });
+
+        // Remove node B, and incident edges e1, e2
+        const diff = createGraphDiff({
+            removedNodes: ["B"],
+            removedEdges: ["e1", "e2"]
+        });
+
+        const snap = applyGraphDiff(base, diff);
+        expect(snap.nodes.size).toBe(2);
+        expect(snap.nodes.has("B")).toBe(false);
+        expect(snap.edges.size).toBe(0);
+    });
+
 });
