@@ -1015,16 +1015,9 @@ function computeLayerPositions(graph: GraphSnapshot, layers: ReadonlyMap<number,
   const layerY = new Map<number, number>();
   let currentY = config.margin;
 
-  const sortedDepths = new Array<number>(layers.size);
-  let dIdx = 0;
-  for (const depth of layers.keys()) {
-    sortedDepths[dIdx++] = depth;
-  }
-  sortedDepths.sort((a, b) => a - b);
-
   const layerGap = config.layerSpacing - config.nodeHeight;
 
-  for (const depth of sortedDepths) {
+  for (const depth of layers.keys()) {
     layerY.set(depth, currentY);
 
     let maxLayerNodeHeight = 0;
