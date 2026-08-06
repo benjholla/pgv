@@ -1120,13 +1120,89 @@
 .pgv-smart-view-group {
   display: flex;
   flex-direction: column;
+  justify-content: flex-end;
   gap: 8px;
-  background-color: var(--pgv-controls-bg);
-  padding: 8px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  border: 1px solid var(--pgv-controls-border);
 }
+
+/* Redefining these to match the standard control group buttons */
+.pgv-smart-step-btns, .pgv-smart-view-dropdown {
+  display: flex;
+  gap: 0;
+  border-radius: 8px;
+  background: var(--pgv-controls-btn-bg);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  border: 1px solid var(--pgv-controls-border);
+  overflow: visible; /* Need overflow visible for dropdowns */
+}
+
+/* Shared button styling within the new groups */
+.pgv-smart-step-btns button, .pgv-smart-dropdown-btn {
+  display: flex;
+  white-space: nowrap;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  color: var(--pgv-controls-btn-fg);
+  border: none;
+  border-right: 1px solid var(--pgv-controls-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 36px;
+  padding: 0 10px;
+  border-radius: 0; /* Let the container handle rounded corners */
+}
+
+.pgv-smart-step-btns button:last-child, .pgv-smart-dropdown-btn {
+  border-right: none;
+}
+
+.pgv-smart-step-btns button:hover, .pgv-smart-dropdown-btn:hover {
+  background: var(--pgv-controls-btn-hover);
+  color: var(--pgv-controls-btn-fg);
+}
+
+.pgv-smart-step-btns button:active, .pgv-smart-dropdown-btn:active {
+  transform: none; /* Override old active transform */
+}
+
+/* Ensure the first/last children get the border radius from the parent container */
+.pgv-smart-step-btns button:first-child, .pgv-smart-dropdown-btn {
+  border-top-left-radius: 7px;
+  border-bottom-left-radius: 7px;
+}
+.pgv-smart-step-btns button:last-child, .pgv-smart-dropdown-btn {
+  border-top-right-radius: 7px;
+  border-bottom-right-radius: 7px;
+}
+
+.pgv-smart-step-counter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--pgv-controls-border);
+  font-family: monospace;
+  font-size: 14px;
+  min-width: 32px;
+  height: 36px;
+  color: var(--pgv-controls-btn-fg);
+}
+
+/* We want the dropdown menu to match download format popup */
+.pgv-smart-view-dropdown {
+  position: relative; /* Anchor the dropdown */
+}
+.pgv-smart-view-dropdown .pgv-dropdown-menu {
+  min-width: 120px;
+  width: max-content;
+  white-space: nowrap;
+  bottom: calc(100% + 4px);
+  top: auto;
+  left: 0;
+  transform-origin: bottom left;
+}
+
 
 .pgv-smart-view-top-row {
   display: flex;
@@ -1135,49 +1211,11 @@
   justify-content: space-between;
 }
 
-.pgv-smart-view-dropdown .pgv-smart-dropdown-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
-  background: var(--pgv-controls-btn-bg);
-  color: var(--pgv-controls-btn-fg);
-  border: 1px solid var(--pgv-controls-border);
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
 
-.pgv-smart-view-dropdown .pgv-smart-dropdown-btn:hover {
-  background: var(--pgv-controls-btn-hover);
-}
 
-.pgv-smart-origin-btn {
-  padding: 4px 8px;
-  background: var(--pgv-controls-btn-bg);
-  color: var(--pgv-controls-btn-fg);
-  border: 1px solid var(--pgv-controls-border);
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
 
-.pgv-smart-origin-btn:hover {
-  background: var(--pgv-controls-btn-hover);
-}
 
-.pgv-smart-origin-active {
-  background: var(--pgv-selected-color);
-  color: #fff;
-  border-color: var(--pgv-selected-color);
-}
-.pgv-smart-origin-active:hover {
-  background: var(--pgv-selected-color);
-  opacity: 0.9;
-}
+
 
 .pgv-smart-step-row {
   display: flex;
@@ -1193,42 +1231,12 @@
   width: 60px; /* Fixed width for alignment */
 }
 
-.pgv-smart-step-counter {
-  background: var(--pgv-color-bg);
-  padding: 2px 8px;
-  border-radius: 4px;
-  border: 1px solid var(--pgv-controls-border);
-  font-family: monospace;
-  font-size: 14px;
-  min-width: 24px;
-  text-align: center;
-}
 
-.pgv-smart-step-btns {
-  display: flex;
-  gap: 4px;
-}
 
-.pgv-smart-step-btns button {
-  width: 24px;
-  height: 24px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--pgv-controls-btn-bg);
-  color: var(--pgv-controls-btn-fg);
-  border: 1px solid var(--pgv-controls-border);
-  border-radius: 4px;
-  cursor: pointer;
-  font-weight: bold;
-  font-size: 14px;
-  transition: all 0.2s ease;
-}
 
-.pgv-smart-step-btns button:hover {
-  background: var(--pgv-controls-btn-hover);
-}
 
-.pgv-smart-step-btns button:active {
-  transform: scale(0.95);
+
+.pgv-smart-dropdown-btn span {
+  flex-shrink: 0;
+  white-space: nowrap;
 }

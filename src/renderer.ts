@@ -312,15 +312,16 @@ export class GraphView {
    */
   setGraph(graph: GraphSnapshot, options: GraphViewOptions = {}): void {
 
-    if (options.smartView && options.smartView.graphTypes.length > 0 && !this.#smartGraphType) {
-      this.#smartGraphType = options.smartView.graphTypes[0];
-    }
+
 
 this.#preHistoryGraph = graph;
     this.#history = [];
     this.#historyIndex = -1;
     this.#graph = graph;
     this.#options = { ...this.#options, ...options };
+    if (this.#options.smartView && this.#options.smartView.graphTypes.length > 0 && !this.#smartGraphType) {
+      this.#smartGraphType = this.#options.smartView.graphTypes[0];
+    }
     if (options.theme !== undefined) {
       this.#currentTheme = options.theme;
     }
@@ -1714,7 +1715,6 @@ this.#preHistoryGraph = graph;
 
       miscGroup.appendChild(topButtonsContainer);
 
-      // Add a spacer to push the bottom buttons down
       const spacer = document.createElement("div");
       spacer.style.flexGrow = "1";
       miscGroup.appendChild(spacer);
@@ -1890,13 +1890,15 @@ this.#preHistoryGraph = graph;
   #renderSmartViewControls(): HTMLElement {
     const controls = document.createElement("div");
     controls.className = "pgv-smart-view-group";
+    // Ensure the container doesn't stretch and mess up the flex-end alignment
+    controls.style.justifyContent = "flex-end";
 
     const topRow = document.createElement("div");
     topRow.className = "pgv-smart-view-top-row";
 
-    // Graph Type Dropdown
+    // Graph Type Dropdown (now styled like download format)
     const dropdownGroup = document.createElement("div");
-    dropdownGroup.className = "pgv-control-split-button pgv-smart-view-dropdown";
+    dropdownGroup.className = "pgv-smart-view-dropdown"; // This now acts like pgv-control-group
 
     const dropdownBtn = document.createElement("button");
     dropdownBtn.type = "button";
@@ -1907,8 +1909,11 @@ this.#preHistoryGraph = graph;
     dropdownBtn.setAttribute("aria-controls", "pgv-smart-dropdown-menu");
     dropdownBtn.setAttribute("aria-expanded", this.#smartDropdownOpen ? "true" : "false");
 
+    // Add gap manually since we removed it from CSS for buttons
+    dropdownBtn.style.gap = "6px";
+
     const span = document.createElement("span");
-    span.textContent = this.#smartGraphType || "Graph Type";
+    span.textContent = `View: ${this.#smartGraphType || "Graph Type"}`;
     dropdownBtn.appendChild(span);
 
     dropdownBtn.appendChild(
@@ -1923,7 +1928,7 @@ this.#preHistoryGraph = graph;
         "stroke-linecap": "round",
         "stroke-linejoin": "round"
       }, [
-        createSvgElement("path", { "d": "M6 9l6 6 6-6" })
+        createSvgElement("path", { "d": "M6 9l6 6 6-6" }) // Chevron down
       ])
     );
 
@@ -1948,13 +1953,13 @@ this.#preHistoryGraph = graph;
         this.#smartGraphType = value;
         this.#smartDropdownOpen = false;
         toggleDropdownState(false, dropdownBtn, dropdownMenu);
-        span.textContent = value;
+        span.textContent = `View: ${value}`;
 
         // Update selection UI explicitly
         const opts = dropdownMenu.querySelectorAll(".pgv-dropdown-option");
         for (let i = 0; i < opts.length; i++) {
           const opt = opts[i];
-          if (opt.textContent === value) {
+          if ((opt as HTMLElement).dataset.value === value) {
             opt.classList.add("selected");
             opt.setAttribute("aria-checked", "true");
           } else {
@@ -1981,29 +1986,34 @@ this.#preHistoryGraph = graph;
 
     topRow.appendChild(dropdownGroup);
 
-    // Set Origin Button
-    const originBtn = document.createElement("button");
-    originBtn.type = "button";
-    originBtn.className = "pgv-smart-origin-btn";
-    originBtn.textContent = "Set Origin";
-    originBtn.title = "Set traversal origin from selected nodes/edges";
-    originBtn.addEventListener("click", () => {
-      this.#smartOriginNodes = Array.from(this.#options.selection?.nodes || []);
-      this.#smartOriginEdges = Array.from(this.#options.selection?.edges || []);
-      this.#triggerSmartTraversal();
-      this.#render();
+    // Set Origin Button (now an icon button using createControlButton)
+    const originBtnGroup = document.createElement("div");
+    originBtnGroup.className = "pgv-control-group";
+
+    const originBtn = this.#createControlButton({
+      icon: "M12 2v4m0 12v4m10-10h-4M6 12H2m17 0a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z", // Crosshair SVG
+      action: () => {
+        this.#smartOriginNodes = Array.from(this.#options.selection?.nodes || []);
+        this.#smartOriginEdges = Array.from(this.#options.selection?.edges || []);
+        this.#triggerSmartTraversal();
+        this.#render();
+      },
+      label: "Set traversal origin from selected nodes/edges"
     });
 
-    // Determine active state of origin button based on whether selections match the current origin
+    // Determine active state of origin button
     const currentNodes = Array.from(this.#options.selection?.nodes || []);
     const currentEdges = Array.from(this.#options.selection?.edges || []);
     const isNodesEqual = currentNodes.length === this.#smartOriginNodes.length && currentNodes.every(v => this.#smartOriginNodes.includes(v));
     const isEdgesEqual = currentEdges.length === this.#smartOriginEdges.length && currentEdges.every(v => this.#smartOriginEdges.includes(v));
     if(this.#options.selection && (this.#options.selection.nodes.size > 0 || this.#options.selection.edges.size > 0) && (isNodesEqual && isEdgesEqual)) {
-      originBtn.classList.add("pgv-smart-origin-active");
+       // Highlight active state
+       originBtn.style.color = "var(--pgv-selected-color)";
     }
 
-    topRow.appendChild(originBtn);
+    originBtnGroup.appendChild(originBtn);
+    topRow.appendChild(originBtnGroup);
+
     controls.appendChild(topRow);
 
     // Helper to create step controls
@@ -2016,19 +2026,28 @@ this.#preHistoryGraph = graph;
       label.textContent = type;
       row.appendChild(label);
 
-      const counter = document.createElement("span");
-      counter.className = "pgv-smart-step-counter";
-      counter.textContent = currentVal === undefined ? "∞" : currentVal.toString();
-      row.appendChild(counter);
-
       const btnGroup = document.createElement("div");
-      btnGroup.className = "pgv-smart-step-btns";
+      btnGroup.className = "pgv-smart-step-btns"; // We made this mimic pgv-control-group in CSS
 
       const decBtn = document.createElement("button");
       decBtn.type = "button";
-      decBtn.textContent = "-";
       decBtn.title = `Decrease ${type} Steps`;
       decBtn.setAttribute("aria-label", `Decrease ${type} Steps`);
+      decBtn.appendChild(
+        createSvgElement("svg", {
+          "aria-hidden": "true",
+          "viewBox": "0 0 24 24",
+          "width": "20",
+          "height": "20",
+          "fill": "none",
+          "stroke": "currentColor",
+          "stroke-width": "2.5",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }, [
+          createSvgElement("path", { "d": "M5 12h14" })
+        ])
+      );
       decBtn.addEventListener("click", () => {
         let newVal = currentVal;
         if (currentVal === undefined) {
@@ -2048,11 +2067,30 @@ this.#preHistoryGraph = graph;
       });
       btnGroup.appendChild(decBtn);
 
+      const counter = document.createElement("div");
+      counter.className = "pgv-smart-step-counter";
+      counter.textContent = currentVal === undefined ? "∞" : currentVal.toString();
+      btnGroup.appendChild(counter);
+
       const incBtn = document.createElement("button");
       incBtn.type = "button";
-      incBtn.textContent = "+";
       incBtn.title = `Increase ${type} Steps`;
       incBtn.setAttribute("aria-label", `Increase ${type} Steps`);
+      incBtn.appendChild(
+        createSvgElement("svg", {
+          "aria-hidden": "true",
+          "viewBox": "0 0 24 24",
+          "width": "20",
+          "height": "20",
+          "fill": "none",
+          "stroke": "currentColor",
+          "stroke-width": "2.5",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }, [
+          createSvgElement("path", { "d": "M12 5v14m-7-7h14" })
+        ])
+      );
       incBtn.addEventListener("click", () => {
         let newVal = currentVal;
         if (currentVal === undefined) {
@@ -2074,9 +2112,12 @@ this.#preHistoryGraph = graph;
 
       const infBtn = document.createElement("button");
       infBtn.type = "button";
-      infBtn.textContent = "∞";
       infBtn.title = `Transitively Walk ${type}`;
       infBtn.setAttribute("aria-label", `Transitively Walk ${type}`);
+      // using infinity symbol as text but styled as a button is acceptable, or we can use SVG
+      // let's use an SVG for visual consistency if possible, but text is fine for infinity since it's standard
+      infBtn.style.fontSize = "18px";
+      infBtn.textContent = "∞";
       infBtn.addEventListener("click", () => {
         if (type === "Reverse") {
           if (this.#smartReverseSteps !== undefined) {
