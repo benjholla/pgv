@@ -311,10 +311,7 @@ export class GraphView {
    * @param options Optional configuration overrides.
    */
   setGraph(graph: GraphSnapshot, options: GraphViewOptions = {}): void {
-
-
-
-this.#preHistoryGraph = graph;
+    this.#preHistoryGraph = graph;
     this.#history = [];
     this.#historyIndex = -1;
     this.#graph = graph;
@@ -864,6 +861,13 @@ this.#preHistoryGraph = graph;
 
       const bottomContainer = document.createElement("div");
       bottomContainer.className = "pgv-bottom-container";
+
+      if (this.#options.smartView) {
+        const smartPanel = document.createElement("div");
+        smartPanel.className = "pgv-smart-view-panel";
+        smartPanel.appendChild(this.#renderSmartViewControls());
+        bottomContainer.appendChild(smartPanel);
+      }
 
       bottomContainer.appendChild(this.#renderControls());
 
@@ -1570,10 +1574,6 @@ this.#preHistoryGraph = graph;
     const buttonsContainer = document.createElement("div");
     buttonsContainer.className = "pgv-controls-buttons";
 
-    if (this.#options.smartView) {
-      buttonsContainer.appendChild(this.#renderSmartViewControls());
-    }
-
 
     if (this.#options.usePanZoom) {
       const zoomButtons = [
@@ -1991,7 +1991,7 @@ this.#preHistoryGraph = graph;
     originBtnGroup.className = "pgv-control-group";
 
     const originBtn = this.#createControlButton({
-      icon: "M12 2v4m0 12v4m10-10h-4M6 12H2m17 0a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z", // Crosshair SVG
+      icon: "M12 2v20m-10-10h20m-3 0a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z", // True Crosshair SVG
       action: () => {
         this.#smartOriginNodes = Array.from(this.#options.selection?.nodes || []);
         this.#smartOriginEdges = Array.from(this.#options.selection?.edges || []);

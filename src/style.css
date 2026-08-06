@@ -1201,6 +1201,9 @@
   top: auto;
   left: 0;
   transform-origin: bottom left;
+  background: var(--pgv-controls-bg);
+  border: 1px solid var(--pgv-controls-border);
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 
@@ -1239,4 +1242,16 @@
 .pgv-smart-dropdown-btn span {
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.pgv-smart-view-panel {
+  pointer-events: auto;
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background-color: var(--pgv-controls-bg);
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border: 1px solid var(--pgv-controls-border);
 }
