@@ -23,29 +23,6 @@ public class GraphController {
 
     private final PgvExporter exporter = new PgvExporter();
 
-    @GetMapping("/cfg-main/schema")
-    public void cfgMainSchema(HttpServletResponse response) throws IOException {
-        response.setContentType("application/json");
-        response.setCharacterEncoding("UTF-8");
-
-        ExportGraph schemaGraph = new ExportGraph() {
-            @Override
-            public ExportSchema schema() {
-                return () -> List.of("XCSG.Contains");
-            }
-            @Override
-            public Iterable<? extends ExportNode> nodes() {
-                return null;
-            }
-            @Override
-            public Iterable<? extends ExportEdge> edges() {
-                return null;
-            }
-        };
-
-        exporter.exportGraph(schemaGraph, response.getOutputStream());
-    }
-
     @GetMapping("/cfg-main")
     public void cfgMain(HttpServletResponse response) throws IOException {
         response.setContentType("application/json");
@@ -115,7 +92,7 @@ public class GraphController {
     ) implements ExportGraph {
         @Override
         public ExportSchema schema() {
-            return null; // The frontend currently queries /schema separately in this demo
+            return () -> List.of("XCSG.Contains");
         }
         @Override
         public Iterable<? extends ExportNode> nodes() {
