@@ -87,3 +87,6 @@
 ## $(date +%Y-%m-%d) - Adding searchbox semantics to search inputs
 **Learning:** For interactive search components, providing a clear programmatic association between the search input and the results readout enhances screen reader utility.
 **Action:** Always assign `role="search"` to the top-level search form/container, and explicitly use `role="searchbox"` on the input along with `aria-controls="[results-id]"` to point to the `aria-live` region containing the result count.
+## 2026-08-06 - Native Tooltips for HTML Nodes
+**Learning:** When rendering interactive HTML nodes in `@pgv/graph-core`, setting only the `aria-label` provides screen reader support but omits sighted users. In dense graphs where node text (like `XCSG.name`) is truncated via CSS `text-overflow: ellipsis`, users have no way to read the full name without a tooltip.
+**Action:** Always set the `title` attribute on the root node element to match the semantic text (or the `aria-label` contents) to provide a native browser hover tooltip. This solves the truncation issue simply and performantly without requiring custom tooltip components.
