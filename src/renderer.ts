@@ -2986,6 +2986,7 @@ function renderNodes(
 
     const nodeTitle = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
     element.setAttribute("aria-label", `Node ${nodeTitle}`);
+    element.title = nodeTitle;
 
     const nodeSize = layout.nodeSizes?.get(node.id) || layout.nodeSize;
     element.style.width = `${nodeSize.width}px`;
