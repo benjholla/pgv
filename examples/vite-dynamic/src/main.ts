@@ -6,6 +6,7 @@ import {
   type GraphSnapshotJson,
   type SelectionState,
   createGraphDiff,
+  type SmartTraversalState
 } from "../../../src";
 import "../../../src/style.css";
 import "./demo.css";
@@ -70,6 +71,24 @@ function updateGraph(): void {
     usePanZoom: true,
     useThemeToggle: true,
     maxHistory: 10,
+    smartView: {
+      graphTypes: ["Control Flow"]
+    },
+    onSmartTraversal: (state: SmartTraversalState) => {
+      console.log("Smart Traversal Triggered:", state);
+      // For now, return an empty diff (i.e. no change) as requested.
+      const diff = createGraphDiff({
+        addedNodes: [],
+        addedEdges: [],
+        removedNodes: [],
+        removedEdges: [],
+      });
+      try {
+        graphView.applyDiff(diff);
+      } catch (e: any) {
+        console.error(e.message);
+      }
+    },
     onGraphChange: (graph: GraphSnapshot) => {
       currentGraph = graph;
       summaryElement.textContent = `${graph.nodes.size} nodes, ${graph.edges.size} edges`;

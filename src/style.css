@@ -1115,3 +1115,120 @@
   box-shadow: var(--pgv-selected-shadow);
   z-index: 1;
 }
+
+/* Smart View Controls */
+.pgv-smart-view-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background-color: var(--pgv-controls-bg);
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border: 1px solid var(--pgv-controls-border);
+}
+
+.pgv-smart-view-top-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.pgv-smart-view-dropdown .pgv-smart-dropdown-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  background: var(--pgv-controls-btn-bg);
+  color: var(--pgv-controls-btn-fg);
+  border: 1px solid var(--pgv-controls-border);
+  border-radius: 6px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pgv-smart-view-dropdown .pgv-smart-dropdown-btn:hover {
+  background: var(--pgv-controls-btn-hover);
+}
+
+.pgv-smart-origin-btn {
+  padding: 4px 8px;
+  background: var(--pgv-controls-btn-bg);
+  color: var(--pgv-controls-btn-fg);
+  border: 1px solid var(--pgv-controls-border);
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pgv-smart-origin-btn:hover {
+  background: var(--pgv-controls-btn-hover);
+}
+
+.pgv-smart-origin-active {
+  background: var(--pgv-selected-color);
+  color: #fff;
+  border-color: var(--pgv-selected-color);
+}
+.pgv-smart-origin-active:hover {
+  background: var(--pgv-selected-color);
+  opacity: 0.9;
+}
+
+.pgv-smart-step-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--pgv-controls-btn-fg);
+}
+
+.pgv-smart-step-label {
+  font-weight: 500;
+  width: 60px; /* Fixed width for alignment */
+}
+
+.pgv-smart-step-counter {
+  background: var(--pgv-color-bg);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--pgv-controls-border);
+  font-family: monospace;
+  font-size: 14px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.pgv-smart-step-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.pgv-smart-step-btns button {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--pgv-controls-btn-bg);
+  color: var(--pgv-controls-btn-fg);
+  border: 1px solid var(--pgv-controls-border);
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.pgv-smart-step-btns button:hover {
+  background: var(--pgv-controls-btn-hover);
+}
+
+.pgv-smart-step-btns button:active {
+  transform: scale(0.95);
+}

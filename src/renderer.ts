@@ -49,6 +49,33 @@ const SEARCH_MODES = [
  * selection states to persist across historical undo/redo actions, animations,
  * or when fetching entirely new backend snapshots that contain the same IDs.
  */
+
+/**
+ * State representing the current smart view traversal configuration.
+ */
+export interface SmartTraversalState {
+  /**
+   * The currently selected graph type for traversal.
+   */
+  readonly graphType: string;
+  /**
+   * The IDs of the nodes acting as the origin for the traversal.
+   */
+  readonly originNodes: string[];
+  /**
+   * The IDs of the edges acting as the origin for the traversal.
+   */
+  readonly originEdges: string[];
+  /**
+   * The number of forward steps to traverse. If undefined, implies transitive walk (infinity).
+   */
+  readonly forwardSteps?: number;
+  /**
+   * The number of reverse steps to traverse. If undefined, implies transitive walk (infinity).
+   */
+  readonly reverseSteps?: number;
+}
+
 export interface SelectionState {
   /**
    * The set of selected node IDs.
@@ -150,6 +177,22 @@ export interface GraphViewOptions {
    * Callback invoked when the active graph state changes (e.g., via history navigation).
    */
   readonly onGraphChange?: (graph: GraphSnapshot) => void;
+
+  /**
+   * Configuration for the smart view controls. If provided, the smart view controls will be displayed.
+   */
+  readonly smartView?: {
+    /**
+     * A list of available graph types for traversal.
+     */
+    readonly graphTypes: string[];
+  };
+
+  /**
+   * Callback invoked when a smart traversal action is triggered.
+   */
+  readonly onSmartTraversal?: (state: SmartTraversalState) => void;
+
 }
 
 interface ViewportState {
@@ -231,6 +274,17 @@ export class GraphView {
   #searchInputRef: HTMLInputElement | null = null;
   #searchKeyInputRef: HTMLInputElement | null = null;
   #updateSearchUI: (() => void) | null = null;
+
+  #smartGraphType: string = "";
+  #smartOriginNodes: string[] = [];
+  #smartOriginEdges: string[] = [];
+  #smartForwardSteps?: number = 0;
+  #smartReverseSteps?: number = 0;
+  #previousSmartForwardSteps: number = 0;
+  #previousSmartReverseSteps: number = 0;
+  #smartDropdownOpen: boolean = false;
+  #smartDropdownAbortController: AbortController | null = null;
+
   #isDragging: boolean = false;
 
   /**
@@ -257,7 +311,12 @@ export class GraphView {
    * @param options Optional configuration overrides.
    */
   setGraph(graph: GraphSnapshot, options: GraphViewOptions = {}): void {
-    this.#preHistoryGraph = graph;
+
+    if (options.smartView && options.smartView.graphTypes.length > 0 && !this.#smartGraphType) {
+      this.#smartGraphType = options.smartView.graphTypes[0];
+    }
+
+this.#preHistoryGraph = graph;
     this.#history = [];
     this.#historyIndex = -1;
     this.#graph = graph;
@@ -695,6 +754,10 @@ export class GraphView {
     this.#minimapAbortController = null;
     this.#downloadAbortController?.abort();
     this.#downloadAbortController = null;
+
+    this.#smartDropdownAbortController?.abort();
+    this.#smartDropdownAbortController = null;
+
     this.container.replaceChildren();
   }
 
@@ -1506,6 +1569,11 @@ export class GraphView {
     const buttonsContainer = document.createElement("div");
     buttonsContainer.className = "pgv-controls-buttons";
 
+    if (this.#options.smartView) {
+      buttonsContainer.appendChild(this.#renderSmartViewControls());
+    }
+
+
     if (this.#options.usePanZoom) {
       const zoomButtons = [
         { id: "zoom-in", icon: icons.plus, action: () => this.#zoom(0.1), label: "Zoom In" },
@@ -1805,7 +1873,240 @@ export class GraphView {
     return controls;
   }
 
-  #createControlButton(btn: { icon: string, action: () => void, label: string }): HTMLButtonElement {
+
+  #triggerSmartTraversal() {
+    if (this.#options.onSmartTraversal) {
+      this.#options.onSmartTraversal({
+        graphType: this.#smartGraphType,
+        originNodes: this.#smartOriginNodes,
+        originEdges: this.#smartOriginEdges,
+        forwardSteps: this.#smartForwardSteps,
+        reverseSteps: this.#smartReverseSteps
+      });
+    }
+  }
+
+
+  #renderSmartViewControls(): HTMLElement {
+    const controls = document.createElement("div");
+    controls.className = "pgv-smart-view-group";
+
+    const topRow = document.createElement("div");
+    topRow.className = "pgv-smart-view-top-row";
+
+    // Graph Type Dropdown
+    const dropdownGroup = document.createElement("div");
+    dropdownGroup.className = "pgv-control-split-button pgv-smart-view-dropdown";
+
+    const dropdownBtn = document.createElement("button");
+    dropdownBtn.type = "button";
+    dropdownBtn.className = "pgv-smart-dropdown-btn";
+    dropdownBtn.setAttribute("aria-label", "Select Graph Type");
+    dropdownBtn.setAttribute("title", "Select Graph Type");
+    dropdownBtn.setAttribute("aria-haspopup", "menu");
+    dropdownBtn.setAttribute("aria-controls", "pgv-smart-dropdown-menu");
+    dropdownBtn.setAttribute("aria-expanded", this.#smartDropdownOpen ? "true" : "false");
+
+    const span = document.createElement("span");
+    span.textContent = this.#smartGraphType || "Graph Type";
+    dropdownBtn.appendChild(span);
+
+    dropdownBtn.appendChild(
+      createSvgElement("svg", {
+        "aria-hidden": "true",
+        "viewBox": "0 0 24 24",
+        "width": "14",
+        "height": "14",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2.5",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      }, [
+        createSvgElement("path", { "d": "M6 9l6 6 6-6" })
+      ])
+    );
+
+    dropdownGroup.appendChild(dropdownBtn);
+
+    const closeDropdown = () => {
+      this.#smartDropdownOpen = false;
+      toggleDropdownState(false, dropdownBtn, dropdownMenu);
+    };
+
+    const graphTypes = this.#options.smartView?.graphTypes || [];
+    const dropdownOptions = graphTypes.map(t => ({ value: t, label: t }));
+
+    const dropdownMenu = buildDropdownMenu({
+      menuId: "pgv-smart-dropdown-menu",
+      isOpen: this.#smartDropdownOpen,
+      options: dropdownOptions,
+      currentValue: this.#smartGraphType,
+      dropdownBtn,
+      onClose: closeDropdown,
+      onSelect: (value) => {
+        this.#smartGraphType = value;
+        this.#smartDropdownOpen = false;
+        toggleDropdownState(false, dropdownBtn, dropdownMenu);
+        span.textContent = value;
+
+        // Update selection UI explicitly
+        const opts = dropdownMenu.querySelectorAll(".pgv-dropdown-option");
+        for (let i = 0; i < opts.length; i++) {
+          const opt = opts[i];
+          if (opt.textContent === value) {
+            opt.classList.add("selected");
+            opt.setAttribute("aria-checked", "true");
+          } else {
+            opt.classList.remove("selected");
+            opt.setAttribute("aria-checked", "false");
+          }
+        }
+        dropdownBtn.focus();
+        this.#triggerSmartTraversal();
+      }
+    });
+
+    dropdownGroup.appendChild(dropdownMenu);
+
+    dropdownBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.#smartDropdownOpen = !this.#smartDropdownOpen;
+      toggleDropdownState(this.#smartDropdownOpen, dropdownBtn, dropdownMenu);
+    });
+
+    this.#smartDropdownAbortController?.abort();
+    this.#smartDropdownAbortController = new AbortController();
+    setupDropdownCloseEvents(() => this.#smartDropdownOpen, closeDropdown, dropdownBtn, dropdownMenu, this.container, this.#smartDropdownAbortController);
+
+    topRow.appendChild(dropdownGroup);
+
+    // Set Origin Button
+    const originBtn = document.createElement("button");
+    originBtn.type = "button";
+    originBtn.className = "pgv-smart-origin-btn";
+    originBtn.textContent = "Set Origin";
+    originBtn.title = "Set traversal origin from selected nodes/edges";
+    originBtn.addEventListener("click", () => {
+      this.#smartOriginNodes = Array.from(this.#options.selection?.nodes || []);
+      this.#smartOriginEdges = Array.from(this.#options.selection?.edges || []);
+      this.#triggerSmartTraversal();
+      this.#render();
+    });
+
+    // Determine active state of origin button based on whether selections match the current origin
+    const currentNodes = Array.from(this.#options.selection?.nodes || []);
+    const currentEdges = Array.from(this.#options.selection?.edges || []);
+    const isNodesEqual = currentNodes.length === this.#smartOriginNodes.length && currentNodes.every(v => this.#smartOriginNodes.includes(v));
+    const isEdgesEqual = currentEdges.length === this.#smartOriginEdges.length && currentEdges.every(v => this.#smartOriginEdges.includes(v));
+    if(this.#options.selection && (this.#options.selection.nodes.size > 0 || this.#options.selection.edges.size > 0) && (isNodesEqual && isEdgesEqual)) {
+      originBtn.classList.add("pgv-smart-origin-active");
+    }
+
+    topRow.appendChild(originBtn);
+    controls.appendChild(topRow);
+
+    // Helper to create step controls
+    const createStepControl = (type: "Reverse" | "Forward", currentVal: number | undefined, prevVal: number) => {
+      const row = document.createElement("div");
+      row.className = "pgv-smart-step-row";
+
+      const label = document.createElement("span");
+      label.className = "pgv-smart-step-label";
+      label.textContent = type;
+      row.appendChild(label);
+
+      const counter = document.createElement("span");
+      counter.className = "pgv-smart-step-counter";
+      counter.textContent = currentVal === undefined ? "∞" : currentVal.toString();
+      row.appendChild(counter);
+
+      const btnGroup = document.createElement("div");
+      btnGroup.className = "pgv-smart-step-btns";
+
+      const decBtn = document.createElement("button");
+      decBtn.type = "button";
+      decBtn.textContent = "-";
+      decBtn.title = `Decrease ${type} Steps`;
+      decBtn.setAttribute("aria-label", `Decrease ${type} Steps`);
+      decBtn.addEventListener("click", () => {
+        let newVal = currentVal;
+        if (currentVal === undefined) {
+           newVal = prevVal;
+        } else if (currentVal > 0) {
+           newVal = currentVal - 1;
+        }
+
+        if (type === "Reverse") {
+          this.#smartReverseSteps = newVal;
+        } else {
+          this.#smartForwardSteps = newVal;
+        }
+
+        this.#triggerSmartTraversal();
+        this.#render();
+      });
+      btnGroup.appendChild(decBtn);
+
+      const incBtn = document.createElement("button");
+      incBtn.type = "button";
+      incBtn.textContent = "+";
+      incBtn.title = `Increase ${type} Steps`;
+      incBtn.setAttribute("aria-label", `Increase ${type} Steps`);
+      incBtn.addEventListener("click", () => {
+        let newVal = currentVal;
+        if (currentVal === undefined) {
+           newVal = 1;
+        } else {
+           newVal = currentVal + 1;
+        }
+
+        if (type === "Reverse") {
+          this.#smartReverseSteps = newVal;
+        } else {
+          this.#smartForwardSteps = newVal;
+        }
+
+        this.#triggerSmartTraversal();
+        this.#render();
+      });
+      btnGroup.appendChild(incBtn);
+
+      const infBtn = document.createElement("button");
+      infBtn.type = "button";
+      infBtn.textContent = "∞";
+      infBtn.title = `Transitively Walk ${type}`;
+      infBtn.setAttribute("aria-label", `Transitively Walk ${type}`);
+      infBtn.addEventListener("click", () => {
+        if (type === "Reverse") {
+          if (this.#smartReverseSteps !== undefined) {
+             this.#previousSmartReverseSteps = this.#smartReverseSteps;
+          }
+          this.#smartReverseSteps = undefined;
+        } else {
+          if (this.#smartForwardSteps !== undefined) {
+             this.#previousSmartForwardSteps = this.#smartForwardSteps;
+          }
+          this.#smartForwardSteps = undefined;
+        }
+        this.#triggerSmartTraversal();
+        this.#render();
+      });
+      btnGroup.appendChild(infBtn);
+
+      row.appendChild(btnGroup);
+
+      return row;
+    };
+
+    // Reverse row (Top)
+    controls.appendChild(createStepControl("Reverse", this.#smartReverseSteps, this.#previousSmartReverseSteps));
+    // Forward row (Bottom)
+    controls.appendChild(createStepControl("Forward", this.#smartForwardSteps, this.#previousSmartForwardSteps));
+
+    return controls;
+  }
+#createControlButton(btn: { icon: string, action: () => void, label: string }): HTMLButtonElement {
     const button = document.createElement("button");
     button.type = "button";
     button.setAttribute("aria-label", btn.label);
