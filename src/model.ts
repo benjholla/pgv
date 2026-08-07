@@ -837,7 +837,7 @@ export function sanitizeString(value: string): string {
   let scriptIterations = 0;
   do {
     previous = sanitized;
-    sanitized = sanitized.replace(/<\/?(script|iframe|object|embed|style|link|meta|base|form|math|set|animate)\b[^>]*>?/gi, "");
+    sanitized = sanitized.replace(/<\/?(script|iframe|object|embed|style|link|meta|base|form|math|set|animate|applet|frame|frameset|bgsound|template|foreignObject|animateTransform|animateMotion|discard|audio|video|source|track)\b[^>]*>?/gi, "");
     scriptIterations++;
     if (scriptIterations > 50) {
       throw new GraphModelError("String is too complex to sanitize safely.");
