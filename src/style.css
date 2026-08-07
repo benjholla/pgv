@@ -1205,6 +1205,13 @@
   transform: none; /* Override old active transform */
 }
 
+.pgv-smart-step-btns button:focus-visible, .pgv-smart-dropdown-btn:focus-visible {
+  outline: none;
+  border-color: var(--pgv-selected-color);
+  box-shadow: var(--pgv-selected-shadow);
+  z-index: 1;
+}
+
 /* Ensure the first/last children get the border radius from the parent container */
 .pgv-smart-step-btns button:first-child, .pgv-smart-dropdown-btn {
   border-top-left-radius: 5px;
