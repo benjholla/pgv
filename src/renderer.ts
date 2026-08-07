@@ -284,6 +284,7 @@ export class GraphView {
   #previousSmartReverseSteps: number = 0;
   #smartDropdownOpen: boolean = false;
   #smartDropdownAbortController: AbortController | null = null;
+  #smartControlsExpanded: boolean = true;
 
   #isDragging: boolean = false;
 
@@ -1888,10 +1889,18 @@ export class GraphView {
 
 
   #renderSmartViewControls(): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.className = "pgv-smart-view-wrapper";
+
+    // Left side: main controls (can be collapsed)
     const controls = document.createElement("div");
     controls.className = "pgv-smart-view-group";
-    // Ensure the container doesn't stretch and mess up the flex-end alignment
-    controls.style.justifyContent = "flex-end";
+    if (!this.#smartControlsExpanded) {
+      controls.style.display = "none";
+    } else {
+      // Ensure the container doesn't stretch and mess up the flex-end alignment
+      controls.style.justifyContent = "flex-end";
+    }
 
     const topRow = document.createElement("div");
     topRow.className = "pgv-smart-view-top-row";
@@ -2145,7 +2154,30 @@ export class GraphView {
     // Forward row (Bottom)
     controls.appendChild(createStepControl("Forward", this.#smartForwardSteps, this.#previousSmartForwardSteps));
 
-    return controls;
+    wrapper.appendChild(controls);
+
+    // Right side: misc controls (always visible, holds collapse toggle)
+    const miscGroup = document.createElement("div");
+    miscGroup.className = "pgv-control-group pgv-smart-misc-group";
+
+    const collapseIcon = this.#smartControlsExpanded
+      ? "M15 19l-7-7 7-7"  // chevron left to collapse
+      : "M9 5l7 7-7 7";    // chevron right to expand
+
+    const toggleBtn = this.#createControlButton({
+      icon: collapseIcon,
+      action: () => {
+        this.#smartControlsExpanded = !this.#smartControlsExpanded;
+        this.#render();
+      },
+      label: this.#smartControlsExpanded ? "Collapse Smart Controls" : "Expand Smart Controls",
+    });
+    toggleBtn.setAttribute("aria-expanded", this.#smartControlsExpanded ? "true" : "false");
+    miscGroup.appendChild(toggleBtn);
+
+    wrapper.appendChild(miscGroup);
+
+    return wrapper;
   }
 #createControlButton(btn: { icon: string, action: () => void, label: string }): HTMLButtonElement {
     const button = document.createElement("button");

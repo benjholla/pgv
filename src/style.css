@@ -1117,11 +1117,32 @@
 }
 
 /* Smart View Controls */
+
+.pgv-smart-view-wrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
+}
+
 .pgv-smart-view-group {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   gap: 8px;
+  background-color: var(--pgv-controls-bg);
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border: 1px solid var(--pgv-controls-border);
+}
+
+.pgv-smart-misc-group {
+  background-color: var(--pgv-controls-bg);
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  border: 1px solid var(--pgv-controls-border);
 }
 
 /* Redefining these to match the standard control group buttons */
@@ -1249,9 +1270,4 @@
   position: absolute;
   bottom: 16px;
   left: 16px;
-  background-color: var(--pgv-controls-bg);
-  padding: 8px;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  border: 1px solid var(--pgv-controls-border);
 }
