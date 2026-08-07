@@ -1896,7 +1896,22 @@ export class GraphView {
     const controls = document.createElement("div");
     controls.className = "pgv-smart-view-group";
     if (!this.#smartControlsExpanded) {
-      controls.style.display = "none";
+      const expandBtnGroup = document.createElement("div");
+      expandBtnGroup.className = "pgv-control-group";
+
+      const expandBtn = this.#createControlButton({
+        icon: "M4 4h16v16H4z", // window maximize
+        action: () => {
+          this.#smartControlsExpanded = true;
+          this.#render();
+        },
+        label: "Expand Smart Controls",
+      });
+      expandBtn.setAttribute("aria-expanded", "false");
+      expandBtnGroup.appendChild(expandBtn);
+      controls.appendChild(expandBtnGroup);
+      wrapper.appendChild(controls);
+      return wrapper;
     } else {
       // Ensure the container doesn't stretch and mess up the flex-end alignment
       controls.style.justifyContent = "flex-end";
@@ -2020,16 +2035,10 @@ export class GraphView {
        originBtn.style.color = "var(--pgv-selected-color)";
     }
 
-    originBtnGroup.appendChild(originBtn);
-    topRow.appendChild(originBtnGroup);
-
-    // Add collapse toggle to the top row immediately right of set origin
+    // Add collapse toggle to the top row immediately right of set origin within the same group to avoid extra gap
     const collapseIcon = this.#smartControlsExpanded
       ? "M5 12h14"  // window minimize
       : "M4 4h16v16H4z"; // window maximize
-
-    const toggleBtnGroup = document.createElement("div");
-    toggleBtnGroup.className = "pgv-control-group";
 
     const toggleBtn = this.#createControlButton({
       icon: collapseIcon,
@@ -2040,8 +2049,15 @@ export class GraphView {
       label: this.#smartControlsExpanded ? "Collapse Smart Controls" : "Expand Smart Controls",
     });
     toggleBtn.setAttribute("aria-expanded", this.#smartControlsExpanded ? "true" : "false");
-    toggleBtnGroup.appendChild(toggleBtn);
-    topRow.appendChild(toggleBtnGroup);
+
+    originBtnGroup.appendChild(originBtn);
+    originBtnGroup.appendChild(toggleBtn);
+
+    // Ensure the group flows horizontally
+    originBtnGroup.style.display = "flex";
+    originBtnGroup.style.flexDirection = "row";
+
+    topRow.appendChild(originBtnGroup);
 
     controls.appendChild(topRow);
 
