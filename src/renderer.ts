@@ -1922,7 +1922,7 @@ export class GraphView {
     dropdownBtn.style.gap = "6px";
 
     const span = document.createElement("span");
-    span.textContent = `View: ${this.#smartGraphType || "Graph Type"}`;
+    span.textContent = `${this.#smartGraphType || "Graph Type"}`;
     dropdownBtn.appendChild(span);
 
     dropdownBtn.appendChild(
@@ -1962,7 +1962,7 @@ export class GraphView {
         this.#smartGraphType = value;
         this.#smartDropdownOpen = false;
         toggleDropdownState(false, dropdownBtn, dropdownMenu);
-        span.textContent = `View: ${value}`;
+        span.textContent = `${value}`;
 
         // Update selection UI explicitly
         const opts = dropdownMenu.querySelectorAll(".pgv-dropdown-option");
@@ -2022,6 +2022,26 @@ export class GraphView {
 
     originBtnGroup.appendChild(originBtn);
     topRow.appendChild(originBtnGroup);
+
+    // Add collapse toggle to the top row immediately right of set origin
+    const collapseIcon = this.#smartControlsExpanded
+      ? "M5 12h14"  // window minimize
+      : "M4 4h16v16H4z"; // window maximize
+
+    const toggleBtnGroup = document.createElement("div");
+    toggleBtnGroup.className = "pgv-control-group";
+
+    const toggleBtn = this.#createControlButton({
+      icon: collapseIcon,
+      action: () => {
+        this.#smartControlsExpanded = !this.#smartControlsExpanded;
+        this.#render();
+      },
+      label: this.#smartControlsExpanded ? "Collapse Smart Controls" : "Expand Smart Controls",
+    });
+    toggleBtn.setAttribute("aria-expanded", this.#smartControlsExpanded ? "true" : "false");
+    toggleBtnGroup.appendChild(toggleBtn);
+    topRow.appendChild(toggleBtnGroup);
 
     controls.appendChild(topRow);
 
@@ -2146,6 +2166,63 @@ export class GraphView {
 
       row.appendChild(btnGroup);
 
+      // Add shift up/down buttons outside the main btnGroup
+      if (type === "Reverse") {
+        const shiftUpBtnGroup = document.createElement("div");
+        shiftUpBtnGroup.className = "pgv-control-group";
+
+        const shiftUpBtn = this.#createControlButton({
+          icon: "M18 15l-6-6-6 6", // Chevron up
+          action: () => {
+            // Shift up: decrement forward, increment reverse
+            if (this.#smartForwardSteps !== undefined && this.#smartForwardSteps > 0) {
+              this.#smartForwardSteps--;
+              if (this.#smartReverseSteps !== undefined) {
+                this.#smartReverseSteps++;
+              }
+              this.#triggerSmartTraversal();
+              this.#render();
+            } else if (this.#smartForwardSteps === undefined) {
+               if (this.#smartReverseSteps !== undefined) {
+                 this.#smartReverseSteps++;
+               }
+               this.#triggerSmartTraversal();
+               this.#render();
+            }
+          },
+          label: "Shift up (decrement forward, increment reverse)",
+        });
+        shiftUpBtnGroup.appendChild(shiftUpBtn);
+        row.appendChild(shiftUpBtnGroup);
+      } else {
+        const shiftDownBtnGroup = document.createElement("div");
+        shiftDownBtnGroup.className = "pgv-control-group";
+
+        const shiftDownBtn = this.#createControlButton({
+          icon: "M6 9l6 6 6-6", // Chevron down
+          action: () => {
+            // Shift down: decrement reverse, increment forward
+            if (this.#smartReverseSteps !== undefined && this.#smartReverseSteps > 0) {
+              this.#smartReverseSteps--;
+              if (this.#smartForwardSteps !== undefined) {
+                this.#smartForwardSteps++;
+              }
+              this.#triggerSmartTraversal();
+              this.#render();
+            } else if (this.#smartReverseSteps === undefined) {
+               if (this.#smartForwardSteps !== undefined) {
+                 this.#smartForwardSteps++;
+               }
+               this.#triggerSmartTraversal();
+               this.#render();
+            }
+          },
+          label: "Shift down (decrement reverse, increment forward)",
+        });
+        shiftDownBtnGroup.appendChild(shiftDownBtn);
+        row.appendChild(shiftDownBtnGroup);
+      }
+
       return row;
     };
 
@@ -2155,27 +2232,6 @@ export class GraphView {
     controls.appendChild(createStepControl("Forward", this.#smartForwardSteps, this.#previousSmartForwardSteps));
 
     wrapper.appendChild(controls);
-
-    // Right side: misc controls (always visible, holds collapse toggle)
-    const miscGroup = document.createElement("div");
-    miscGroup.className = "pgv-control-group pgv-smart-misc-group";
-
-    const collapseIcon = this.#smartControlsExpanded
-      ? "M5 12h14"  // window minimize
-      : "M4 4h16v16H4z"; // window maximize
-
-    const toggleBtn = this.#createControlButton({
-      icon: collapseIcon,
-      action: () => {
-        this.#smartControlsExpanded = !this.#smartControlsExpanded;
-        this.#render();
-      },
-      label: this.#smartControlsExpanded ? "Collapse Smart Controls" : "Expand Smart Controls",
-    });
-    toggleBtn.setAttribute("aria-expanded", this.#smartControlsExpanded ? "true" : "false");
-    miscGroup.appendChild(toggleBtn);
-
-    wrapper.appendChild(miscGroup);
 
     return wrapper;
   }
