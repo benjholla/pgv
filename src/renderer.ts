@@ -2014,10 +2014,27 @@ export class GraphView {
     });
 
     // Determine active state of origin button
-    const currentNodes = Array.from(this.#options.selection?.nodes || []);
-    const currentEdges = Array.from(this.#options.selection?.edges || []);
-    const isNodesEqual = currentNodes.length === this.#smartOriginNodes.length && currentNodes.every(v => this.#smartOriginNodes.includes(v));
-    const isEdgesEqual = currentEdges.length === this.#smartOriginEdges.length && currentEdges.every(v => this.#smartOriginEdges.includes(v));
+    // PERF(Bolt): Replaced intermediate Array.from() allocations and O(N*M) array.includes() checks with O(1) Set.has() checks.
+    let isNodesEqual = false;
+    if (this.#options.selection && this.#options.selection.nodes.size === this.#smartOriginNodes.length) {
+      isNodesEqual = true;
+      for (const id of this.#smartOriginNodes) {
+        if (!this.#options.selection.nodes.has(id)) {
+          isNodesEqual = false;
+          break;
+        }
+      }
+    }
+    let isEdgesEqual = false;
+    if (this.#options.selection && this.#options.selection.edges.size === this.#smartOriginEdges.length) {
+      isEdgesEqual = true;
+      for (const id of this.#smartOriginEdges) {
+        if (!this.#options.selection.edges.has(id)) {
+          isEdgesEqual = false;
+          break;
+        }
+      }
+    }
     if(this.#options.selection && (this.#options.selection.nodes.size > 0 || this.#options.selection.edges.size > 0) && (isNodesEqual && isEdgesEqual)) {
        // Highlight active state
        originBtn.style.color = "var(--pgv-selected-color)";

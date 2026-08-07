@@ -39,3 +39,7 @@
 ## 2026-08-04 - [Eliminated Redundant Array Allocation in FLIP Animation]
 **Learning:** The FLIP animation in `src/renderer.ts` was maintaining both an array (`flipNodes`) and a Map (`flipNodesMap`) for the exact same set of DOM elements and state changes. This is a common performance anti-pattern where a Map is introduced to fix O(N) lookup issues, but the original array is left behind.
 **Action:** When migrating from arrays to Maps for O(1) lookups, fully commit to the Map. Iterate directly over the Map using `for (const item of map.keys())` or `for (const [key, value] of map)` to avoid maintaining redundant data structures and save memory allocation overhead.
+
+## 2024-05-31 - Replace Array.from() array mapping with Set.has() for O(1) checks
+**Learning:** In `@pgv/graph-core`, checking for equality between user selections (which are Sets of node/edge IDs) and an array of selected components originally relied on `.every()` and `.includes()` along with intermediate `.from()` array instantiations. This created $O(N \cdot M)$ complexity loops with unnecessary GC allocations on every render for graphs with large selections.
+**Action:** Replace `Array.from().every(item => arr.includes(item))` operations targeting `Set` components with straightforward, early-breaking `for` loops utilizing the `Set.has()` primitive to yield amortized $O(1)$ loop lookup times avoiding array allocations.
