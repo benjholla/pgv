@@ -665,6 +665,38 @@ export function applyGraphDiff(
   return Object.freeze(base as GraphSnapshot);
 }
 
+/**
+ * Computes the exact mathematical inverse of a diff given the base snapshot it was applied to.
+ *
+ * What was removed by the original diff is added back (with identical data from the original state).
+ * What was added by the original diff is removed.
+ *
+ * @param base The starting graph state before the diff was applied.
+ * @param diff The incremental changes that were applied.
+ * @returns A new, frozen `GraphDiff` representing the inverse operation.
+ * @throws {GraphModelError} If the diff removes elements that do not exist in the base snapshot.
+ */
+export function invertGraphDiff(base: GraphSnapshot, diff: GraphDiff): GraphDiff {
+  const addedNodes = diff.removedNodes.map(id => {
+    const node = base.nodes.get(id);
+    if (!node) throw new GraphModelError(`Cannot invert diff: Node "${id}" not found in base snapshot.`);
+    return { id: node.id, tags: [...node.tags], attributes: { ...node.attributes } };
+  });
+
+  const addedEdges = diff.removedEdges.map(id => {
+    const edge = base.edges.get(id);
+    if (!edge) throw new GraphModelError(`Cannot invert diff: Edge "${id}" not found in base snapshot.`);
+    return { id: edge.id, source: edge.source, target: edge.target, tags: [...edge.tags], attributes: { ...edge.attributes } };
+  });
+
+  return createGraphDiff({
+    removedNodes: diff.addedNodes.map(n => n.id),
+    removedEdges: diff.addedEdges.map(e => e.id),
+    addedNodes,
+    addedEdges
+  });
+}
+
 function normalizeNode(node: GraphNodeJson): GraphNode {
   assertNonEmptyString(node.id, "node.id");
 

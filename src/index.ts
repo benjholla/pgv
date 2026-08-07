@@ -26,6 +26,7 @@ export {
   createGraphDiff,
   graphDiffToJson,
   applyGraphDiff,
+  invertGraphDiff,
 } from "./model";
 export type {
   EdgeRoutingHint,
