@@ -36,5 +36,5 @@ export type {
 } from "./layout";
 export type { EdgeEndpointsResult } from "./layout";
 export { edgeEndpoints, verticalLayout } from "./layout";
-export type { GraphViewOptions, SelectionState } from "./renderer";
+export type { GraphViewOptions, SelectionState, SmartTraversalState } from "./renderer";
 export { GraphView } from "./renderer";
