@@ -49,6 +49,33 @@ const SEARCH_MODES = [
  * selection states to persist across historical undo/redo actions, animations,
  * or when fetching entirely new backend snapshots that contain the same IDs.
  */
+
+/**
+ * State representing the current smart view traversal configuration.
+ */
+export interface SmartTraversalState {
+  /**
+   * The currently selected graph type for traversal.
+   */
+  readonly graphType: string;
+  /**
+   * The IDs of the nodes acting as the origin for the traversal.
+   */
+  readonly originNodes: string[];
+  /**
+   * The IDs of the edges acting as the origin for the traversal.
+   */
+  readonly originEdges: string[];
+  /**
+   * The number of forward steps to traverse. If undefined, implies transitive walk (infinity).
+   */
+  readonly forwardSteps?: number;
+  /**
+   * The number of reverse steps to traverse. If undefined, implies transitive walk (infinity).
+   */
+  readonly reverseSteps?: number;
+}
+
 export interface SelectionState {
   /**
    * The set of selected node IDs.
@@ -150,6 +177,22 @@ export interface GraphViewOptions {
    * Callback invoked when the active graph state changes (e.g., via history navigation).
    */
   readonly onGraphChange?: (graph: GraphSnapshot) => void;
+
+  /**
+   * Configuration for the smart view controls. If provided, the smart view controls will be displayed.
+   */
+  readonly smartView?: {
+    /**
+     * A list of available graph types for traversal.
+     */
+    readonly graphTypes: string[];
+  };
+
+  /**
+   * Callback invoked when a smart traversal action is triggered.
+   */
+  readonly onSmartTraversal?: (state: SmartTraversalState) => void;
+
 }
 
 interface ViewportState {
@@ -231,6 +274,18 @@ export class GraphView {
   #searchInputRef: HTMLInputElement | null = null;
   #searchKeyInputRef: HTMLInputElement | null = null;
   #updateSearchUI: (() => void) | null = null;
+
+  #smartGraphType: string = "";
+  #smartOriginNodes: string[] = [];
+  #smartOriginEdges: string[] = [];
+  #smartForwardSteps?: number = 0;
+  #smartReverseSteps?: number = 0;
+  #previousSmartForwardSteps: number = 0;
+  #previousSmartReverseSteps: number = 0;
+  #smartDropdownOpen: boolean = false;
+  #smartDropdownAbortController: AbortController | null = null;
+  #smartControlsExpanded: boolean = true;
+
   #isDragging: boolean = false;
 
   /**
@@ -262,6 +317,9 @@ export class GraphView {
     this.#historyIndex = -1;
     this.#graph = graph;
     this.#options = { ...this.#options, ...options };
+    if (this.#options.smartView && this.#options.smartView.graphTypes.length > 0 && !this.#smartGraphType) {
+      this.#smartGraphType = this.#options.smartView.graphTypes[0];
+    }
     if (options.theme !== undefined) {
       this.#currentTheme = options.theme;
     }
@@ -695,6 +753,10 @@ export class GraphView {
     this.#minimapAbortController = null;
     this.#downloadAbortController?.abort();
     this.#downloadAbortController = null;
+
+    this.#smartDropdownAbortController?.abort();
+    this.#smartDropdownAbortController = null;
+
     this.container.replaceChildren();
   }
 
@@ -800,6 +862,13 @@ export class GraphView {
 
       const bottomContainer = document.createElement("div");
       bottomContainer.className = "pgv-bottom-container";
+
+      if (this.#options.smartView) {
+        const smartPanel = document.createElement("div");
+        smartPanel.className = "pgv-smart-view-panel";
+        smartPanel.appendChild(this.#renderSmartViewControls());
+        bottomContainer.appendChild(smartPanel);
+      }
 
       bottomContainer.appendChild(this.#renderControls());
 
@@ -1506,6 +1575,7 @@ export class GraphView {
     const buttonsContainer = document.createElement("div");
     buttonsContainer.className = "pgv-controls-buttons";
 
+
     if (this.#options.usePanZoom) {
       const zoomButtons = [
         { id: "zoom-in", icon: icons.plus, action: () => this.#zoom(0.1), label: "Zoom In" },
@@ -1646,7 +1716,6 @@ export class GraphView {
 
       miscGroup.appendChild(topButtonsContainer);
 
-      // Add a spacer to push the bottom buttons down
       const spacer = document.createElement("div");
       spacer.style.flexGrow = "1";
       miscGroup.appendChild(spacer);
@@ -1805,7 +1874,312 @@ export class GraphView {
     return controls;
   }
 
-  #createControlButton(btn: { icon: string, action: () => void, label: string }): HTMLButtonElement {
+
+  #triggerSmartTraversal() {
+    if (this.#options.onSmartTraversal) {
+      this.#options.onSmartTraversal({
+        graphType: this.#smartGraphType,
+        originNodes: this.#smartOriginNodes,
+        originEdges: this.#smartOriginEdges,
+        forwardSteps: this.#smartForwardSteps,
+        reverseSteps: this.#smartReverseSteps
+      });
+    }
+  }
+
+
+  #renderSmartViewControls(): HTMLElement {
+    const wrapper = document.createElement("div");
+    wrapper.className = "pgv-smart-view-wrapper";
+
+    // Left side: main controls (can be collapsed)
+    const controls = document.createElement("div");
+    controls.className = "pgv-smart-view-group";
+    if (!this.#smartControlsExpanded) {
+      controls.style.display = "none";
+    } else {
+      // Ensure the container doesn't stretch and mess up the flex-end alignment
+      controls.style.justifyContent = "flex-end";
+    }
+
+    const topRow = document.createElement("div");
+    topRow.className = "pgv-smart-view-top-row";
+
+    // Graph Type Dropdown (now styled like download format)
+    const dropdownGroup = document.createElement("div");
+    dropdownGroup.className = "pgv-smart-view-dropdown"; // This now acts like pgv-control-group
+
+    const dropdownBtn = document.createElement("button");
+    dropdownBtn.type = "button";
+    dropdownBtn.className = "pgv-smart-dropdown-btn";
+    dropdownBtn.setAttribute("aria-label", "Select Graph Type");
+    dropdownBtn.setAttribute("title", "Select Graph Type");
+    dropdownBtn.setAttribute("aria-haspopup", "menu");
+    dropdownBtn.setAttribute("aria-controls", "pgv-smart-dropdown-menu");
+    dropdownBtn.setAttribute("aria-expanded", this.#smartDropdownOpen ? "true" : "false");
+
+    // Add gap manually since we removed it from CSS for buttons
+    dropdownBtn.style.gap = "6px";
+
+    const span = document.createElement("span");
+    span.textContent = `View: ${this.#smartGraphType || "Graph Type"}`;
+    dropdownBtn.appendChild(span);
+
+    dropdownBtn.appendChild(
+      createSvgElement("svg", {
+        "aria-hidden": "true",
+        "viewBox": "0 0 24 24",
+        "width": "14",
+        "height": "14",
+        "fill": "none",
+        "stroke": "currentColor",
+        "stroke-width": "2.5",
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round"
+      }, [
+        createSvgElement("path", { "d": "M6 9l6 6 6-6" }) // Chevron down
+      ])
+    );
+
+    dropdownGroup.appendChild(dropdownBtn);
+
+    const closeDropdown = () => {
+      this.#smartDropdownOpen = false;
+      toggleDropdownState(false, dropdownBtn, dropdownMenu);
+    };
+
+    const graphTypes = this.#options.smartView?.graphTypes || [];
+    const dropdownOptions = graphTypes.map(t => ({ value: t, label: t }));
+
+    const dropdownMenu = buildDropdownMenu({
+      menuId: "pgv-smart-dropdown-menu",
+      isOpen: this.#smartDropdownOpen,
+      options: dropdownOptions,
+      currentValue: this.#smartGraphType,
+      dropdownBtn,
+      onClose: closeDropdown,
+      onSelect: (value) => {
+        this.#smartGraphType = value;
+        this.#smartDropdownOpen = false;
+        toggleDropdownState(false, dropdownBtn, dropdownMenu);
+        span.textContent = `View: ${value}`;
+
+        // Update selection UI explicitly
+        const opts = dropdownMenu.querySelectorAll(".pgv-dropdown-option");
+        for (let i = 0; i < opts.length; i++) {
+          const opt = opts[i];
+          if ((opt as HTMLElement).dataset.value === value) {
+            opt.classList.add("selected");
+            opt.setAttribute("aria-checked", "true");
+          } else {
+            opt.classList.remove("selected");
+            opt.setAttribute("aria-checked", "false");
+          }
+        }
+        dropdownBtn.focus();
+        this.#triggerSmartTraversal();
+      }
+    });
+
+    dropdownGroup.appendChild(dropdownMenu);
+
+    dropdownBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.#smartDropdownOpen = !this.#smartDropdownOpen;
+      toggleDropdownState(this.#smartDropdownOpen, dropdownBtn, dropdownMenu);
+    });
+
+    this.#smartDropdownAbortController?.abort();
+    this.#smartDropdownAbortController = new AbortController();
+    setupDropdownCloseEvents(() => this.#smartDropdownOpen, closeDropdown, dropdownBtn, dropdownMenu, this.container, this.#smartDropdownAbortController);
+
+    topRow.appendChild(dropdownGroup);
+
+    // Set Origin Button (now an icon button using createControlButton)
+    const originBtnGroup = document.createElement("div");
+    originBtnGroup.className = "pgv-control-group";
+
+    const originBtn = this.#createControlButton({
+      icon: "M12 2v20m-10-10h20m-3 0a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z", // True Crosshair SVG
+      action: () => {
+        this.#smartOriginNodes = Array.from(this.#options.selection?.nodes || []);
+        this.#smartOriginEdges = Array.from(this.#options.selection?.edges || []);
+        this.#triggerSmartTraversal();
+        this.#render();
+      },
+      label: "Set traversal origin from selected nodes/edges"
+    });
+
+    // Determine active state of origin button
+    const currentNodes = Array.from(this.#options.selection?.nodes || []);
+    const currentEdges = Array.from(this.#options.selection?.edges || []);
+    const isNodesEqual = currentNodes.length === this.#smartOriginNodes.length && currentNodes.every(v => this.#smartOriginNodes.includes(v));
+    const isEdgesEqual = currentEdges.length === this.#smartOriginEdges.length && currentEdges.every(v => this.#smartOriginEdges.includes(v));
+    if(this.#options.selection && (this.#options.selection.nodes.size > 0 || this.#options.selection.edges.size > 0) && (isNodesEqual && isEdgesEqual)) {
+       // Highlight active state
+       originBtn.style.color = "var(--pgv-selected-color)";
+    }
+
+    originBtnGroup.appendChild(originBtn);
+    topRow.appendChild(originBtnGroup);
+
+    controls.appendChild(topRow);
+
+    // Helper to create step controls
+    const createStepControl = (type: "Reverse" | "Forward", currentVal: number | undefined, prevVal: number) => {
+      const row = document.createElement("div");
+      row.className = "pgv-smart-step-row";
+
+      const label = document.createElement("span");
+      label.className = "pgv-smart-step-label";
+      label.textContent = type;
+      row.appendChild(label);
+
+      const btnGroup = document.createElement("div");
+      btnGroup.className = "pgv-smart-step-btns"; // We made this mimic pgv-control-group in CSS
+
+      const decBtn = document.createElement("button");
+      decBtn.type = "button";
+      decBtn.title = `Decrease ${type} Steps`;
+      decBtn.setAttribute("aria-label", `Decrease ${type} Steps`);
+      decBtn.appendChild(
+        createSvgElement("svg", {
+          "aria-hidden": "true",
+          "viewBox": "0 0 24 24",
+          "width": "20",
+          "height": "20",
+          "fill": "none",
+          "stroke": "currentColor",
+          "stroke-width": "2.5",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }, [
+          createSvgElement("path", { "d": "M5 12h14" })
+        ])
+      );
+      decBtn.addEventListener("click", () => {
+        let newVal = currentVal;
+        if (currentVal === undefined) {
+           newVal = prevVal;
+        } else if (currentVal > 0) {
+           newVal = currentVal - 1;
+        }
+
+        if (type === "Reverse") {
+          this.#smartReverseSteps = newVal;
+        } else {
+          this.#smartForwardSteps = newVal;
+        }
+
+        this.#triggerSmartTraversal();
+        this.#render();
+      });
+      btnGroup.appendChild(decBtn);
+
+      const counter = document.createElement("div");
+      counter.className = "pgv-smart-step-counter";
+      counter.textContent = currentVal === undefined ? "∞" : currentVal.toString();
+      btnGroup.appendChild(counter);
+
+      const incBtn = document.createElement("button");
+      incBtn.type = "button";
+      incBtn.title = `Increase ${type} Steps`;
+      incBtn.setAttribute("aria-label", `Increase ${type} Steps`);
+      incBtn.appendChild(
+        createSvgElement("svg", {
+          "aria-hidden": "true",
+          "viewBox": "0 0 24 24",
+          "width": "20",
+          "height": "20",
+          "fill": "none",
+          "stroke": "currentColor",
+          "stroke-width": "2.5",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round"
+        }, [
+          createSvgElement("path", { "d": "M12 5v14m-7-7h14" })
+        ])
+      );
+      incBtn.addEventListener("click", () => {
+        let newVal = currentVal;
+        if (currentVal === undefined) {
+           newVal = 1;
+        } else {
+           newVal = currentVal + 1;
+        }
+
+        if (type === "Reverse") {
+          this.#smartReverseSteps = newVal;
+        } else {
+          this.#smartForwardSteps = newVal;
+        }
+
+        this.#triggerSmartTraversal();
+        this.#render();
+      });
+      btnGroup.appendChild(incBtn);
+
+      const infBtn = document.createElement("button");
+      infBtn.type = "button";
+      infBtn.title = `Transitively Walk ${type}`;
+      infBtn.setAttribute("aria-label", `Transitively Walk ${type}`);
+      // using infinity symbol as text but styled as a button is acceptable, or we can use SVG
+      // let's use an SVG for visual consistency if possible, but text is fine for infinity since it's standard
+      infBtn.style.fontSize = "18px";
+      infBtn.textContent = "∞";
+      infBtn.addEventListener("click", () => {
+        if (type === "Reverse") {
+          if (this.#smartReverseSteps !== undefined) {
+             this.#previousSmartReverseSteps = this.#smartReverseSteps;
+          }
+          this.#smartReverseSteps = undefined;
+        } else {
+          if (this.#smartForwardSteps !== undefined) {
+             this.#previousSmartForwardSteps = this.#smartForwardSteps;
+          }
+          this.#smartForwardSteps = undefined;
+        }
+        this.#triggerSmartTraversal();
+        this.#render();
+      });
+      btnGroup.appendChild(infBtn);
+
+      row.appendChild(btnGroup);
+
+      return row;
+    };
+
+    // Reverse row (Top)
+    controls.appendChild(createStepControl("Reverse", this.#smartReverseSteps, this.#previousSmartReverseSteps));
+    // Forward row (Bottom)
+    controls.appendChild(createStepControl("Forward", this.#smartForwardSteps, this.#previousSmartForwardSteps));
+
+    wrapper.appendChild(controls);
+
+    // Right side: misc controls (always visible, holds collapse toggle)
+    const miscGroup = document.createElement("div");
+    miscGroup.className = "pgv-control-group pgv-smart-misc-group";
+
+    const collapseIcon = this.#smartControlsExpanded
+      ? "M15 19l-7-7 7-7"  // chevron left to collapse
+      : "M9 5l7 7-7 7";    // chevron right to expand
+
+    const toggleBtn = this.#createControlButton({
+      icon: collapseIcon,
+      action: () => {
+        this.#smartControlsExpanded = !this.#smartControlsExpanded;
+        this.#render();
+      },
+      label: this.#smartControlsExpanded ? "Collapse Smart Controls" : "Expand Smart Controls",
+    });
+    toggleBtn.setAttribute("aria-expanded", this.#smartControlsExpanded ? "true" : "false");
+    miscGroup.appendChild(toggleBtn);
+
+    wrapper.appendChild(miscGroup);
+
+    return wrapper;
+  }
+#createControlButton(btn: { icon: string, action: () => void, label: string }): HTMLButtonElement {
     const button = document.createElement("button");
     button.type = "button";
     button.setAttribute("aria-label", btn.label);
