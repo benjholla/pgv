@@ -2161,8 +2161,8 @@ export class GraphView {
     miscGroup.className = "pgv-control-group pgv-smart-misc-group";
 
     const collapseIcon = this.#smartControlsExpanded
-      ? "M15 19l-7-7 7-7"  // chevron left to collapse
-      : "M9 5l7 7-7 7";    // chevron right to expand
+      ? "M5 12h14"  // window minimize
+      : "M4 4h16v16H4z"; // window maximize
 
     const toggleBtn = this.#createControlButton({
       icon: collapseIcon,

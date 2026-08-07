@@ -841,6 +841,10 @@
     height: 44px;
   }
 
+  .pgv-smart-step-btns button, .pgv-smart-dropdown-btn, .pgv-smart-step-counter {
+    height: 44px;
+  }
+
   .pgv-search-actions button,
   .pgv-search-dropdown-btn,
   .pgv-search-toggle {
@@ -1149,10 +1153,10 @@
 .pgv-smart-step-btns, .pgv-smart-view-dropdown {
   display: flex;
   gap: 0;
-  border-radius: 8px;
-  background: var(--pgv-controls-btn-bg);
+  border-radius: 6px;
+  background: var(--pgv-control-button-bg);
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.05);
-  border: 1px solid var(--pgv-controls-border);
+  border: 1px solid var(--pgv-control-button-border);
   overflow: visible; /* Need overflow visible for dropdowns */
 }
 
@@ -1163,12 +1167,12 @@
   align-items: center;
   justify-content: center;
   background: transparent;
-  color: var(--pgv-controls-btn-fg);
+  color: var(--pgv-control-button-fg);
   border: none;
   border-right: 1px solid var(--pgv-controls-border);
   cursor: pointer;
   transition: all 0.2s ease;
-  height: 36px;
+  height: 32px;
   padding: 0 10px;
   border-radius: 0; /* Let the container handle rounded corners */
 }
@@ -1178,22 +1182,23 @@
 }
 
 .pgv-smart-step-btns button:hover, .pgv-smart-dropdown-btn:hover {
-  background: var(--pgv-controls-btn-hover);
-  color: var(--pgv-controls-btn-fg);
+  background: var(--pgv-control-button-hover-bg);
+  color: var(--pgv-control-button-fg);
 }
 
 .pgv-smart-step-btns button:active, .pgv-smart-dropdown-btn:active {
+  background: var(--pgv-control-button-active-bg);
   transform: none; /* Override old active transform */
 }
 
 /* Ensure the first/last children get the border radius from the parent container */
 .pgv-smart-step-btns button:first-child, .pgv-smart-dropdown-btn {
-  border-top-left-radius: 7px;
-  border-bottom-left-radius: 7px;
+  border-top-left-radius: 5px;
+  border-bottom-left-radius: 5px;
 }
 .pgv-smart-step-btns button:last-child, .pgv-smart-dropdown-btn {
-  border-top-right-radius: 7px;
-  border-bottom-right-radius: 7px;
+  border-top-right-radius: 5px;
+  border-bottom-right-radius: 5px;
 }
 
 .pgv-smart-step-counter {
@@ -1206,8 +1211,8 @@
   font-family: monospace;
   font-size: 14px;
   min-width: 32px;
-  height: 36px;
-  color: var(--pgv-controls-btn-fg);
+  height: 32px;
+  color: var(--pgv-control-button-fg);
 }
 
 /* We want the dropdown menu to match download format popup */
@@ -1247,7 +1252,7 @@
   justify-content: space-between;
   gap: 8px;
   font-size: 13px;
-  color: var(--pgv-controls-btn-fg);
+  color: var(--pgv-control-button-fg);
 }
 
 .pgv-smart-step-label {
