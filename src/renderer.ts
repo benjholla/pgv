@@ -76,6 +76,9 @@ export interface SmartTraversalState {
   readonly reverseSteps?: number;
 }
 
+/**
+ * State representing the current selection of nodes and edges within a GraphView.
+ */
 export interface SelectionState {
   /**
    * The set of selected node IDs.
