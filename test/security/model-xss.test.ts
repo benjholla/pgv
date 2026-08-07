@@ -34,6 +34,22 @@ describe("sanitizeString XSS named entities bypass", () => {
     expect(sanitizeString('href="javascript:alert(1)"')).toBe("#blocked-uri");
   });
 
+  it("blocks inline event handlers obfuscated with control characters", () => {
+    // Null byte injection bypass
+    expect(sanitizeString("<img src=x on\x00error=alert(1)>")).toBe('<img src=x data-blocked=alert(1)>');
+    expect(sanitizeString("<img src=x o\x00nerror=alert(1)>")).toBe('<img src=x data-blocked=alert(1)>');
+    expect(sanitizeString("<img src=x on\x00e\x00r\x00r\x00o\x00r=alert(1)>")).toBe('<img src=x data-blocked=alert(1)>');
+
+    // Tab and newline injection bypass
+    expect(sanitizeString("<img src=x on\x09error=alert(1)>")).toBe('<img src=x data-blocked=alert(1)>');
+    expect(sanitizeString("<img src=x on\x0Aerror=alert(1)>")).toBe('<img src=x data-blocked=alert(1)>');
+
+    // Control characters in other parts
+    expect(sanitizeString("<img src=x on\x0Berror=alert(1)>")).toBe('<img src=x data-blocked=alert(1)>');
+    expect(sanitizeString("<img src=x on\x0Cerror=alert(1)>")).toBe('<img src=x data-blocked=alert(1)>');
+    expect(sanitizeString("<img src=x on\x0Derror=alert(1)>")).toBe('<img src=x data-blocked=alert(1)>');
+  });
+
   it("blocks javascript URIs using backticks as attribute wrapper", () => {
     expect(sanitizeString("<a href=`javascript:alert(1)`>Click me</a>")).toBe("#blocked-uri");
   });
