@@ -1,0 +1,20 @@
+--- src/layout.ts
++++ src/layout.ts
+@@ -1072,16 +1072,16 @@ function computeEdgeRoutingHints(
+       continue;
+     }
+
+-    const outList = edgeOutgoing.get(edge.source) || [];
++    const outList = edgeOutgoing.get(edge.source)!;
+     const outIndex = binarySearch(outList, edge.id);
+     const outTotal = outList.length;
+     let sOffset = 0;
+     if (outTotal > 1) {
+       sOffset = (outIndex - (outTotal - 1) / 2) * spacing;
+     }
+
+-    const inList = edgeIncoming.get(edge.target) || [];
++    const inList = edgeIncoming.get(edge.target)!;
+     const inIndex = binarySearch(inList, edge.id);
+     const inTotal = inList.length;
+     let tOffset = 0;

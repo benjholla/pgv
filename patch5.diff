@@ -1,0 +1,41 @@
+--- src/model.ts
++++ src/model.ts
+@@ -493,17 +493,12 @@ function parseAddedItems<T, U extends { id: string }>(
+   itemTypeName: string
+ ): U[] {
+   const result: U[] = [];
+-  const ids = new Set<string>();
+   if (items) {
++    const ids = new Set<string>();
+     for (let i = 0; i < items.length; i++) {
+       const item = normalize(items[i]);
+       if (ids.has(item.id)) {
+         throw new GraphModelError(`Duplicate ${itemTypeName} id "${item.id}".`);
+       }
+       ids.add(item.id);
+       result.push(item);
+     }
+   }
+   return result;
+ }
+
+ function parseRemovedItems(
+   items: readonly string[] | undefined,
+   itemTypeName: string
+ ): string[] {
+   const result: string[] = [];
+-  const ids = new Set<string>();
+   if (items) {
++    const ids = new Set<string>();
+     for (let i = 0; i < items.length; i++) {
+       const id = items[i];
+       assertNonEmptyString(id, `${itemTypeName} id`);
+       if (ids.has(id)) {
+         throw new GraphModelError(`Duplicate ${itemTypeName} id "${id}".`);
+       }
+       ids.add(id);
+       result.push(id);
+     }
+   }
+   return result;
+ }
