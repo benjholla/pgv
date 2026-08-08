@@ -16,5 +16,4 @@ When a parameter (like `schema` in `GraphView` constructor) appears unused but s
 ## 2026-07-09 - Repository Hygiene and Debt Cleanup\n- Updated `README.md` and `examples/README.md` to accurately document the `vite-blog` example, improving discoverability.
 ## 2026-07-09 - Repository Organization and Clutter Reduction
 - Improved repository hygiene by identifying `examples/static-tester` as an internal test fixture for Playwright and moving it to `test/static-tester`. Updated `package.json` scripts and removed misleading documentation from `examples/README.md`.
-- Relocated `pgv-exporter` to `examples/pgv-exporter` to maintain a clean root directory strictly focused on the core graph-core library package.
 - Fixed a TSDoc formatting issue for the internal utility `tagToClassName` in `src/renderer.ts`, ensuring the `@internal` tag correctly omits it from the public TypeDoc generated API.
