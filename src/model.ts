@@ -493,8 +493,8 @@ function parseAddedItems<T, U extends { id: string }>(
   itemTypeName: string
 ): U[] {
   const result: U[] = [];
-  const ids = new Set<string>();
   if (items) {
+    const ids = new Set<string>();
     for (let i = 0; i < items.length; i++) {
       const item = normalize(items[i]);
       if (ids.has(item.id)) {
@@ -512,8 +512,8 @@ function parseRemovedItems(
   itemTypeName: string
 ): string[] {
   const result: string[] = [];
-  const ids = new Set<string>();
   if (items) {
+    const ids = new Set<string>();
     for (let i = 0; i < items.length; i++) {
       const id = items[i];
       assertNonEmptyString(id, `${itemTypeName} id`);
@@ -625,8 +625,8 @@ export function applyGraphDiff(
   snapshot: GraphSnapshot,
   diff: GraphDiff
 ): GraphSnapshot {
-  const nodes = new Map<string, GraphNode>(snapshot.nodes);
-  const edges = new Map<string, GraphEdge>(snapshot.edges);
+  const nodes = new Map(snapshot.nodes);
+  const edges = new Map(snapshot.edges);
 
   for (const id of diff.removedEdges) {
     edges.delete(id);
@@ -680,13 +680,13 @@ export function invertGraphDiff(base: GraphSnapshot, diff: GraphDiff): GraphDiff
   const addedNodes = diff.removedNodes.map(id => {
     const node = base.nodes.get(id);
     if (!node) throw new GraphModelError(`Cannot invert diff: Node "${id}" not found in base snapshot.`);
-    return { id: node.id, tags: [...node.tags], attributes: { ...node.attributes } };
+    return node;
   });
 
   const addedEdges = diff.removedEdges.map(id => {
     const edge = base.edges.get(id);
     if (!edge) throw new GraphModelError(`Cannot invert diff: Edge "${id}" not found in base snapshot.`);
-    return { id: edge.id, source: edge.source, target: edge.target, tags: [...edge.tags], attributes: { ...edge.attributes } };
+    return edge;
   });
 
   return createGraphDiff({
