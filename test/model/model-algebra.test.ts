@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { createGraphSnapshot, createGraphDiff, applyGraphDiff, graphSnapshotToJson, invertGraphDiff } from "../../src/model";
+import { createGraphSnapshot, createGraphDiff, applyGraphDiff, graphSnapshotToJson, invertGraphDiff, graphDiffToJson } from "../../src/model";
 
 describe("Algebraic properties of applyGraphDiff", () => {
     it("Identity Property: Applying an empty diff preserves the graph identically", () => {
@@ -149,6 +149,36 @@ describe("Algebraic properties of applyGraphDiff", () => {
         expect(snap3.nodes.size).toBe(1);
         expect(snap3.nodes.has("n2")).toBe(true);
         expect(snap3.edges.size).toBe(0);
+    });
+
+    it("Involution Property of invertGraphDiff: The inverse of an inverse diff is identical to the original diff", () => {
+        const base = createGraphSnapshot({
+            nodes: [
+                { id: "n1", tags: ["old"], attributes: { key: "val1" } },
+                { id: "n2" }
+            ],
+            edges: [
+                { id: "e1", source: "n1", target: "n2", tags: ["link"] }
+            ]
+        });
+
+        const diff = createGraphDiff({
+            removedNodes: ["n1"],
+            removedEdges: ["e1"],
+            addedNodes: [
+                { id: "n1", tags: ["new"], attributes: { key: "val2" } },
+                { id: "n3" }
+            ],
+            addedEdges: [
+                { id: "e2", source: "n1", target: "n3" }
+            ]
+        });
+
+        const nextSnap = applyGraphDiff(base, diff);
+        const inverseDiff = invertGraphDiff(base, diff);
+        const inverseOfInverse = invertGraphDiff(nextSnap, inverseDiff);
+
+        expect(graphDiffToJson(inverseOfInverse)).toEqual(graphDiffToJson(diff));
     });
 
     it("Invertibility Property: For any valid diff, an exact inverse diff exists that perfectly restores the original graph state", () => {
