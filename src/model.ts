@@ -677,21 +677,36 @@ export function applyGraphDiff(
  * @throws {GraphModelError} If the diff removes elements that do not exist in the base snapshot.
  */
 export function invertGraphDiff(base: GraphSnapshot, diff: GraphDiff): GraphDiff {
-  const addedNodes = diff.removedNodes.map(id => {
+  // PERF(Bolt): Avoid Array.map() closures and dynamic allocations in hot diffing loops
+  const addedNodes = new Array(diff.removedNodes.length);
+  for (let i = 0; i < diff.removedNodes.length; i++) {
+    const id = diff.removedNodes[i];
     const node = base.nodes.get(id);
     if (!node) throw new GraphModelError(`Cannot invert diff: Node "${id}" not found in base snapshot.`);
-    return node;
-  });
+    addedNodes[i] = node;
+  }
 
-  const addedEdges = diff.removedEdges.map(id => {
+  const addedEdges = new Array(diff.removedEdges.length);
+  for (let i = 0; i < diff.removedEdges.length; i++) {
+    const id = diff.removedEdges[i];
     const edge = base.edges.get(id);
     if (!edge) throw new GraphModelError(`Cannot invert diff: Edge "${id}" not found in base snapshot.`);
-    return edge;
-  });
+    addedEdges[i] = edge;
+  }
+
+  const removedNodes = new Array(diff.addedNodes.length);
+  for (let i = 0; i < diff.addedNodes.length; i++) {
+    removedNodes[i] = diff.addedNodes[i].id;
+  }
+
+  const removedEdges = new Array(diff.addedEdges.length);
+  for (let i = 0; i < diff.addedEdges.length; i++) {
+    removedEdges[i] = diff.addedEdges[i].id;
+  }
 
   return createGraphDiff({
-    removedNodes: diff.addedNodes.map(n => n.id),
-    removedEdges: diff.addedEdges.map(e => e.id),
+    removedNodes,
+    removedEdges,
     addedNodes,
     addedEdges
   });
