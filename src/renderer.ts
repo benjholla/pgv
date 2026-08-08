@@ -3109,8 +3109,8 @@ const tagCache = new Map<string, string>();
 /**
  * Converts a raw semantic tag string into a safe, normalized CSS class name.
  * Results are memoized for rendering performance.
- * @internal
  *
+ * @internal
  * @param tag The semantic tag to normalize.
  * @returns A CSS-safe class name (e.g. `tag-entry`).
  */
