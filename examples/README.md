@@ -52,12 +52,3 @@ From the root of the repository, execute:
 pnpm run dev:backend
 ```
 Alternatively, navigate to `examples/spring-boot-producer` and run `mvn spring-boot:run`.
-
-### 6. Static Tester (`static-tester`)
-A test environment used internally for validating changes and layouts during development.
-
-**To run:**
-From the root of the repository, execute:
-```bash
-pnpm run dev:tester
-```
