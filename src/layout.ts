@@ -1072,7 +1072,7 @@ function computeEdgeRoutingHints(
       continue;
     }
 
-    const outList = edgeOutgoing.get(edge.source) || [];
+    const outList = edgeOutgoing.get(edge.source)!;
     const outIndex = binarySearch(outList, edge.id);
     const outTotal = outList.length;
     let sOffset = 0;
@@ -1081,7 +1081,7 @@ function computeEdgeRoutingHints(
       sOffset = Math.max(-maxOffset, Math.min(maxOffset, sOffset));
     }
 
-    const inList = edgeIncoming.get(edge.target) || [];
+    const inList = edgeIncoming.get(edge.target)!;
     const inIndex = binarySearch(inList, edge.id);
     const inTotal = inList.length;
     let tOffset = 0;
