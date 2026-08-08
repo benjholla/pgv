@@ -1,5 +1,7 @@
 import {
   createGraphSnapshot,
+  applyGraphDiff,
+  type GraphDiff,
   GraphView,
   type GraphSnapshot,
   type GraphSnapshotJson,
@@ -42,6 +44,13 @@ function updateGraph(): void {
   currentGraph = createGraphSnapshot(json);
   currentSchema = json.schema || {};
   updateGraph();
+};
+
+(window as any).__applyGraphDiff = (diffJson: any) => {
+  if (!currentGraph || !graphView) return;
+  const diff = diffJson as GraphDiff;
+  currentGraph = applyGraphDiff(currentGraph, diff);
+  graphView.applyDiff(diff);
 };
 
 // Also load the default sample graph initially to test default rendering

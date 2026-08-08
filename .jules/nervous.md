@@ -12,3 +12,7 @@ During my quality review, I noticed that while the core domain behaviors were he
 6.  **Lifecycle Invariants:** Proved that `GraphView.destroy()` reliably meets its behavioral contract to sever all active DOM node bindings and cleanly reset the host container, preventing memory leaks on repeated unmounting.
 
 By anchoring tests against expected invariants rather than code paths, the test suite is less brittle and acts as a much more rigorous executable specification for any future alternative implementations.
+
+## 2024-05-18 - [Regression Test] Incremental GraphDiff Rendering vs Full Snapshot
+**Gap:** The repository lacked an integration test confirming that applying a series of incremental `GraphDiff` updates to the UI resulted in identical visual layout and edge routing compared to rendering the fully constructed final snapshot from scratch. If FLIP animation state or layout coordinate mappings leaked across diffs, overlapping edges or stale coordinates could drift over time.
+**Action:** Added an E2E visual regression test (`test/e2e/incremental-rendering.spec.ts`) that incrementally applies diffs using an exposed `__applyGraphDiff` method and compares the resulting Playwright screenshot directly to the baseline of a full equivalent snapshot rendering, ensuring the visual math is rigorously commutative.
