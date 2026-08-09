@@ -118,7 +118,7 @@ examples/
   vite-static-history/      Static demo showcasing graph diff history navigation
   vite-dynamic/             Dynamic demo fetching from backend
   spring-boot-producer/     Backend JSON producer demo
-  static-tester/            Internal tool for UI layout testing
+
 ```
 </details>
 
