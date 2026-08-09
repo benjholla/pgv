@@ -2113,7 +2113,9 @@ export class GraphView {
           createSvgElement("path", { "d": "M5 12h14" })
         ])
       );
+      decBtn.setAttribute("aria-disabled", currentVal === 0 ? "true" : "false");
       decBtn.addEventListener("click", () => {
+        if (decBtn.getAttribute("aria-disabled") === "true") return;
         let newVal = currentVal;
         if (currentVal === undefined) {
            newVal = prevVal;
@@ -2156,7 +2158,9 @@ export class GraphView {
           createSvgElement("path", { "d": "M12 5v14m-7-7h14" })
         ])
       );
+      incBtn.setAttribute("aria-disabled", currentVal === undefined ? "true" : "false");
       incBtn.addEventListener("click", () => {
+        if (incBtn.getAttribute("aria-disabled") === "true") return;
         let newVal = currentVal;
         if (currentVal === undefined) {
            newVal = 1;
@@ -2183,7 +2187,9 @@ export class GraphView {
       // let's use an SVG for visual consistency if possible, but text is fine for infinity since it's standard
       infBtn.style.fontSize = "18px";
       infBtn.textContent = "∞";
+      infBtn.setAttribute("aria-disabled", currentVal === undefined ? "true" : "false");
       infBtn.addEventListener("click", () => {
+        if (infBtn.getAttribute("aria-disabled") === "true") return;
         if (type === "Reverse") {
           if (this.#smartReverseSteps !== undefined) {
              this.#previousSmartReverseSteps = this.#smartReverseSteps;
