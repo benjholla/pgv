@@ -1040,6 +1040,7 @@ export function isContainmentEdge(edge: GraphEdge, tags: ReadonlySet<string>): b
  * @param roots An iterable of root node IDs to start the traversal from.
  * @param getChildren A function that returns the children of a given node ID.
  * @param onVisit An optional callback invoked when a node is visited for the first time.
+ * @internal
  * @returns A Set containing all visited node IDs.
  */
 export function traverseDfs(

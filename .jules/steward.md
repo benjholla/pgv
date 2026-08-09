@@ -17,3 +17,7 @@ When a parameter (like `schema` in `GraphView` constructor) appears unused but s
 ## 2026-07-09 - Repository Organization and Clutter Reduction
 - Improved repository hygiene by identifying `examples/static-tester` as an internal test fixture for Playwright and moving it to `test/static-tester`. Updated `package.json` scripts and removed misleading documentation from `examples/README.md`.
 - Fixed a TSDoc formatting issue for the internal utility `tagToClassName` in `src/renderer.ts`, ensuring the `@internal` tag correctly omits it from the public TypeDoc generated API.
+- Re-organized the repository by moving `pgv-exporter` inside the `examples/` directory to adhere to the hierarchical organization principle, updating corresponding configurations in `package.json`.
+- Removed `static-tester` from `README.md` to prevent new users from misinterpreting internal testing tools as examples.
+- Corrected the `tsconfig.json` path that previously pointed to the non-existent `examples/static-tester` instead of `test/static-tester`.
+- Added the `@internal` tag to `traverseDfs` in `src/model.ts` to properly prevent it from appearing in TypeDoc-generated public API reference documentation.
