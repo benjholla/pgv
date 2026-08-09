@@ -1,3 +1,3 @@
-## 2024-05-18 - Missing focus-visible on dropdown buttons
-**Learning:** Smart view dropdown buttons lack keyboard focus outline (`:focus-visible`), hindering accessibility for keyboard navigation.
-**Action:** When adding new interactive components, always ensure `:focus-visible` styles are implemented using standard design variables like `--pgv-selected-color` to maintain accessibility.
+## 2026-08-09 - [Added aria-disabled to Smart View Controls]
+**Learning:** In `@pgv/graph-core`, disabled interactive buttons (like Search, History, or Smart View controls) use `aria-disabled="true"` rather than the native `disabled` attribute to preserve focusability for keyboard navigation and tooltips. Click handlers must explicitly return early if this attribute is set, and CSS must provide corresponding visual feedback (e.g., opacity and cursor changes).
+**Action:** When adding new controls, ensure their disabled states are explicitly modeled with `aria-disabled="true"` and verified in event listeners, instead of relying on native disabled attributes which break accessibility patterns in this repo.
