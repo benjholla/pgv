@@ -812,9 +812,14 @@ function freezeAttributes(
  */
 export function decodeHtmlEntities(text: string): string {
   return text
+    .replace(/&amp;?/gi, '&')
     .replace(/&colon;?/gi, ':')
     .replace(/&tab;?/gi, '\t')
     .replace(/&newline;?/gi, '\n')
+    .replace(/&sol;?/gi, '/')
+    .replace(/&bsol;?/gi, '\\')
+    .replace(/&lpar;?/gi, '(')
+    .replace(/&rpar;?/gi, ')')
     .replace(/&#(\d+);?/g, (match, dec) => {
       return String.fromCharCode(parseInt(dec, 10));
     })
