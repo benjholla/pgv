@@ -3484,6 +3484,7 @@ function renderNodes(
        title.title = title.textContent;
 
        const toggleBtn = document.createElement("button");
+       toggleBtn.type = "button";
        toggleBtn.className = "pgv-node-collapse-toggle";
        toggleBtn.title = `Collapse node ${node.id}`;
        toggleBtn.setAttribute("aria-label", `Collapse node ${node.id}`);
@@ -3530,6 +3531,7 @@ function renderNodes(
       }
 
       const toggleBtn = document.createElement("button");
+      toggleBtn.type = "button";
       toggleBtn.className = "pgv-node-collapse-toggle";
       toggleBtn.title = `Expand node ${node.id}`;
       toggleBtn.setAttribute("aria-label", `Expand node ${node.id}`);
@@ -3549,6 +3551,7 @@ function renderNodes(
         element.textContent = content;
       } else {
         const toggleBtn = document.createElement("button");
+        toggleBtn.type = "button";
         toggleBtn.className = "pgv-node-collapse-toggle";
         toggleBtn.title = `Collapse node ${node.id}`;
         toggleBtn.setAttribute("aria-label", `Collapse node ${node.id}`);
