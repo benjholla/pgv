@@ -2096,8 +2096,9 @@ export class GraphView {
 
       const decBtn = document.createElement("button");
       decBtn.type = "button";
-      decBtn.title = `Decrease ${type} Steps`;
-      decBtn.setAttribute("aria-label", `Decrease ${type} Steps`);
+      const decDisabled = currentVal === 0;
+      decBtn.title = decDisabled ? "Cannot decrease below 0 steps" : `Decrease ${type} Steps`;
+      decBtn.setAttribute("aria-label", decBtn.title);
       decBtn.appendChild(
         createSvgElement("svg", {
           "aria-hidden": "true",
@@ -2113,7 +2114,7 @@ export class GraphView {
           createSvgElement("path", { "d": "M5 12h14" })
         ])
       );
-      decBtn.setAttribute("aria-disabled", currentVal === 0 ? "true" : "false");
+      decBtn.setAttribute("aria-disabled", decDisabled ? "true" : "false");
       decBtn.addEventListener("click", () => {
         if (decBtn.getAttribute("aria-disabled") === "true") return;
         let newVal = currentVal;
@@ -2141,8 +2142,9 @@ export class GraphView {
 
       const incBtn = document.createElement("button");
       incBtn.type = "button";
-      incBtn.title = `Increase ${type} Steps`;
-      incBtn.setAttribute("aria-label", `Increase ${type} Steps`);
+      const incDisabled = currentVal === undefined;
+      incBtn.title = incDisabled ? "Cannot increase, already transitively walking" : `Increase ${type} Steps`;
+      incBtn.setAttribute("aria-label", incBtn.title);
       incBtn.appendChild(
         createSvgElement("svg", {
           "aria-hidden": "true",
@@ -2158,7 +2160,7 @@ export class GraphView {
           createSvgElement("path", { "d": "M12 5v14m-7-7h14" })
         ])
       );
-      incBtn.setAttribute("aria-disabled", currentVal === undefined ? "true" : "false");
+      incBtn.setAttribute("aria-disabled", incDisabled ? "true" : "false");
       incBtn.addEventListener("click", () => {
         if (incBtn.getAttribute("aria-disabled") === "true") return;
         let newVal = currentVal;
@@ -2181,13 +2183,14 @@ export class GraphView {
 
       const infBtn = document.createElement("button");
       infBtn.type = "button";
-      infBtn.title = `Transitively Walk ${type}`;
-      infBtn.setAttribute("aria-label", `Transitively Walk ${type}`);
+      const infDisabled = currentVal === undefined;
+      infBtn.title = infDisabled ? "Already transitively walking" : `Transitively Walk ${type}`;
+      infBtn.setAttribute("aria-label", infBtn.title);
       // using infinity symbol as text but styled as a button is acceptable, or we can use SVG
       // let's use an SVG for visual consistency if possible, but text is fine for infinity since it's standard
       infBtn.style.fontSize = "18px";
       infBtn.textContent = "∞";
-      infBtn.setAttribute("aria-disabled", currentVal === undefined ? "true" : "false");
+      infBtn.setAttribute("aria-disabled", infDisabled ? "true" : "false");
       infBtn.addEventListener("click", () => {
         if (infBtn.getAttribute("aria-disabled") === "true") return;
         if (type === "Reverse") {
@@ -2213,6 +2216,7 @@ export class GraphView {
         const shiftUpBtnGroup = document.createElement("div");
         shiftUpBtnGroup.className = "pgv-control-group";
 
+        const shiftUpDisabled = this.#smartForwardSteps === 0;
         const shiftUpBtn = this.#createControlButton({
           icon: "M18 15l-6-6-6 6", // Chevron up
           action: () => {
@@ -2232,14 +2236,16 @@ export class GraphView {
                this.#render();
             }
           },
-          label: "Shift up (decrement forward, increment reverse)",
+          label: shiftUpDisabled ? "Cannot shift up: forward steps already 0" : "Shift up (decrement forward, increment reverse)",
         });
+        shiftUpBtn.setAttribute("aria-disabled", shiftUpDisabled ? "true" : "false");
         shiftUpBtnGroup.appendChild(shiftUpBtn);
         row.appendChild(shiftUpBtnGroup);
       } else {
         const shiftDownBtnGroup = document.createElement("div");
         shiftDownBtnGroup.className = "pgv-control-group";
 
+        const shiftDownDisabled = this.#smartReverseSteps === 0;
         const shiftDownBtn = this.#createControlButton({
           icon: "M6 9l6 6 6-6", // Chevron down
           action: () => {
@@ -2259,8 +2265,9 @@ export class GraphView {
                this.#render();
             }
           },
-          label: "Shift down (decrement reverse, increment forward)",
+          label: shiftDownDisabled ? "Cannot shift down: reverse steps already 0" : "Shift down (decrement reverse, increment forward)",
         });
+        shiftDownBtn.setAttribute("aria-disabled", shiftDownDisabled ? "true" : "false");
         shiftDownBtnGroup.appendChild(shiftDownBtn);
         row.appendChild(shiftDownBtnGroup);
       }
