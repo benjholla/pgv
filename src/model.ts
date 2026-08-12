@@ -813,6 +813,10 @@ function freezeAttributes(
 export function decodeHtmlEntities(text: string): string {
   return text
     .replace(/&amp;?/gi, '&')
+    .replace(/&quot;?/gi, '"')
+    .replace(/&apos;?/gi, "'")
+    .replace(/&lt;?/gi, '<')
+    .replace(/&gt;?/gi, '>')
     .replace(/&colon;?/gi, ':')
     .replace(/&tab;?/gi, '\t')
     .replace(/&newline;?/gi, '\n')
