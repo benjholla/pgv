@@ -420,7 +420,7 @@ export function routeEdgeOrthogonal(
   const physicalSpace = targetPt.y - sourcePt.y;
   let maxOffset = Infinity;
   if (physicalSpace > 0) {
-    maxOffset = Math.max(minOffset, (physicalSpace / 2) - 4);
+    maxOffset = Math.max(0, (physicalSpace - 10) / 2);
   }
 
   const maxRequiredSource = minOffset + (outTotal - 1) * spacing;
