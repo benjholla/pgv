@@ -432,11 +432,14 @@ export function routeEdgeOrthogonal(
     sourceVerticalOffset = Math.min(sourceVerticalOffset, maxOffset);
   }
 
-  const maxRequiredTarget = minOffset + (inTotal - 1) * spacing;
-  let targetVerticalOffset = minOffset + inIndex * spacing;
-  if (maxRequiredTarget > maxOffset && inTotal > 1) {
+  const effectiveInTotal = Math.max(inTotal, outTotal);
+  const effectiveInIndex = outTotal > inTotal ? outIndex : inIndex;
+
+  const maxRequiredTarget = minOffset + (effectiveInTotal - 1) * spacing;
+  let targetVerticalOffset = minOffset + effectiveInIndex * spacing;
+  if (maxRequiredTarget > maxOffset && effectiveInTotal > 1) {
     const availableStagger = Math.max(0, maxOffset - minOffset);
-    targetVerticalOffset = minOffset + inIndex * (availableStagger / (inTotal - 1));
+    targetVerticalOffset = minOffset + effectiveInIndex * (availableStagger / (effectiveInTotal - 1));
   } else {
     targetVerticalOffset = Math.min(targetVerticalOffset, maxOffset);
   }
