@@ -427,7 +427,8 @@ export function routeEdgeOrthogonal(
   let sourceVerticalOffset = minOffset + outIndex * spacing;
   if (maxRequiredSource > maxOffset && outTotal > 1) {
     const availableStagger = Math.max(0, maxOffset - minOffset);
-    sourceVerticalOffset = minOffset + outIndex * (availableStagger / (outTotal - 1));
+    const stagger = Math.max(10, availableStagger / (outTotal - 1));
+    sourceVerticalOffset = minOffset + outIndex * stagger;
   } else {
     sourceVerticalOffset = Math.min(sourceVerticalOffset, maxOffset);
   }
@@ -439,7 +440,8 @@ export function routeEdgeOrthogonal(
   let targetVerticalOffset = minOffset + effectiveInIndex * spacing;
   if (maxRequiredTarget > maxOffset && effectiveInTotal > 1) {
     const availableStagger = Math.max(0, maxOffset - minOffset);
-    targetVerticalOffset = minOffset + effectiveInIndex * (availableStagger / (effectiveInTotal - 1));
+    const stagger = Math.max(10, availableStagger / (effectiveInTotal - 1));
+    targetVerticalOffset = minOffset + effectiveInIndex * stagger;
   } else {
     targetVerticalOffset = Math.min(targetVerticalOffset, maxOffset);
   }
