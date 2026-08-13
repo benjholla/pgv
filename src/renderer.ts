@@ -1757,7 +1757,10 @@ export class GraphView {
       const span = document.createElement("span");
       span.textContent = formatLabels[this.#downloadFormat];
       downloadBtn.appendChild(span);
-      downloadBtn.addEventListener("click", () => this.#downloadGraph());
+      downloadBtn.addEventListener("click", () => {
+        if (downloadBtn.getAttribute("aria-disabled") === "true") return;
+        this.#downloadGraph();
+      });
       downloadGroup.appendChild(downloadBtn);
 
       const dropdownBtn = document.createElement("button");
@@ -1832,6 +1835,7 @@ export class GraphView {
       downloadGroup.appendChild(dropdownMenu);
 
       dropdownBtn.addEventListener("click", (e) => {
+        if (dropdownBtn.getAttribute("aria-disabled") === "true") return;
         e.stopPropagation();
         this.#downloadDropdownOpen = !this.#downloadDropdownOpen;
         toggleDropdownState(this.#downloadDropdownOpen, dropdownBtn, dropdownMenu);
