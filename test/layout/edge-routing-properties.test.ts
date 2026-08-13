@@ -153,4 +153,22 @@ describe("Edge Routing Properties", () => {
 
     expect(path1).toEqual(path2);
   });
+
+  it("Disconnect Edge Case: Layout safely handles disconnected graph components", () => {
+    const json: GraphSnapshotJson = {
+      nodes: [{ id: "A" }, { id: "B" }, { id: "C" }, { id: "D" }],
+      edges: [
+        { id: "e1", source: "A", target: "B" },
+        { id: "e2", source: "C", target: "D" }
+      ]
+    };
+
+    const graph = createGraphSnapshot(json);
+    const layout = verticalLayout(graph);
+
+    expect(layout.positions.has("A")).toBe(true);
+    expect(layout.positions.has("B")).toBe(true);
+    expect(layout.positions.has("C")).toBe(true);
+    expect(layout.positions.has("D")).toBe(true);
+  });
 });
