@@ -31,6 +31,7 @@
     "build": "pnpm run typecheck && vite build && tsc -p tsconfig.build.json && pnpm run copy:css",
     "build:demo": "vite build --config examples/vite-blog/vite.config.ts",
     "build:dynamic": "vite build --config examples/vite-dynamic/vite.config.ts",
+    "build:jupyter-notebook-lib": "vite build --config jupyter-notebook.config.ts",
     "copy:css": "node -e \"fs=require('node:fs');fs.mkdirSync('dist',{recursive:true});fs.copyFileSync('src/style.css','dist/style.css')\"",
     "preview:demo": "vite preview --config examples/vite-blog/vite.config.ts --host 127.0.0.1",
     "preview:dynamic": "vite preview --config examples/vite-dynamic/vite.config.ts --host 127.0.0.1",
