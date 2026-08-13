@@ -1,3 +1,5 @@
+import "./style.css";
+
 /**
  * @packageDocumentation
  * Frontend-only graph visualization primitives for immutable attributed program-analysis graphs.
