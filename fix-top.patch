@@ -1,0 +1,22 @@
+--- src/layout.ts
++++ src/layout.ts
+@@ -1210,10 +1210,16 @@
+     }
+
+     if (minParentX !== Infinity && minParentX < config.margin) {
+-        finalWidth += (config.margin - minParentX);
++        const shiftX = config.margin - minParentX;
++        finalWidth += shiftX;
++        for (const [id, p] of positions.entries()) {
++            positions.set(id, { x: p.x + shiftX, y: p.y });
++        }
+     }
+     if (minParentY !== Infinity && minParentY < config.margin) {
+-        finalHeight += (config.margin - minParentY);
++        const shiftY = config.margin - minParentY;
++        finalHeight += shiftY;
++        for (const [id, p] of positions.entries()) {
++            positions.set(id, { x: p.x, y: p.y + shiftY });
++        }
+     }
+   }
