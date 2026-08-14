@@ -275,12 +275,12 @@ export function verticalLayout(
 
   const edgeRouting = computeEdgeRoutingHints(graph, edgeOutgoing, edgeIncoming, config);
 
-  const hierarchy = computeCompoundNodeBounds(graph, schema, positions, nodeSizes, config);
+  const { hierarchy, width: finalWidth, height: finalHeight } = computeCompoundNodeBounds(graph, schema, positions, nodeSizes, width, height, config);
 
   return Object.freeze({
     positions,
-    width,
-    height,
+    width: finalWidth,
+    height: finalHeight,
     nodeSize: Object.freeze({
       width: config.nodeWidth,
       height: config.nodeHeight,
@@ -1108,6 +1108,8 @@ function computeCompoundNodeBounds(
   schema: GraphSchema | undefined,
   positions: Map<string, Point>,
   nodeSizes: Map<string, Size>,
+  baseWidth: number,
+  baseHeight: number,
   config: Required<VerticalLayoutOptions>
 ) {
   const layoutHierarchy = new Map<string, { parent: string | null; children: string[] }>();
@@ -1116,6 +1118,9 @@ function computeCompoundNodeBounds(
   }
 
   let hasHierarchy = false;
+  let finalWidth = baseWidth;
+  let finalHeight = baseHeight;
+
   if (schema?.containment) {
     hasHierarchy = true;
 
@@ -1183,9 +1188,19 @@ function computeCompoundNodeBounds(
     for (const id of graph.nodes.keys()) {
        if (layoutHierarchy.get(id)?.parent === null) {
           calcSize(id);
+          const p = positions.get(id);
+          const s = nodeSizes.get(id);
+          if (p && s) {
+            if (p.x + s.width + config.margin > finalWidth) {
+              finalWidth = p.x + s.width + config.margin;
+            }
+            if (p.y + s.height + config.margin > finalHeight) {
+              finalHeight = p.y + s.height + config.margin;
+            }
+          }
        }
     }
   }
 
-  return hasHierarchy ? layoutHierarchy : undefined;
+  return { hierarchy: hasHierarchy ? layoutHierarchy : undefined, width: finalWidth, height: finalHeight };
 }
