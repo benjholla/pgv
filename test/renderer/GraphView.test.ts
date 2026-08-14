@@ -146,8 +146,8 @@ describe('GraphView - Advanced Interaction Tests', () => {
     const dropdownBtn = container.querySelector('.pgv-search-dropdown-btn') as HTMLButtonElement;
     dropdownBtn.click();
 
-    // Document click should close
-    document.dispatchEvent(new MouseEvent('click'));
+    // Container click outside menu should close
+    container.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(container.querySelector('.pgv-dropdown-menu')?.classList.contains('open')).toBeFalsy();
 
     dropdownBtn.click();

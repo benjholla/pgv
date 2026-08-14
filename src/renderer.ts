@@ -300,6 +300,8 @@ export class GraphView {
    */
   constructor(container: HTMLElement, schema: GraphSchema, options: GraphViewOptions = {}) {
     this.container = container;
+    this.container.tabIndex = 0;
+    this.container.style.outline = "none";
     this.#schema = schema;
     this.#options = options;
     this.#currentTheme = options.theme ?? (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
@@ -1022,7 +1024,8 @@ export class GraphView {
     btn.setAttribute("aria-pressed", active ? "true" : "false");
     btn.appendChild(iconNode);
     // We remove the inline style for width/height so CSS can manage the sizes and media queries
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
       onClick();
       btn.classList.toggle("active");
       btn.setAttribute("aria-pressed", btn.classList.contains("active") ? "true" : "false");
@@ -1092,12 +1095,13 @@ export class GraphView {
     updateClearBtn();
 
     input.addEventListener("input", (e) => {
+      e.stopPropagation();
       onInput((e.target as HTMLInputElement).value);
       updateClearBtn();
     });
-    input.addEventListener("keydown", onEnter);
+    input.addEventListener("keydown", (e) => { e.stopPropagation(); onEnter(e); });
 
-    clearBtn.addEventListener("click", () => {
+    clearBtn.addEventListener("click", (e) => { e.stopPropagation();
       input.value = "";
       updateClearBtn();
       onClear();
@@ -1257,7 +1261,8 @@ export class GraphView {
         createSvgElement("line", { "x1": "21", "y1": "21", "x2": "16.65", "y2": "16.65" })
       ])
     );
-    searchBtn.addEventListener("click", () => {
+    searchBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
       if (searchBtn.getAttribute("aria-disabled") === "true") return;
       this.#executeSearch();
     });
@@ -1409,7 +1414,8 @@ export class GraphView {
     const actionsContainer = document.createElement("div");
     actionsContainer.className = "pgv-search-actions";
 
-    cycleBtn.addEventListener("click", () => {
+    cycleBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
       if (cycleBtn.getAttribute("aria-disabled") === "true") return;
       if (this.#searchResults.length > 0) {
         this.#cycleSearch();
@@ -1454,14 +1460,14 @@ export class GraphView {
       });
     };
 
-    closeBtn.addEventListener("click", handleClose);
+    closeBtn.addEventListener("click", (e) => { e.stopPropagation(); handleClose(e); });
     actionsContainer.appendChild(closeBtn);
     bar.appendChild(actionsContainer);
 
     bar.addEventListener("keydown", (e) => {
+      e.stopPropagation();
       if (e.key === "Escape") {
         e.preventDefault();
-        e.stopPropagation();
         handleClose();
       }
     });
@@ -1757,7 +1763,8 @@ export class GraphView {
       const span = document.createElement("span");
       span.textContent = formatLabels[this.#downloadFormat];
       downloadBtn.appendChild(span);
-      downloadBtn.addEventListener("click", () => {
+      downloadBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
         if (downloadBtn.getAttribute("aria-disabled") === "true") return;
         this.#downloadGraph();
       });
@@ -2119,7 +2126,8 @@ export class GraphView {
         ])
       );
       decBtn.setAttribute("aria-disabled", decDisabled ? "true" : "false");
-      decBtn.addEventListener("click", () => {
+      decBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
         if (decBtn.getAttribute("aria-disabled") === "true") return;
         let newVal = currentVal;
         if (currentVal === undefined) {
@@ -2165,7 +2173,8 @@ export class GraphView {
         ])
       );
       incBtn.setAttribute("aria-disabled", incDisabled ? "true" : "false");
-      incBtn.addEventListener("click", () => {
+      incBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
         if (incBtn.getAttribute("aria-disabled") === "true") return;
         let newVal = currentVal;
         if (currentVal === undefined) {
@@ -2195,7 +2204,8 @@ export class GraphView {
       infBtn.style.fontSize = "18px";
       infBtn.textContent = "∞";
       infBtn.setAttribute("aria-disabled", infDisabled ? "true" : "false");
-      infBtn.addEventListener("click", () => {
+      infBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
         if (infBtn.getAttribute("aria-disabled") === "true") return;
         if (type === "Reverse") {
           if (this.#smartReverseSteps !== undefined) {
@@ -2461,8 +2471,8 @@ export class GraphView {
 
     const handlePointerDown = (e: PointerEvent) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
-      isDraggingMinimap = true;
       minimap.setPointerCapture(e.pointerId);
+      isDraggingMinimap = true;
       mapToViewport(e.clientX, e.clientY);
       e.stopPropagation(); // prevent pan Zoom events
     };
@@ -2474,6 +2484,7 @@ export class GraphView {
     };
 
     const handlePointerUp = (e: PointerEvent) => {
+      e.stopPropagation();
       isDraggingMinimap = false;
       minimap.releasePointerCapture(e.pointerId);
     };
@@ -2955,7 +2966,10 @@ export class GraphView {
     let startY = 0;
 
     viewport.addEventListener("pointerdown", (e) => {
+      e.stopPropagation();
       if (e.pointerType === "mouse" && e.button !== 0) return;
+
+      viewport.setPointerCapture(e.pointerId);
 
       if (activePointers.size === 0) {
         this.#isDragging = false;
@@ -2966,7 +2980,6 @@ export class GraphView {
       activePointers.set(e.pointerId, e);
 
       if (activePointers.size === 2) {
-        viewport.setPointerCapture(e.pointerId);
         const iter = activePointers.values();
         const p1 = iter.next().value!;
         const p2 = iter.next().value!;
@@ -2977,6 +2990,7 @@ export class GraphView {
     }, { signal });
 
     viewport.addEventListener("pointermove", (e) => {
+      e.stopPropagation();
       if (!activePointers.has(e.pointerId)) return;
 
       const lastPointer = activePointers.get(e.pointerId)!;
@@ -2985,7 +2999,6 @@ export class GraphView {
       if (activePointers.size === 1) {
         if (!this.#isDragging && Math.hypot(e.clientX - startX, e.clientY - startY) > 5) {
           this.#isDragging = true;
-          viewport.setPointerCapture(e.pointerId);
         }
         if (this.#isDragging) {
           const dx = e.clientX - lastPointer.clientX;
@@ -3015,6 +3028,7 @@ export class GraphView {
     }, { signal });
 
     const handlePointerUp = (e: PointerEvent) => {
+      e.stopPropagation();
       activePointers.delete(e.pointerId);
 
       if (activePointers.size < 2) {
@@ -3039,6 +3053,7 @@ export class GraphView {
     viewport.addEventListener("pointercancel", handlePointerUp, { signal });
 
     viewport.addEventListener("wheel", (e) => {
+      e.stopPropagation();
       e.preventDefault();
       const delta = e.deltaY > 0 ? -0.1 : 0.1;
       const rect = viewport.getBoundingClientRect();
@@ -3073,6 +3088,7 @@ export class GraphView {
     };
 
     element.addEventListener("click", (event) => {
+      event.stopPropagation();
       if (this.#isDragging) {
         return;
       }
@@ -3080,6 +3096,7 @@ export class GraphView {
     });
 
     element.addEventListener("keydown", (event) => {
+      event.stopPropagation();
       if (event.key === "Enter" || event.key === " ") {
         const target = event.target as HTMLElement;
         if (target.closest(".pgv-node-collapse-toggle")) {
@@ -3191,6 +3208,7 @@ function buildDropdownMenu<T extends string>(options: {
     option.textContent = optDef.label;
 
     option.addEventListener("keydown", (e) => {
+      e.stopPropagation();
       if (e.key === "Escape") {
         options.onClose();
         options.dropdownBtn.focus();
@@ -3199,7 +3217,8 @@ function buildDropdownMenu<T extends string>(options: {
       handleDropdownKeyboardNavigation(e, option, dropdownMenu);
     });
 
-    option.addEventListener("click", () => {
+    option.addEventListener("click", (e) => {
+      e.stopPropagation();
       options.onSelect(optDef.value);
     });
 
@@ -3254,15 +3273,23 @@ function setupDropdownCloseEvents(
   abortController: AbortController
 ) {
   container.addEventListener("keydown", (e) => {
+    e.stopPropagation();
     if (getIsOpen() && e.key === "Escape") {
-      e.stopPropagation();
       close();
       btn.focus();
     }
   }, { signal: abortController.signal });
 
-  document.addEventListener("click", (e) => {
-    if (getIsOpen() && e.target instanceof Node && !container.contains(e.target)) {
+  container.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (getIsOpen() && e.target instanceof Node && !menu.contains(e.target) && !btn.contains(e.target)) {
+      close();
+    }
+  }, { signal: abortController.signal });
+
+  container.addEventListener("focusout", (e) => {
+    e.stopPropagation();
+    if (getIsOpen() && (!e.relatedTarget || !container.contains(e.relatedTarget as Node))) {
       close();
     }
   }, { signal: abortController.signal });
