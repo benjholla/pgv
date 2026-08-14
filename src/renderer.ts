@@ -3463,6 +3463,7 @@ function renderNodes(
 
     element.className = className;
     element.dataset.nodeId = node.id;
+    element.id = `pgv-node-${encodeURIComponent(node.id)}`;
     element.setAttribute("tabindex", "0");
     element.setAttribute("role", "button");
     element.setAttribute("aria-pressed", options.selection?.nodes.has(node.id) ? "true" : "false");
@@ -3500,6 +3501,7 @@ function renderNodes(
        toggleBtn.title = `Collapse node ${node.id}`;
        toggleBtn.setAttribute("aria-label", `Collapse node ${node.id}`);
        toggleBtn.setAttribute("aria-expanded", "true");
+       toggleBtn.setAttribute("aria-controls", element.id);
        toggleBtn.textContent = "[-]";
        toggleBtn.addEventListener("click", (e) => {
          e.stopPropagation();
@@ -3547,6 +3549,7 @@ function renderNodes(
       toggleBtn.title = `Expand node ${node.id}`;
       toggleBtn.setAttribute("aria-label", `Expand node ${node.id}`);
       toggleBtn.setAttribute("aria-expanded", "false");
+      toggleBtn.setAttribute("aria-controls", element.id);
       toggleBtn.textContent = "[+]";
       toggleBtn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -3567,6 +3570,7 @@ function renderNodes(
         toggleBtn.title = `Collapse node ${node.id}`;
         toggleBtn.setAttribute("aria-label", `Collapse node ${node.id}`);
         toggleBtn.setAttribute("aria-expanded", "true");
+        toggleBtn.setAttribute("aria-controls", element.id);
         toggleBtn.textContent = "[-]";
         toggleBtn.addEventListener("click", (e) => {
           e.stopPropagation();

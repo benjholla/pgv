@@ -12,3 +12,6 @@
 ## 2026-08-12 - Prevent duplicate clicks on disabled download controls
 **Learning:** When using `aria-disabled="true"` to signify a disabled state (to preserve keyboard focusability for accessibility), it is critical to explicitly check this attribute in the click event handlers and return early (`if (btn.getAttribute("aria-disabled") === "true") return;`). Otherwise, users can spam-click buttons during asynchronous operations, leading to overlapping backend logic or incorrect UI state updates.
 **Action:** Always pair `aria-disabled="true"` toggle logic with an early-return check in the corresponding `addEventListener("click", ...)` block for custom interactive components.
+## 2024-10-24 - Accessibility improvements for compound node toggles
+**Learning:** Adding `aria-controls` explicitly linked to a generated node ID allows screen readers to natively understand the relationship between a custom programmatic expand/collapse toggle and its associated bounding container. The absence of this creates ambiguity about what the toggle actually expands or collapses in a complex graph visualization DOM structure.
+**Action:** When implementing custom expand/collapse buttons in a generated DOM, ensure the associated container is assigned a unique, safely-encoded ID and set `aria-controls` on the button to reference it.
