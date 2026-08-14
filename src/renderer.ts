@@ -1460,7 +1460,7 @@ export class GraphView {
       });
     };
 
-    closeBtn.addEventListener("click", (e) => { e.stopPropagation(); handleClose(e); });
+    closeBtn.addEventListener("click", (e) => { e.stopPropagation(); handleClose(); });
     actionsContainer.appendChild(closeBtn);
     bar.appendChild(actionsContainer);
 
