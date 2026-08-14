@@ -1,201 +1,130 @@
 {
   "nodes": [
     {
-      "id": "entry",
+      "id": "23085",
       "tags": [
-        "XCSG.ControlFlow_Node",
-        "XCSG.controlFlowRoot"
+        "XCSG.Language.C",
+        "XCSG.ModelElement",
+        "##index",
+        "XCSG.Node",
+        "XCSG.Project"
       ],
       "attributes": {
-        "XCSG.name": "Entry"
+        "XCSG.id": "[C_PROJECT: Xinu]",
+        "XCSG.name": "Xinu"
       }
     },
     {
-      "id": "init",
+      "id": "9306",
       "tags": [
-        "XCSG.ControlFlow_Node"
+        "XCSG.Language.C",
+        "XCSG.ModelElement",
+        "##index",
+        "XCSG.Node",
+        "XCSG.C.TranslationUnit"
       ],
       "attributes": {
-        "line": {
-          "integer": 3
-        },
-        "XCSG.name": "Initialize i = 0"
+        "XCSG.id": "[C_PROJECT: Xinu/Xinu/sys/create.c]",
+        "XCSG.name": "create.c",
+        "XCSG.sourceCorrespondence": "[f:/Xinu/sys/create.c,l:1-84,o:0+2437]"
       }
     },
     {
-      "id": "condition",
+      "id": "9329",
       "tags": [
-        "XCSG.ControlFlow_Node",
-        "XCSG.Loop"
+        "XCSG.Language.C",
+        "XCSG.C.Provisional.internalLinkage",
+        "XCSG.Function",
+        "XCSG.ModelElement",
+        "##index",
+        "XCSG.Node"
       ],
       "attributes": {
-        "line": {
-          "integer": 4
-        },
-        "XCSG.name": "i < n?"
+        "XCSG.id": "[C_PROJECT: Xinu/Xinu/sys/create.c#newpid()]",
+        "bodySC": "[f:/Xinu/sys/create.c,l:72-84,o:2186+250]",
+        "XCSG.name": "newpid",
+        "XCSG.sourceCorrespondence": "[f:/Xinu/sys/create.c,l:72,o:2192+6]",
+        "typeId": "F(newpid){S{signed int}, VOID}"
       }
     },
     {
-      "id": "body",
+      "id": "9333",
       "tags": [
-        "XCSG.ControlFlow_Node"
+        "XCSG.Language.C",
+        "XCSG.C.Provisional.externalLinkage",
+        "XCSG.Function",
+        "XCSG.ModelElement",
+        "##index",
+        "XCSG.Node"
       ],
       "attributes": {
-        "line": {
-          "integer": 5
-        },
-        "XCSG.name": "sum += values[i]"
-      }
-    },
-    {
-      "id": "increment",
-      "tags": [
-        "XCSG.ControlFlow_Node"
-      ],
-      "attributes": {
-        "line": {
-          "integer": 6
-        },
-        "XCSG.name": "i++"
-      }
-    },
-    {
-      "id": "exit",
-      "tags": [
-        "XCSG.ControlFlow_Node",
-        "XCSG.controlFlowExit"
-      ],
-      "attributes": {
-        "line": {
-          "integer": 8
-        },
-        "XCSG.name": "Return sum"
-      }
-    },
-    {
-      "id": "Foo",
-      "tags": [
-        "XCSG.Function"
-      ],
-      "attributes": {
-        "XCSG.name": "Foo"
+        "XCSG.id": "[C_PROJECT: Xinu/Xinu/sys/create.c#create(int*, int, int, char*, int, int)]",
+        "##C_GlobalDefinition_Id": "C/XCSG.Function/create",
+        "bodySC": "[f:/Xinu/sys/create.c,l:16-66,o:356+1628]",
+        "XCSG.name": "create",
+        "XCSG.sourceCorrespondence": "[f:/Xinu/sys/create.c,l:16,o:364+6]",
+        "typeId": "F(create){S{signed int}, [P{S{signed int}}, S{signed int}, S{signed int}, P{S{char}}, S{signed int}, S{signed int}]}"
       }
     }
   ],
   "edges": [
     {
-      "id": "e-entry-init",
-      "source": "entry",
-      "target": "init",
+      "id": "14413",
+      "source": "23085",
+      "target": "9306",
       "tags": [
-        "XCSG.ControlFlow_Edge"
+        "XCSG.Language.C",
+        "XCSG.ModelElement",
+        "XCSG.Edge",
+        "##index",
+        "XCSG.Contains"
       ],
       "attributes": {}
     },
     {
-      "id": "e-init-condition",
-      "source": "init",
-      "target": "condition",
+      "id": "14447",
+      "source": "9306",
+      "target": "9329",
       "tags": [
-        "XCSG.ControlFlow_Edge"
+        "XCSG.Language.C",
+        "XCSG.ModelElement",
+        "XCSG.Edge",
+        "##index",
+        "XCSG.Contains"
       ],
       "attributes": {}
     },
     {
-      "id": "e-condition-body",
-      "source": "condition",
-      "target": "body",
+      "id": "14473",
+      "source": "9306",
+      "target": "9333",
       "tags": [
-        "XCSG.ControlFlow_Edge"
+        "XCSG.Language.C",
+        "XCSG.ModelElement",
+        "XCSG.Edge",
+        "##index",
+        "XCSG.Contains"
+      ],
+      "attributes": {}
+    },
+    {
+      "id": "14477",
+      "source": "9333",
+      "target": "9329",
+      "tags": [
+        "XCSG.Language.C",
+        "XCSG.Call",
+        "XCSG.ModelElement",
+        "XCSG.Edge",
+        "##index"
       ],
       "attributes": {
-        "XCSG.conditionValue": true
+        "XCSG.sourceCorrespondence": "[[f:/Xinu/sys/create.c,l:35,o:1055+6]]"
       }
-    },
-    {
-      "id": "e-body-increment",
-      "source": "body",
-      "target": "increment",
-      "tags": [
-        "XCSG.ControlFlow_Edge"
-      ],
-      "attributes": {}
-    },
-    {
-      "id": "e-increment-condition",
-      "source": "increment",
-      "target": "condition",
-      "tags": [
-        "XCSG.ControlFlow_Edge"
-      ],
-      "attributes": {
-        "XCSG.name": "next"
-      }
-    },
-    {
-      "id": "e-condition-exit",
-      "source": "condition",
-      "target": "exit",
-      "tags": [
-        "XCSG.ControlFlow_Edge"
-      ],
-      "attributes": {
-        "XCSG.conditionValue": false
-      }
-    },
-    {
-      "id": "e-Foo-entry-contains",
-      "source": "Foo",
-      "target": "entry",
-      "tags": [
-        "XCSG.Contains"
-      ],
-      "attributes": {}
-    },
-    {
-      "id": "e-Foo-init-contains",
-      "source": "Foo",
-      "target": "init",
-      "tags": [
-        "XCSG.Contains"
-      ],
-      "attributes": {}
-    },
-    {
-      "id": "e-Foo-condition-contains",
-      "source": "Foo",
-      "target": "condition",
-      "tags": [
-        "XCSG.Contains"
-      ],
-      "attributes": {}
-    },
-    {
-      "id": "e-Foo-body-contains",
-      "source": "Foo",
-      "target": "body",
-      "tags": [
-        "XCSG.Contains"
-      ],
-      "attributes": {}
-    },
-    {
-      "id": "e-Foo-increment-contains",
-      "source": "Foo",
-      "target": "increment",
-      "tags": [
-        "XCSG.Contains"
-      ],
-      "attributes": {}
-    },
-    {
-      "id": "e-Foo-exit-contains",
-      "source": "Foo",
-      "target": "exit",
-      "tags": [
-        "XCSG.Contains"
-      ],
-      "attributes": {}
     }
-  ]
+  ],
+  "selection": {
+    "nodes": [],
+    "edges": []
+  }
 }
