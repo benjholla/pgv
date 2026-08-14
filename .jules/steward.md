@@ -21,3 +21,4 @@ When a parameter (like `schema` in `GraphView` constructor) appears unused but s
 - Removed `static-tester` from `README.md` to prevent new users from misinterpreting internal testing tools as examples.
 - Corrected the `tsconfig.json` path that previously pointed to the non-existent `examples/static-tester` instead of `test/static-tester`.
 - Added the `@internal` tag to `traverseDfs` in `src/model.ts` to properly prevent it from appearing in TypeDoc-generated public API reference documentation.
+- Removed the duplicate `@internal` tag from `traverseDfs` in `src/model.ts` to ensure TypeDoc correctly parses the documentation block and correctly hides it from public API documentation without errors.
