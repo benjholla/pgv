@@ -809,6 +809,8 @@ export function decodeHtmlEntities(text: string): string {
     .replace(/&lt;?/gi, '<')
     .replace(/&gt;?/gi, '>')
     .replace(/&colon;?/gi, ':')
+    .replace(/&semi;?/gi, ';')
+    .replace(/&comma;?/gi, ',')
     .replace(/&tab;?/gi, '\t')
     .replace(/&newline;?/gi, '\n')
     .replace(/&sol;?/gi, '/')
