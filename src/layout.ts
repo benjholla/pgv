@@ -432,8 +432,9 @@ export function routeEdgeOrthogonal(
     sourceVerticalOffset = Math.min(sourceVerticalOffset, maxOffset);
   }
 
-  const maxRequiredTarget = minOffset + (inTotal - 1) * spacing;
-  let targetVerticalOffset = minOffset + inIndex * spacing;
+  const verticalSpacing = 16;
+  const maxRequiredTarget = minOffset + (inTotal - 1) * verticalSpacing;
+  let targetVerticalOffset = minOffset + inIndex * verticalSpacing;
   if (maxRequiredTarget > maxOffset && inTotal > 1) {
     const availableStagger = Math.max(0, maxOffset - minOffset);
     targetVerticalOffset = minOffset + inIndex * (availableStagger / (inTotal - 1));
@@ -453,6 +454,10 @@ export function routeEdgeOrthogonal(
 
     xSet.add(pos.x + size.width / 2);
     ySet.add(pos.y + size.height / 2);
+
+    // Add grid lines for the target stagger offset to ensure paths can drop vertically perfectly aligned
+    xSet.add(targetPt.x + targetVerticalOffset);
+    xSet.add(targetPt.x - targetVerticalOffset);
   }
 
   xSet.add(-margin);
@@ -592,6 +597,14 @@ export function routeEdgeOrthogonal(
           if (y1 !== allowedY1 && y1 !== allowedY2) {
             penalty += 5000;
           } else {
+            // Add penalty if horizontal travel is along another edge's preferred Y coordinate
+            // to ensure edges don't accidentally travel horizontally exactly where another edge is traveling.
+            if (y1 === allowedY1 && outTotal > 1 && y1 !== sourcePt.y + sourceVerticalOffset) {
+              penalty += 500;
+            }
+            if (y1 === allowedY2 && inTotal > 1 && y1 !== targetPt.y - targetVerticalOffset) {
+              penalty += 500;
+            }
             if (outIndex > inIndex && y1 === allowedY2) penalty += 10;
             else if (inIndex > outIndex && y1 === allowedY1) penalty += 10;
             else if (outIndex === inIndex && y1 === allowedY2) penalty += 10;
