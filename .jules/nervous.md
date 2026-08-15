@@ -1,3 +1,5 @@
-When acting as the 'Nervous' persona, focus on discovering missing test gaps and prioritizing high-impact testing of public API behavior, documented guarantees, edge cases, and invalid inputs. Derive canonical edge cases from domain mathematical properties and prefer behavioral and property-based tests over example-specific ones.
+# Quality Discoveries (Nervous Persona)
 
-In `@pgv/graph-core`, orthogonal edge routing (`routeEdgeOrthogonal`) must satisfy the Horizontal Alignment Non-Overlap Property: when a parent node connects to three or more horizontally aligned child nodes, the generated orthogonal paths must be adequately staggered to prevent identical vertical or horizontal line segments from overlapping perfectly.
+* Discovered that the boundary behavior of `applyGraphDiff` replacing an entity (i.e. removing and adding it in the same diff) was undocumented and untested behavior despite being mathematically possible.
+* Added `test/model/apply-graph-diff-replacement.test.ts` to strictly assert the conceptual replacement edge case for both nodes and edges where their attributes are modified.
+* Ensuring the tests validate the correct behavior without accessing or depending on the internal model logic.
