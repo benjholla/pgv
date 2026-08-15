@@ -420,23 +420,28 @@ export function routeEdgeOrthogonal(
   const physicalSpace = targetPt.y - sourcePt.y;
   let maxOffset = Infinity;
   if (physicalSpace > 0) {
-    maxOffset = Math.max(minOffset, (physicalSpace / 2) - 4);
+    maxOffset = Math.max(0, (physicalSpace - 10) / 2);
   }
 
   const maxRequiredSource = minOffset + (outTotal - 1) * spacing;
   let sourceVerticalOffset = minOffset + outIndex * spacing;
   if (maxRequiredSource > maxOffset && outTotal > 1) {
     const availableStagger = Math.max(0, maxOffset - minOffset);
-    sourceVerticalOffset = minOffset + outIndex * (availableStagger / (outTotal - 1));
+    const stagger = Math.max(10, availableStagger / (outTotal - 1));
+    sourceVerticalOffset = minOffset + outIndex * stagger;
   } else {
     sourceVerticalOffset = Math.min(sourceVerticalOffset, maxOffset);
   }
 
-  const maxRequiredTarget = minOffset + (inTotal - 1) * spacing;
-  let targetVerticalOffset = minOffset + inIndex * spacing;
-  if (maxRequiredTarget > maxOffset && inTotal > 1) {
+  const effectiveInTotal = Math.max(inTotal, outTotal);
+  const effectiveInIndex = outTotal > inTotal ? outIndex : inIndex;
+
+  const maxRequiredTarget = minOffset + (effectiveInTotal - 1) * spacing;
+  let targetVerticalOffset = minOffset + effectiveInIndex * spacing;
+  if (maxRequiredTarget > maxOffset && effectiveInTotal > 1) {
     const availableStagger = Math.max(0, maxOffset - minOffset);
-    targetVerticalOffset = minOffset + inIndex * (availableStagger / (inTotal - 1));
+    const stagger = Math.max(10, availableStagger / (effectiveInTotal - 1));
+    targetVerticalOffset = minOffset + effectiveInIndex * stagger;
   } else {
     targetVerticalOffset = Math.min(targetVerticalOffset, maxOffset);
   }
