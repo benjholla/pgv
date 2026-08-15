@@ -2294,20 +2294,19 @@ export class GraphView {
     button.setAttribute("aria-label", btn.label);
     button.setAttribute("title", btn.label);
 
-    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-    svg.setAttribute("aria-hidden", "true");
-    svg.setAttribute("viewBox", "0 0 24 24");
-    svg.setAttribute("width", "20");
-    svg.setAttribute("height", "20");
-    svg.setAttribute("fill", "none");
-    svg.setAttribute("stroke", "currentColor");
-    svg.setAttribute("stroke-width", "2.5");
-    svg.setAttribute("stroke-linecap", "round");
-    svg.setAttribute("stroke-linejoin", "round");
-
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    path.setAttribute("d", btn.icon);
-    svg.appendChild(path);
+    const svg = createSvgElement("svg", {
+      "aria-hidden": "true",
+      "viewBox": "0 0 24 24",
+      "width": "20",
+      "height": "20",
+      "fill": "none",
+      "stroke": "currentColor",
+      "stroke-width": "2.5",
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round"
+    }, [
+      createSvgElement("path", { "d": btn.icon })
+    ]);
     button.appendChild(svg);
 
     button.addEventListener("click", (e) => {
@@ -3275,17 +3274,14 @@ function renderEdges(
   schema: GraphSchema,
   collapsedNodes: ReadonlySet<string> = new Set(),
 ): SVGSVGElement {
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  const edgeLayer = document.createElementNS("http://www.w3.org/2000/svg", "g");
-
-  svg.classList.add("pgv-edge-layer");
-  svg.setAttribute("viewBox", `0 0 ${layout.width} ${layout.height}`);
-  svg.setAttribute("width", `${layout.width}`);
-  svg.setAttribute("height", `${layout.height}`);
-  svg.setAttribute("aria-hidden", "true");
-
-  edgeLayer.classList.add("pgv-edge-layer-inner");
-  svg.appendChild(edgeLayer);
+  const edgeLayer = createSvgElement("g", { "class": "pgv-edge-layer-inner" });
+  const svg = createSvgElement("svg", {
+    "class": "pgv-edge-layer",
+    "viewBox": `0 0 ${layout.width} ${layout.height}`,
+    "width": `${layout.width}`,
+    "height": `${layout.height}`,
+    "aria-hidden": "true"
+  }, [edgeLayer]) as SVGSVGElement;
 
   const containmentSet = schema.containment ? new Set(schema.containment) : null;
 
@@ -3307,10 +3303,6 @@ function renderEdges(
       continue;
     }
 
-    const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
-    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-    const hitAreaPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
-
     // Optimized string builder: avoids array allocations and .map() inside the hot loop.
     let className = "graph-edge pgv-graph-edge";
     for (let i = 0; i < edge.tags.length; i++) {
@@ -3327,31 +3319,15 @@ function renderEdges(
       pathData += ` L ${pathPts[i].x} ${pathPts[i].y}`;
     }
 
-    group.setAttribute("class", className);
-    group.dataset.edgeId = edge.id;
-    group.setAttribute("tabindex", "0");
-    group.setAttribute("role", "button");
-    group.setAttribute("aria-pressed", options.selection?.edges.has(edge.id) ? "true" : "false");
-
     const markerId = `pgv-arrowhead-${markerIdSequence++}`;
-    group.appendChild(createArrowMarker(markerId));
-
     let edgeAriaLabel = `Edge ${edge.id}`;
     const label = options.edgeLabel?.(edge) ?? null;
     if (label) {
       edgeAriaLabel += `: ${label}`;
     }
-    group.setAttribute("aria-label", edgeAriaLabel);
 
-    const groupTitle = document.createElementNS("http://www.w3.org/2000/svg", "title");
+    const groupTitle = createSvgElement("title", {});
     groupTitle.textContent = edgeAriaLabel;
-    group.appendChild(groupTitle);
-
-    path.setAttribute("d", pathData);
-    path.setAttribute("marker-end", `url(#${markerId})`);
-
-    hitAreaPath.setAttribute("d", pathData);
-    hitAreaPath.setAttribute("class", "pgv-edge-hitarea");
 
     let totalLength = 0;
     const lengths: number[] = [];
@@ -3363,14 +3339,21 @@ function renderEdges(
 
     // Trim the visible line slightly before the marker tip so it doesn't bleed through
     const trimAmount = 5;
-    path.setAttribute("stroke-dasharray", `${Math.max(0, totalLength - trimAmount)} ${totalLength + trimAmount}`);
 
-    group.appendChild(hitAreaPath);
-    group.appendChild(path);
+    const path = createSvgElement("path", {
+      "d": pathData,
+      "marker-end": `url(#${markerId})`,
+      "stroke-dasharray": `${Math.max(0, totalLength - trimAmount)} ${totalLength + trimAmount}`
+    });
+
+    const hitAreaPath = createSvgElement("path", {
+      "d": pathData,
+      "class": "pgv-edge-hitarea"
+    });
+
+    const children = [createArrowMarker(markerId), groupTitle, hitAreaPath, path];
 
     if (label) {
-      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-
       // Find middle of the path to place the label
       const halfLen = totalLength / 2;
       let currLen = 0;
@@ -3388,12 +3371,26 @@ function renderEdges(
         currLen += lengths[i];
       }
 
-      text.classList.add("pgv-edge-label");
-      text.setAttribute("x", `${midX}`);
-      text.setAttribute("y", `${midY - 8}`);
+      const text = createSvgElement("text", {
+        "class": "pgv-edge-label",
+        "x": `${midX}`,
+        "y": `${midY - 8}`
+      });
       text.textContent = label;
-      group.appendChild(text);
+      children.push(text);
     }
+
+    const group = createSvgElement("g", {
+      "class": className,
+      "data-edge-id": edge.id,
+      "tabindex": "0",
+      "role": "button",
+      "aria-pressed": options.selection?.edges.has(edge.id) ? "true" : "false",
+      "aria-label": edgeAriaLabel
+    }, children);
+
+    // Explicitly set dataset for DOM querying logic
+    (group as HTMLElement).dataset.edgeId = edge.id;
 
     edgeLayer.appendChild(group);
   }
@@ -3642,23 +3639,20 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
   return content;
 }
 
-function createArrowMarker(markerId: string): SVGDefsElement {
-  const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-  const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
-  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-
-  marker.setAttribute("id", markerId);
-  marker.setAttribute("viewBox", "0 0 10 10");
-  marker.setAttribute("refX", "9");
-  marker.setAttribute("refY", "5");
-  marker.setAttribute("markerWidth", "6");
-  marker.setAttribute("markerHeight", "6");
-  marker.setAttribute("orient", "auto-start-reverse");
-  path.setAttribute("d", "M 0 0 L 10 5 L 0 10 z");
-  marker.appendChild(path);
-  defs.appendChild(marker);
-
-  return defs;
+function createArrowMarker(markerId: string): SVGElement {
+  return createSvgElement("defs", {}, [
+    createSvgElement("marker", {
+      "id": markerId,
+      "viewBox": "0 0 10 10",
+      "refX": "9",
+      "refY": "5",
+      "markerWidth": "6",
+      "markerHeight": "6",
+      "orient": "auto-start-reverse"
+    }, [
+      createSvgElement("path", { "d": "M 0 0 L 10 5 L 0 10 z" })
+    ])
+  ]);
 }
 
 function attributeToText(value: AttributeValue): string {
