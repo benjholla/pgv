@@ -3390,7 +3390,7 @@ function renderEdges(
     }, children);
 
     // Explicitly set dataset for DOM querying logic
-    (group as HTMLElement).dataset.edgeId = edge.id;
+    (group as unknown as HTMLElement).dataset.edgeId = edge.id;
 
     edgeLayer.appendChild(group);
   }
