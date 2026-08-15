@@ -2370,8 +2370,36 @@ export class GraphView {
     const availWidth = Math.max(1, rect.width - padding * 2);
     const availHeight = Math.max(1, rect.height - padding * 2);
 
-    const layoutWidth = Math.max(1, this.#layout.width);
-    const layoutHeight = Math.max(1, this.#layout.height);
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    if (this.#layout.positions && this.#layout.nodeSizes) {
+      for (const [id, pos] of this.#layout.positions.entries()) {
+        const size = this.#layout.nodeSizes.get(id);
+        if (size) {
+          minX = Math.min(minX, pos.x);
+          minY = Math.min(minY, pos.y);
+          maxX = Math.max(maxX, pos.x + size.width);
+          maxY = Math.max(maxY, pos.y + size.height);
+        }
+      }
+    }
+
+    // Fallback to layout dimensions if bounding box is invalid
+    if (!isFinite(minX) || !isFinite(minY) || !isFinite(maxX) || !isFinite(maxY)) {
+      minX = 0;
+      minY = 0;
+      maxX = this.#layout.width || 1;
+      maxY = this.#layout.height || 1;
+    }
+
+    const actualWidth = maxX - minX;
+    const actualHeight = maxY - minY;
+
+    const layoutWidth = Math.max(1, actualWidth);
+    const layoutHeight = Math.max(1, actualHeight);
 
     let scale = Math.min(availWidth / layoutWidth, availHeight / layoutHeight);
 
@@ -2380,8 +2408,8 @@ export class GraphView {
       scale = 1;
     }
 
-    const cx = (rect.width - layoutWidth * scale) / 2;
-    const cy = (rect.height - layoutHeight * scale) / 2;
+    const cx = (rect.width - layoutWidth * scale) / 2 - (minX * scale);
+    const cy = (rect.height - layoutHeight * scale) / 2 - (minY * scale);
 
     this.#viewportState = { x: cx, y: cy, scale };
     this.#applyViewport();
