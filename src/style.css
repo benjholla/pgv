@@ -683,6 +683,11 @@
   width: 100%;
 }
 
+.pgv-search-bar input::placeholder {
+  color: var(--pgv-color-fg);
+  opacity: 0.6;
+}
+
 .pgv-search-bar input:focus-visible {
   outline: none;
   box-shadow: var(--pgv-selected-shadow);
