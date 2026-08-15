@@ -1211,18 +1211,30 @@ function computeCompoundNodeBounds(
 
     if (minParentX !== Infinity && minParentX < config.margin) {
         const shiftX = config.margin - minParentX;
-        finalWidth += shiftX;
         for (const [id, p] of positions.entries()) {
             positions.set(id, { x: p.x + shiftX, y: p.y });
         }
     }
     if (minParentY !== Infinity && minParentY < config.margin) {
         const shiftY = config.margin - minParentY;
-        finalHeight += shiftY;
         for (const [id, p] of positions.entries()) {
             positions.set(id, { x: p.x, y: p.y + shiftY });
         }
     }
+
+    let maxNodeX = 0;
+    let maxNodeY = 0;
+    for (const [id, p] of positions.entries()) {
+        const size = nodeSizes.get(id);
+        if (size) {
+            const endX = p.x + size.width;
+            const endY = p.y + size.height;
+            if (endX > maxNodeX) maxNodeX = endX;
+            if (endY > maxNodeY) maxNodeY = endY;
+        }
+    }
+    finalWidth = Math.max(finalWidth, maxNodeX + config.margin);
+    finalHeight = Math.max(finalHeight, maxNodeY + config.margin);
   }
 
   return { hierarchy: hasHierarchy ? layoutHierarchy : undefined, width: finalWidth, height: finalHeight };
