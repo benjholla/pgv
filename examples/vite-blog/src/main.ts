@@ -61,6 +61,11 @@ class GraphController {
       },
       onThemeChange: (theme: "light" | "dark") => {
         this.currentTheme = theme;
+        if (theme === "dark") {
+          this.container.classList.add("dark");
+        } else {
+          this.container.classList.remove("dark");
+        }
       },
       onNodeClick: (nodeId: string) => {
         const nodes = new Set(this.currentSelection.nodes);
