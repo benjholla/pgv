@@ -41,4 +41,14 @@ describe("sanitizeString Properties", () => {
         const selfClosing = "<a href='https://example.com'/>";
         expect(sanitizeString(selfClosing)).toBe(selfClosing);
     });
+
+    it("Blocks dangerous URIs and inline handlers obfuscated with &equals; or &#61;", () => {
+        // Obfuscated URI bypass via &equals;
+        expect(sanitizeString('<a href&equals;javascript:alert(1)>click</a>')).toBe('#blocked-uri');
+        expect(sanitizeString('<a href&#61;javascript:alert(1)>click</a>')).toBe('#blocked-uri');
+
+        // Obfuscated inline handlers via &equals;
+        expect(sanitizeString('<img src=x onerror&equals;alert(1)>')).toContain('data-blocked=');
+        expect(sanitizeString('<img src=x onerror&#61;alert(1)>')).toContain('data-blocked=');
+    });
 });
