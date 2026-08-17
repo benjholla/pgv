@@ -36,9 +36,8 @@ function segmentsOverlap(pathA: readonly Point[], pathB: readonly Point[]): bool
 }
 
 describe("Horizontal Routing Boundary", () => {
-  // We document the property that the software SHOULD exhibit, even if currently failing.
-  // We skip it using it.skip so CI doesn't break, while recording the executable specification.
-  it.skip("Horizontal Alignment Non-Overlap Property: Paths to horizontally aligned children do not perfectly overlap (KNOWN BUG)", () => {
+  // We document the property that the software SHOULD exhibit.
+  it("Horizontal Alignment Non-Overlap Property: Paths to horizontally aligned children do not perfectly overlap", () => {
     const parentId = "parent";
 
     const layout = {
@@ -65,15 +64,17 @@ describe("Horizontal Routing Boundary", () => {
       height: 500
     } as any;
 
-    const sourcePt = { x: 150, y: -100 };
+    const sourcePt1 = { x: 150 - 16, y: -100 };
+    const sourcePt2 = { x: 150, y: -100 };
+    const sourcePt3 = { x: 150 + 16, y: -100 };
 
     const targetPt1 = { x: 75, y: 75 }; // Center of child1
     const targetPt2 = { x: 175, y: 75 }; // Center of child2
     const targetPt3 = { x: 275, y: 75 }; // Center of child3
 
-    const path1 = routeEdgeOrthogonal(sourcePt, targetPt1, layout, 0, 0, 3, 1);
-    const path2 = routeEdgeOrthogonal(sourcePt, targetPt2, layout, 1, 0, 3, 1);
-    const path3 = routeEdgeOrthogonal(sourcePt, targetPt3, layout, 2, 0, 3, 1);
+    const path1 = routeEdgeOrthogonal(sourcePt1, targetPt1, layout, 0, 0, 3, 1);
+    const path2 = routeEdgeOrthogonal(sourcePt2, targetPt2, layout, 1, 0, 3, 1);
+    const path3 = routeEdgeOrthogonal(sourcePt3, targetPt3, layout, 2, 0, 3, 1);
 
     expect(path1.length).toBeGreaterThan(0);
     expect(path2.length).toBeGreaterThan(0);
