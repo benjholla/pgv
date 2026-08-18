@@ -15,3 +15,6 @@
 ## 2024-10-24 - Accessibility improvements for compound node toggles
 **Learning:** Adding `aria-controls` explicitly linked to a generated node ID allows screen readers to natively understand the relationship between a custom programmatic expand/collapse toggle and its associated bounding container. The absence of this creates ambiguity about what the toggle actually expands or collapses in a complex graph visualization DOM structure.
 **Action:** When implementing custom expand/collapse buttons in a generated DOM, ensure the associated container is assigned a unique, safely-encoded ID and set `aria-controls` on the button to reference it.
+## 2024-10-25 - Use human-readable names for dynamic toggle labels
+**Learning:** When dynamically creating expand/collapse toggle buttons for compound nodes, using the internal `node.id` for `title` and `aria-label` attributes is technically sufficient for uniqueness but provides poor context for screen readers and tooltips, especially if IDs are internal hashes or UUIDs.
+**Action:** Always prefer deriving a human-readable title (e.g. falling back from `XCSG.name` to `node.id`) and use that for accessibility labels. This can be standardized with a centralized `getNodeTitle(node)` helper.
