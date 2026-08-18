@@ -8,6 +8,17 @@ import { edgeEndpoints, getHiddenNodes, verticalLayout, type LayoutSnapshot, typ
 import { isContainmentEdge, traverseDfs, type AttributeValue, type GraphEdge, type GraphNode, type GraphSchema, type GraphSnapshot } from "./model";
 import { toSvg, toPng, toJpeg } from "html-to-image";
 
+/**
+ * Gets a human-readable display title for a node.
+ *
+ * @internal
+ * @param node The node to get the title for.
+ * @returns The display title (derived from XCSG.name or falling back to node.id).
+ */
+export function getNodeTitle(node: GraphNode): string {
+  return typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+}
+
 let markerIdSequence = 0;
 const PGV_VIEWPORT_CLASS = "pgv-viewport";
 
@@ -3493,7 +3504,7 @@ function renderNodes(
     element.setAttribute("role", "button");
     element.setAttribute("aria-pressed", options.selection?.nodes.has(node.id) ? "true" : "false");
 
-    const nodeTitle = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+    const nodeTitle = getNodeTitle(node);
     element.setAttribute("aria-label", `Node ${nodeTitle}`);
     element.title = nodeTitle;
 
@@ -3517,14 +3528,14 @@ function renderNodes(
 
        const title = document.createElement("div");
        title.className = "pgv-node-title";
-       title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+       title.textContent = getNodeTitle(node);
        title.title = title.textContent;
 
        const toggleBtn = document.createElement("button");
        toggleBtn.type = "button";
        toggleBtn.className = "pgv-node-collapse-toggle";
-       toggleBtn.title = `Collapse node ${node.id}`;
-       toggleBtn.setAttribute("aria-label", `Collapse node ${node.id}`);
+       toggleBtn.title = `Collapse node ${nodeTitle}`;
+       toggleBtn.setAttribute("aria-label", `Collapse node ${nodeTitle}`);
        toggleBtn.setAttribute("aria-expanded", "true");
        toggleBtn.setAttribute("aria-controls", element.id);
        toggleBtn.textContent = "[-]";
@@ -3549,7 +3560,7 @@ function renderNodes(
 
       const title = document.createElement("div");
       title.className = "pgv-node-title";
-      title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+      title.textContent = getNodeTitle(node);
       title.title = title.textContent;
 
       if (isCompound) {
@@ -3571,8 +3582,8 @@ function renderNodes(
       const toggleBtn = document.createElement("button");
       toggleBtn.type = "button";
       toggleBtn.className = "pgv-node-collapse-toggle";
-      toggleBtn.title = `Expand node ${node.id}`;
-      toggleBtn.setAttribute("aria-label", `Expand node ${node.id}`);
+      toggleBtn.title = `Expand node ${nodeTitle}`;
+      toggleBtn.setAttribute("aria-label", `Expand node ${nodeTitle}`);
       toggleBtn.setAttribute("aria-expanded", "false");
       toggleBtn.setAttribute("aria-controls", element.id);
       toggleBtn.textContent = "[+]";
@@ -3592,8 +3603,8 @@ function renderNodes(
         const toggleBtn = document.createElement("button");
         toggleBtn.type = "button";
         toggleBtn.className = "pgv-node-collapse-toggle";
-        toggleBtn.title = `Collapse node ${node.id}`;
-        toggleBtn.setAttribute("aria-label", `Collapse node ${node.id}`);
+        toggleBtn.title = `Collapse node ${nodeTitle}`;
+        toggleBtn.setAttribute("aria-label", `Collapse node ${nodeTitle}`);
         toggleBtn.setAttribute("aria-expanded", "true");
         toggleBtn.setAttribute("aria-controls", element.id);
         toggleBtn.textContent = "[-]";
@@ -3630,7 +3641,7 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
 
   content.className = "pgv-node-content";
   title.className = "pgv-node-title";
-  title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+  title.textContent = getNodeTitle(node);
   title.title = title.textContent;
   id.className = "pgv-node-id";
   id.textContent = node.id;
