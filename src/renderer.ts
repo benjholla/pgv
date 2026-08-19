@@ -3493,7 +3493,7 @@ function renderNodes(
     element.setAttribute("role", "button");
     element.setAttribute("aria-pressed", options.selection?.nodes.has(node.id) ? "true" : "false");
 
-    const nodeTitle = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+    const nodeTitle = getNodeTitle(node);
     element.setAttribute("aria-label", `Node ${nodeTitle}`);
     element.title = nodeTitle;
 
@@ -3517,7 +3517,7 @@ function renderNodes(
 
        const title = document.createElement("div");
        title.className = "pgv-node-title";
-       title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+       title.textContent = getNodeTitle(node);
        title.title = title.textContent;
 
        const toggleBtn = document.createElement("button");
@@ -3549,7 +3549,7 @@ function renderNodes(
 
       const title = document.createElement("div");
       title.className = "pgv-node-title";
-      title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+      title.textContent = getNodeTitle(node);
       title.title = title.textContent;
 
       if (isCompound) {
@@ -3630,7 +3630,7 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
 
   content.className = "pgv-node-content";
   title.className = "pgv-node-title";
-  title.textContent = typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+  title.textContent = getNodeTitle(node);
   title.title = title.textContent;
   id.className = "pgv-node-id";
   id.textContent = node.id;
@@ -3694,4 +3694,13 @@ function attributeToText(value: AttributeValue): string {
     if ("bytes" in value) return `[bytes: ${value.bytes}]`;
   }
   return String(value);
+}
+
+
+/**
+ * Returns the human-readable display title for a node.
+ * Falls back to the node's internal ID if no XCSG.name is provided.
+ */
+export function getNodeTitle(node: GraphNode): string {
+  return typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
 }
