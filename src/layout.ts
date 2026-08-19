@@ -592,9 +592,14 @@ export function routeEdgeOrthogonal(
           if (y1 !== allowedY1 && y1 !== allowedY2) {
             penalty += 5000;
           } else {
-            if (outIndex > inIndex && y1 === allowedY2) penalty += 10;
-            else if (inIndex > outIndex && y1 === allowedY1) penalty += 10;
-            else if (outIndex === inIndex && y1 === allowedY2) penalty += 10;
+            // Distribute turning points using outIndex modulo 2 to alternate preference
+            // between source allowedY1 and target allowedY2. This helps satisfy the
+            // Horizontal Alignment Non-Overlap Property by staggering the paths.
+            if ((outIndex % 2 === 0) && y1 === allowedY2) {
+              penalty += 10;
+            } else if ((outIndex % 2 === 1) && y1 === allowedY1) {
+              penalty += 10;
+            }
           }
         }
 
