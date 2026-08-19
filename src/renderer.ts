@@ -3523,8 +3523,8 @@ function renderNodes(
        const toggleBtn = document.createElement("button");
        toggleBtn.type = "button";
        toggleBtn.className = "pgv-node-collapse-toggle";
-       toggleBtn.title = `Collapse node ${node.id}`;
-       toggleBtn.setAttribute("aria-label", `Collapse node ${node.id}`);
+       toggleBtn.title = `Collapse node ${nodeTitle}`;
+       toggleBtn.setAttribute("aria-label", `Collapse node ${nodeTitle}`);
        toggleBtn.setAttribute("aria-expanded", "true");
        toggleBtn.setAttribute("aria-controls", element.id);
        toggleBtn.textContent = "[-]";
@@ -3571,8 +3571,8 @@ function renderNodes(
       const toggleBtn = document.createElement("button");
       toggleBtn.type = "button";
       toggleBtn.className = "pgv-node-collapse-toggle";
-      toggleBtn.title = `Expand node ${node.id}`;
-      toggleBtn.setAttribute("aria-label", `Expand node ${node.id}`);
+      toggleBtn.title = `Expand node ${nodeTitle}`;
+      toggleBtn.setAttribute("aria-label", `Expand node ${nodeTitle}`);
       toggleBtn.setAttribute("aria-expanded", "false");
       toggleBtn.setAttribute("aria-controls", element.id);
       toggleBtn.textContent = "[+]";
@@ -3592,8 +3592,8 @@ function renderNodes(
         const toggleBtn = document.createElement("button");
         toggleBtn.type = "button";
         toggleBtn.className = "pgv-node-collapse-toggle";
-        toggleBtn.title = `Collapse node ${node.id}`;
-        toggleBtn.setAttribute("aria-label", `Collapse node ${node.id}`);
+        toggleBtn.title = `Collapse node ${nodeTitle}`;
+        toggleBtn.setAttribute("aria-label", `Collapse node ${nodeTitle}`);
         toggleBtn.setAttribute("aria-expanded", "true");
         toggleBtn.setAttribute("aria-controls", element.id);
         toggleBtn.textContent = "[-]";
