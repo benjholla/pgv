@@ -6,5 +6,7 @@ describe("decodeHtmlEntities", () => {
     expect(decodeHtmlEntities("&equals;")).toBe("=");
     expect(decodeHtmlEntities("&#x3d;")).toBe("=");
     expect(decodeHtmlEntities("&#61;")).toBe("=");
+    expect(decodeHtmlEntities("&#x0003d;")).toBe("=");
+    expect(decodeHtmlEntities("&#00061;")).toBe("=");
   });
 });
