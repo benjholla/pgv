@@ -1,0 +1,130 @@
+{
+  "nodes": [
+    {
+      "id": "23085",
+      "tags": [
+        "XCSG.Language.C",
+        "XCSG.ModelElement",
+        "##index",
+        "XCSG.Node",
+        "XCSG.Project"
+      ],
+      "attributes": {
+        "XCSG.id": "[C_PROJECT: Xinu]",
+        "XCSG.name": "Xinu"
+      }
+    },
+    {
+      "id": "9306",
+      "tags": [
+        "XCSG.Language.C",
+        "XCSG.ModelElement",
+        "##index",
+        "XCSG.Node",
+        "XCSG.C.TranslationUnit"
+      ],
+      "attributes": {
+        "XCSG.id": "[C_PROJECT: Xinu/Xinu/sys/create.c]",
+        "XCSG.name": "create.c",
+        "XCSG.sourceCorrespondence": "[f:/Xinu/sys/create.c,l:1-84,o:0+2437]"
+      }
+    },
+    {
+      "id": "9329",
+      "tags": [
+        "XCSG.Language.C",
+        "XCSG.C.Provisional.internalLinkage",
+        "XCSG.Function",
+        "XCSG.ModelElement",
+        "##index",
+        "XCSG.Node"
+      ],
+      "attributes": {
+        "XCSG.id": "[C_PROJECT: Xinu/Xinu/sys/create.c#newpid()]",
+        "bodySC": "[f:/Xinu/sys/create.c,l:72-84,o:2186+250]",
+        "XCSG.name": "newpid",
+        "XCSG.sourceCorrespondence": "[f:/Xinu/sys/create.c,l:72,o:2192+6]",
+        "typeId": "F(newpid){S{signed int}, VOID}"
+      }
+    },
+    {
+      "id": "9333",
+      "tags": [
+        "XCSG.Language.C",
+        "XCSG.C.Provisional.externalLinkage",
+        "XCSG.Function",
+        "XCSG.ModelElement",
+        "##index",
+        "XCSG.Node"
+      ],
+      "attributes": {
+        "XCSG.id": "[C_PROJECT: Xinu/Xinu/sys/create.c#create(int*, int, int, char*, int, int)]",
+        "##C_GlobalDefinition_Id": "C/XCSG.Function/create",
+        "bodySC": "[f:/Xinu/sys/create.c,l:16-66,o:356+1628]",
+        "XCSG.name": "create",
+        "XCSG.sourceCorrespondence": "[f:/Xinu/sys/create.c,l:16,o:364+6]",
+        "typeId": "F(create){S{signed int}, [P{S{signed int}}, S{signed int}, S{signed int}, P{S{char}}, S{signed int}, S{signed int}]}"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "14413",
+      "source": "23085",
+      "target": "9306",
+      "tags": [
+        "XCSG.Language.C",
+        "XCSG.ModelElement",
+        "XCSG.Edge",
+        "##index",
+        "XCSG.Contains"
+      ],
+      "attributes": {}
+    },
+    {
+      "id": "14447",
+      "source": "9306",
+      "target": "9329",
+      "tags": [
+        "XCSG.Language.C",
+        "XCSG.ModelElement",
+        "XCSG.Edge",
+        "##index",
+        "XCSG.Contains"
+      ],
+      "attributes": {}
+    },
+    {
+      "id": "14473",
+      "source": "9306",
+      "target": "9333",
+      "tags": [
+        "XCSG.Language.C",
+        "XCSG.ModelElement",
+        "XCSG.Edge",
+        "##index",
+        "XCSG.Contains"
+      ],
+      "attributes": {}
+    },
+    {
+      "id": "14477",
+      "source": "9333",
+      "target": "9329",
+      "tags": [
+        "XCSG.Language.C",
+        "XCSG.Call",
+        "XCSG.ModelElement",
+        "XCSG.Edge",
+        "##index"
+      ],
+      "attributes": {
+        "XCSG.sourceCorrespondence": "[[f:/Xinu/sys/create.c,l:35,o:1055+6]]"
+      }
+    }
+  ],
+  "selection": {
+    "nodes": [],
+    "edges": []
+  }
+}
