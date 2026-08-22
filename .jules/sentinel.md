@@ -7,3 +7,8 @@
 **Vulnerability:** XSS via inline event handlers where the equals sign is obfuscated using HTML entities (e.g. `&equals;`, `&#x3d;`).
 **Learning:** When sanitizing strings against XSS, stripping inline event handlers (`on*`) happens before HTML entity decoding. Regex blocklists must explicitly account for encoded variants of structural characters like the equals sign.
 **Prevention:** Explicitly match encoded variants of the equals sign (like `&equals;`, `&#x3d;`, `&#61;`) in regex filters for inline event handlers and ensure `decodeHtmlEntities` decodes `&equals;`.
+
+## 2024-05-26 - XSS Bypass via Zero-Padded Encoded Equals
+**Vulnerability:** XSS via inline event handlers where the equals sign is obfuscated using zero-padded hexadecimal HTML entities (e.g., `&#x0003d;`).
+**Learning:** When sanitizing strings against XSS, stripping inline event handlers (`on*`) relies on regexes. If the regex does not account for zero-padded hex variations (`&#x0*3d;?`), attackers can bypass the filter and execute arbitrary code.
+**Prevention:** Ensure regex filters matching hexadecimal encoded characters explicitly allow for leading zeros (e.g., using `0*` like in `&#x0*3d;?`).
