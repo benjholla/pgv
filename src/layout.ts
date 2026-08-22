@@ -4,6 +4,69 @@
  * Frontend-owned vertical layout and geometric routing calculations.
  */
 
+class MinHeap<T> {
+  private heap: T[] = [];
+  private compare: (a: T, b: T) => number;
+  constructor(compare: (a: T, b: T) => number) {
+      this.compare = compare;
+  }
+  push(val: T) {
+      this.heap.push(val);
+      this.bubbleUp(this.heap.length - 1);
+  }
+  pop(): T | null {
+      if (this.heap.length === 0) return null;
+      if (this.heap.length === 1) return this.heap.pop()!;
+      const min = this.heap[0];
+      this.heap[0] = this.heap.pop()!;
+      this.sinkDown(0);
+      return min;
+  }
+  private bubbleUp(idx: number) {
+      while (idx > 0) {
+          let parentIdx = (idx - 1) >>> 1;
+          if (this.compare(this.heap[idx], this.heap[parentIdx]) >= 0) break;
+          const tmp = this.heap[idx];
+          this.heap[idx] = this.heap[parentIdx];
+          this.heap[parentIdx] = tmp;
+          idx = parentIdx;
+      }
+  }
+  private sinkDown(idx: number) {
+      const length = this.heap.length;
+      const element = this.heap[idx];
+      while (true) {
+          let leftChildIdx = 2 * idx + 1;
+          let rightChildIdx = 2 * idx + 2;
+          let leftChild, rightChild;
+          let swap: number | null = null;
+
+          if (leftChildIdx < length) {
+              leftChild = this.heap[leftChildIdx];
+              if (this.compare(leftChild, element) < 0) {
+                  swap = leftChildIdx;
+              }
+          }
+
+          if (rightChildIdx < length) {
+              rightChild = this.heap[rightChildIdx];
+              if ((swap === null && this.compare(rightChild, element) < 0) ||
+                  (swap !== null && this.compare(rightChild, leftChild!) < 0)) {
+                  swap = rightChildIdx;
+              }
+          }
+
+          if (swap === null) break;
+          this.heap[idx] = this.heap[swap];
+          this.heap[swap] = element;
+          idx = swap;
+      }
+  }
+  get length() {
+      return this.heap.length;
+  }
+}
+
 /**
  * Performs an O(log N) binary search on a sorted array of strings.
  *
@@ -510,7 +573,7 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new MinHeap<Node>((a, b) => a.f - b.f);
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
@@ -519,19 +582,7 @@ export function routeEdgeOrthogonal(
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+    const curr = openList.pop()!;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
