@@ -24,6 +24,54 @@ function binarySearch(arr: readonly string[], target: string): number {
   return -1;
 }
 
+
+
+class MinHeap<T extends { f: number }> {
+  public data: T[] = [];
+  push(val: T) {
+    this.data.push(val);
+    this.up(this.data.length - 1);
+  }
+  pop(): T | undefined {
+    if (this.data.length === 0) return undefined;
+    const res = this.data[0];
+    const last = this.data.pop()!;
+    if (this.data.length > 0) {
+      this.data[0] = last;
+      this.down(0);
+    }
+    return res;
+  }
+  get length() {
+    return this.data.length;
+  }
+  up(i: number) {
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (this.data[p].f <= this.data[i].f) break;
+      const tmp = this.data[p];
+      this.data[p] = this.data[i];
+      this.data[i] = tmp;
+      i = p;
+    }
+  }
+  down(i: number) {
+    const len = this.data.length;
+    while (true) {
+      let min = i;
+      const left = (i << 1) + 1;
+      const right = left + 1;
+      if (left < len && this.data[left].f < this.data[min].f) min = left;
+      if (right < len && this.data[right].f < this.data[min].f) min = right;
+      if (min === i) break;
+      const tmp = this.data[i];
+      this.data[i] = this.data[min];
+      this.data[min] = tmp;
+      i = min;
+    }
+  }
+}
+
 /**
  * PERF(Bolt): Replaced O(N) scan with O(log N) binary search since coordinate arrays are sorted
  */
@@ -510,7 +558,7 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new MinHeap<Node>();
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
@@ -519,19 +567,7 @@ export function routeEdgeOrthogonal(
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+    const curr = openList.pop()!;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
