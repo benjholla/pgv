@@ -1595,12 +1595,16 @@ export class GraphView {
 
       const zoomGroup = document.createElement("div");
       zoomGroup.className = "pgv-control-group pgv-zoom-group";
+      zoomGroup.setAttribute("role", "group");
+      zoomGroup.setAttribute("aria-label", "Zoom controls");
       for (const btn of zoomButtons) {
         zoomGroup.appendChild(this.#createControlButton(btn));
       }
 
       const panGroup = document.createElement("div");
       panGroup.className = "pgv-control-group pgv-pan-group";
+      panGroup.setAttribute("role", "group");
+      panGroup.setAttribute("aria-label", "Pan controls");
       for (const btn of panButtons) {
         const button = this.#createControlButton(btn);
         button.classList.add(`pgv-btn-${btn.id}`);
@@ -1616,6 +1620,8 @@ export class GraphView {
 
       const topButtonsContainer = document.createElement("div");
       topButtonsContainer.className = "pgv-misc-top-buttons";
+      topButtonsContainer.setAttribute("role", "group");
+      topButtonsContainer.setAttribute("aria-label", "Miscellaneous controls");
 
       // Row 1: Search, History, Minimap
       const searchToggleBtn = this.#createControlButton({
@@ -1905,6 +1911,8 @@ export class GraphView {
     if (!this.#smartControlsExpanded) {
       const expandBtnGroup = document.createElement("div");
       expandBtnGroup.className = "pgv-control-group";
+      expandBtnGroup.setAttribute("role", "group");
+      expandBtnGroup.setAttribute("aria-label", "Expand controls");
 
       const expandBtn = this.#createControlButton({
         icon: "M4 4h16v16H4z", // window maximize
