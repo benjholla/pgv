@@ -10,6 +10,13 @@ This repository is the `graph-core` package described in the design notes. It ow
 ## Why does it exist?
 This project is designed to bridge the gap between complex external program-analysis systems and frontend visualization. By representing graphs as immutable snapshots and explicitly decoupling layout from logic, `@pgv/graph-core` guarantees stable, predictable rendering while making features like incremental rendering, historical diffs, and context projections dramatically simpler to build. It intentionally delegates heavy graph analysis to backends, acting strictly as a high-performance presentation layer.
 
+## What problems does it solve?
+- **Decoupled Architecture**: Layout and rendering are entirely separate from graph logic, ensuring maximum portability.
+- **Predictable Determinism**: Layouts are mathematically consistent and structurally deterministic, preserving the user's mental map between states.
+- **Immutable State Handling**: Supports robust time-travel interactions via incremental delta streams (`GraphDiff`s) without expensive full-graph recalculations.
+- **High-Performance Presentation**: Handles massive, dynamic control-flow and dependency graphs through an optimized, orthogonal routing pipeline and SVG/DOM hybrid rendering.
+- **Host-Agnostic Setup**: Operates without a tied transport layer, easily embedding into VSCode WebViews, Jupyter Notebooks, or static web applications.
+
 ## Architecture Overview
 The architecture is designed as a strict, unidirectional pipeline:
 
@@ -52,24 +59,36 @@ import {
   GraphView,
   verticalLayout,
   type GraphSnapshotJson,
+  type GraphSchemaJson
 } from "@pgv/graph-core";
 import "@pgv/graph-core/style.css";
 
-// 1. Create an immutable graph snapshot from backend JSON data
-const graph = createGraphSnapshot(json as GraphSnapshotJson);
+// 1. Fetch or provide your JSON graph data and schema
+const json = {
+  nodes: [{ id: 1, properties: { "XCSG.name": "Entry" } }],
+  edges: []
+} as GraphSnapshotJson;
 
-// 2. Compute a layout snapshot for the graph
+const schema = {
+  tags: { "XCSG.ControlFlow_Node": { color: "#3b82f6" } }
+} as GraphSchemaJson;
+
+// 2. Create an immutable graph snapshot from JSON data
+const graph = createGraphSnapshot(json);
+
+// 3. Compute a geometric layout snapshot for the graph
 const layout = verticalLayout(graph);
 
-// 3. Initialize the interactive graph view
-const view = new GraphView(document.querySelector("#graph")!, schema, {
+// 4. Initialize the interactive renderer
+const container = document.querySelector("#graph") as HTMLElement;
+const view = new GraphView(container, schema, {
   layout,
   usePanZoom: true,
   useThemeToggle: true,
-  theme: "auto", // or "light", "dark"
+  theme: "auto", // Supports "light", "dark", or "auto"
 });
 
-// 4. Render the graph
+// 5. Mount the graph snapshot to the view
 view.setGraph(graph);
 ```
 
