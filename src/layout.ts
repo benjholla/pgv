@@ -1,3 +1,72 @@
+
+class MinHeap<T> {
+  private data: T[] = [];
+  private compare: (a: T, b: T) => number;
+
+  constructor(compare: (a: T, b: T) => number) {
+    this.compare = compare;
+  }
+
+  push(val: T) {
+    this.data.push(val);
+    this.bubbleUp(this.data.length - 1);
+  }
+
+  pop(): T | undefined {
+    if (this.data.length === 0) return undefined;
+    const result = this.data[0];
+    const last = this.data.pop();
+    if (this.data.length > 0 && last !== undefined) {
+      this.data[0] = last;
+      this.bubbleDown(0);
+    }
+    return result;
+  }
+
+  get length(): number {
+    return this.data.length;
+  }
+
+  private bubbleUp(index: number) {
+    while (index > 0) {
+      const parent = (index - 1) >> 1;
+      if (this.compare(this.data[index], this.data[parent]) < 0) {
+        const temp = this.data[index];
+        this.data[index] = this.data[parent];
+        this.data[parent] = temp;
+        index = parent;
+      } else {
+        break;
+      }
+    }
+  }
+
+  private bubbleDown(index: number) {
+    const len = this.data.length;
+    while (true) {
+      let smallest = index;
+      const left = (index << 1) + 1;
+      const right = (index << 1) + 2;
+
+      if (left < len && this.compare(this.data[left], this.data[smallest]) < 0) {
+        smallest = left;
+      }
+      if (right < len && this.compare(this.data[right], this.data[smallest]) < 0) {
+        smallest = right;
+      }
+
+      if (smallest !== index) {
+        const temp = this.data[index];
+        this.data[index] = this.data[smallest];
+        this.data[smallest] = temp;
+        index = smallest;
+      } else {
+        break;
+      }
+    }
+  }
+}
+
 /**
  * @module
  * @packageDocumentation
@@ -510,7 +579,7 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new MinHeap<Node>((a, b) => a.f - b.f);
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
@@ -519,19 +588,8 @@ export function routeEdgeOrthogonal(
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+    const curr = openList.pop();
+    if (!curr) break;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
