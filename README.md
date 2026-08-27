@@ -51,17 +51,22 @@ import {
   createGraphSnapshot,
   GraphView,
   verticalLayout,
+  type GraphSchema,
   type GraphSnapshotJson,
 } from "@pgv/graph-core";
 import "@pgv/graph-core/style.css";
 
-// 1. Create an immutable graph snapshot from backend JSON data
-const graph = createGraphSnapshot(json as GraphSnapshotJson);
+// 1. Load backend JSON data
+const json: GraphSnapshotJson = { nodes: [], edges: [] };
+const schema: GraphSchema = {};
 
-// 2. Compute a layout snapshot for the graph
-const layout = verticalLayout(graph);
+// 2. Create an immutable graph snapshot
+const graph = createGraphSnapshot(json);
 
-// 3. Initialize the interactive graph view
+// 3. Compute a layout snapshot for the graph
+const layout = verticalLayout(graph, {}, schema);
+
+// 4. Initialize the interactive graph view
 const view = new GraphView(document.querySelector("#graph")!, schema, {
   layout,
   usePanZoom: true,
@@ -69,7 +74,7 @@ const view = new GraphView(document.querySelector("#graph")!, schema, {
   theme: "auto", // or "light", "dark"
 });
 
-// 4. Render the graph
+// 5. Render the graph
 view.setGraph(graph);
 ```
 
