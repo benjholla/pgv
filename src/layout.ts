@@ -377,6 +377,72 @@ export function edgeEndpoints(
  * @param layout The current layout containing node sizes and positions (obstacles).
  * @returns A readonly array of points defining the calculated orthogonal path.
  */
+type RouteNode = { xIdx: number; yIdx: number; g: number; f: number; parent: RouteNode | null; dirX: number; dirY: number; dir: number };
+
+class MinHeap {
+  heap: RouteNode[];
+
+  constructor() {
+    this.heap = [];
+  }
+
+  get length(): number {
+    return this.heap.length;
+  }
+
+  push(node: RouteNode): void {
+    this.heap.push(node);
+    this.siftUp(this.heap.length - 1);
+  }
+
+  pop(): RouteNode | undefined {
+    if (this.heap.length === 0) return undefined;
+    const first = this.heap[0];
+    const last = this.heap.pop();
+    if (this.heap.length > 0 && last !== undefined) {
+      this.heap[0] = last;
+      this.siftDown(0);
+    }
+    return first;
+  }
+
+  private siftUp(idx: number): void {
+    const node = this.heap[idx];
+    while (idx > 0) {
+      const parentIdx = (idx - 1) >>> 1;
+      const parent = this.heap[parentIdx];
+      if (node.f >= parent.f) break;
+      this.heap[idx] = parent;
+      idx = parentIdx;
+    }
+    this.heap[idx] = node;
+  }
+
+  private siftDown(idx: number): void {
+    const length = this.heap.length;
+    const node = this.heap[idx];
+    while (true) {
+      const leftIdx = (idx << 1) + 1;
+      const rightIdx = leftIdx + 1;
+      let minIdx = idx;
+      let minF = node.f;
+
+      if (leftIdx < length && this.heap[leftIdx].f < minF) {
+        minIdx = leftIdx;
+        minF = this.heap[leftIdx].f;
+      }
+      if (rightIdx < length && this.heap[rightIdx].f < minF) {
+        minIdx = rightIdx;
+      }
+      if (minIdx === idx) break;
+
+      this.heap[idx] = this.heap[minIdx];
+      idx = minIdx;
+    }
+    this.heap[idx] = node;
+  }
+}
+
 export function routeEdgeOrthogonal(
   sourcePt: Point,
   targetPt: Point,
@@ -474,8 +540,6 @@ export function routeEdgeOrthogonal(
   }
   yCoords.sort((a, b) => a - b);
 
-  type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number; dir: number };
-
 
   const startXIdx = findClosestCoordinateIndex(xCoords, sourcePt.x);
   const startYIdx = findClosestCoordinateIndex(yCoords, sourcePt.y);
@@ -510,7 +574,7 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new MinHeap();
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
@@ -519,23 +583,12 @@ export function routeEdgeOrthogonal(
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+    const curr = openList.pop();
+    if (!curr) break;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
-      let c: Node | null = curr;
+      let c: RouteNode | null = curr;
       while (c) {
         path.push({ x: xCoords[c.xIdx], y: yCoords[c.yIdx] });
         c = c.parent;
