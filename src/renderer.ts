@@ -425,9 +425,9 @@ export class GraphView {
   #compileMatcher(query: string, exact: boolean, caseSensitive: boolean, isRegex: boolean): (text: string) => boolean {
     if (!query) return () => false;
 
-    if (isRegex) {
+    if (isRegex || exact) {
       try {
-        let pattern = query;
+        let pattern = isRegex ? query : query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
         if (exact) {
           pattern = `\\b(?:${pattern})\\b`;
         }
@@ -438,13 +438,6 @@ export class GraphView {
         // Invalid regex, silently fail match
         return () => false;
       }
-    }
-
-    if (exact) {
-      const escapedQ = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const flags = caseSensitive ? '' : 'i';
-      const regex = new RegExp(`\\b${escapedQ}\\b`, flags);
-      return (text: string) => text ? regex.test(text) : false;
     }
 
     if (caseSensitive) {

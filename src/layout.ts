@@ -567,12 +567,8 @@ export function routeEdgeOrthogonal(
             continue;
         }
 
-        if (nxIdx === endXIdx && nyIdx === endYIdx) {
-             if (curr.xIdx === nxIdx && curr.yIdx === nyIdx - 1) {
-                // OK
-             } else {
-                 if (dx !== 0 || dy !== 1) continue;
-             }
+        if (nxIdx === endXIdx && nyIdx === endYIdx && (curr.xIdx !== nxIdx || curr.yIdx !== nyIdx - 1) && (dx !== 0 || dy !== 1)) {
+            continue;
         }
 
         const x1 = xCoords[curr.xIdx];
@@ -867,28 +863,22 @@ export function getHiddenNodes(
 
 function identifyCompoundNodes(graph: GraphSnapshot, config: Required<VerticalLayoutOptions>) {
   const parentNodes = new Set<string>();
+  const containmentMap = new Map<string, string[]>();
+  const hasCollapsedNodes = config.collapsedNodes && config.collapsedNodes.size > 0;
 
-  // First, find all parent nodes based on containment edges
+  // Single pass to find all parent nodes and optionally build adjacency list for containment
   for (const edge of graph.edges.values()) {
     if (isContainmentEdge(edge, config.containmentTags)) {
       parentNodes.add(edge.source);
-    }
-  }
-
-  // Next, we identify nodes that are hidden because they are descendants of a collapsed node
-  const hiddenDescendants = new Set<string>();
-  if (config.collapsedNodes && config.collapsedNodes.size > 0) {
-    // Build a quick adjacency list for containment
-    const containmentMap = new Map<string, string[]>();
-    for (const edge of graph.edges.values()) {
-      if (isContainmentEdge(edge, config.containmentTags)) {
+      if (hasCollapsedNodes) {
         if (!containmentMap.has(edge.source)) containmentMap.set(edge.source, []);
         containmentMap.get(edge.source)!.push(edge.target);
       }
     }
+  }
 
-    // Filter to only include collapsed nodes that are actually parents
-    // PERF(Bolt): Avoid intermediate Array.from() allocation and filter chain on Sets
+  const hiddenDescendants = new Set<string>();
+  if (hasCollapsedNodes) {
     const collapsedParents: string[] = [];
     for (const id of config.collapsedNodes) {
       if (parentNodes.has(id)) {
@@ -1112,34 +1102,35 @@ function computeCompoundNodeBounds(
   baseHeight: number,
   config: Required<VerticalLayoutOptions>
 ) {
+  let finalWidth = baseWidth;
+  let finalHeight = baseHeight;
+
+  if (!schema?.containment || schema.containment.length === 0) {
+    return { hierarchy: undefined, width: finalWidth, height: finalHeight };
+  }
+
   const layoutHierarchy = new Map<string, { parent: string | null; children: string[] }>();
   for (const id of graph.nodes.keys()) {
     layoutHierarchy.set(id, { children: [], parent: null });
   }
 
-  let hasHierarchy = false;
-  let finalWidth = baseWidth;
-  let finalHeight = baseHeight;
   let minParentX = Infinity;
   let minParentY = Infinity;
 
-  if (schema?.containment) {
-    hasHierarchy = true;
+  // In some tests, schema.containment is provided but config.containmentTags wasn't explicitly populated
+  // We should ensure we use a Set for O(1) lookups regardless.
+  const containmentSet = config.containmentTags.size > 0
+    ? config.containmentTags
+    : new Set(schema.containment);
 
-    // In some tests, schema.containment is provided but config.containmentTags wasn't explicitly populated
-    // We should ensure we use a Set for O(1) lookups regardless.
-    const containmentSet = config.containmentTags.size > 0
-      ? config.containmentTags
-      : new Set(schema.containment);
-
-    for (const edge of graph.edges.values()) {
-      if (isContainmentEdge(edge, containmentSet)) {
-        if (layoutHierarchy.has(edge.source) && layoutHierarchy.has(edge.target)) {
-          layoutHierarchy.get(edge.source)!.children.push(edge.target);
-          layoutHierarchy.get(edge.target)!.parent = edge.source;
-        }
+  for (const edge of graph.edges.values()) {
+    if (isContainmentEdge(edge, containmentSet)) {
+      if (layoutHierarchy.has(edge.source) && layoutHierarchy.has(edge.target)) {
+        layoutHierarchy.get(edge.source)!.children.push(edge.target);
+        layoutHierarchy.get(edge.target)!.parent = edge.source;
       }
     }
+  }
 
     const calcSize = (id: string): {w: number, h: number} => {
        const children = layoutHierarchy.get(id)?.children || [];
@@ -1223,7 +1214,6 @@ function computeCompoundNodeBounds(
             positions.set(id, { x: p.x, y: p.y + shiftY });
         }
     }
-  }
 
-  return { hierarchy: hasHierarchy ? layoutHierarchy : undefined, width: finalWidth, height: finalHeight };
+  return { hierarchy: layoutHierarchy, width: finalWidth, height: finalHeight };
 }
