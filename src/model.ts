@@ -305,18 +305,22 @@ function validateStructuralInvariants(
   edges: IterableIterator<GraphEdge>,
   schema?: GraphSchema | GraphSchemaJson
 ) {
-  // Build adjacency list for containment edges
-  const containmentAdjacency = new Map<string, string[]>();
-  const inDegree = new Map<string, number>();
+  const containmentSet = schema?.containment && schema.containment.length > 0
+    ? new Set(schema.containment)
+    : null;
 
-  for (const nodeId of nodes.keys()) {
-    containmentAdjacency.set(nodeId, []);
-    inDegree.set(nodeId, 0);
+  let containmentAdjacency: Map<string, string[]> | null = null;
+  let inDegree: Map<string, number> | null = null;
+
+  if (containmentSet) {
+    containmentAdjacency = new Map<string, string[]>();
+    inDegree = new Map<string, number>();
+
+    for (const nodeId of nodes.keys()) {
+      containmentAdjacency.set(nodeId, []);
+      inDegree.set(nodeId, 0);
+    }
   }
-
-  // PERF(Bolt): Consolidate structural validation and containment adjacency building
-  // into a single pass over the edge iterable to avoid Array.from() allocation.
-  const containmentSet = schema?.containment ? new Set(schema.containment) : null;
 
   for (const edge of edges) {
     if (!nodes.has(edge.source)) {
@@ -326,36 +330,36 @@ function validateStructuralInvariants(
       throw new GraphModelError(`Edge "${edge.id}" references missing target "${edge.target}".`);
     }
 
-    if (containmentSet && isContainmentEdge(edge, containmentSet)) {
-      containmentAdjacency.get(edge.source)!.push(edge.target);
+    if (containmentSet && containmentAdjacency && inDegree) {
+      if (isContainmentEdge(edge, containmentSet)) {
+        containmentAdjacency.get(edge.source)!.push(edge.target);
 
-      const currentInDegree = inDegree.get(edge.target)! + 1;
-      if (currentInDegree > 1) {
-        throw new GraphModelError(`Containment invariant violation: Node "${edge.target}" has multiple parent nodes.`);
+        const currentInDegree = inDegree.get(edge.target)! + 1;
+        if (currentInDegree > 1) {
+          throw new GraphModelError(`Containment invariant violation: Node "${edge.target}" has multiple parent nodes.`);
+        }
+        inDegree.set(edge.target, currentInDegree);
       }
-      inDegree.set(edge.target, currentInDegree);
     }
   }
 
-  const roots: string[] = [];
-  for (const [nodeId, degree] of inDegree.entries()) {
-    if (degree === 0) {
-      roots.push(nodeId);
+  if (containmentAdjacency && inDegree) {
+    const roots: string[] = [];
+    for (const [nodeId, degree] of inDegree.entries()) {
+      if (degree === 0) {
+        roots.push(nodeId);
+      }
     }
-  }
 
-  // A generic reachability traversal (traverseDfs) safely detects cycles here because
-  // the graph is constrained to a maximum in-degree of 1 (a forest).
-  // In a forest, any node in a cycle will have exactly an in-degree of 1 from within the cycle.
-  // Therefore, no node in a cycle is reachable from any root (in-degree 0).
-  // If the number of visited nodes from all roots is less than the total nodes,
-  // the unvisited nodes must be part of (or downstream from) a disjoint cycle.
-  const visited = traverseDfs(roots, (id) => containmentAdjacency.get(id));
+    // A generic reachability traversal (traverseDfs) safely detects cycles here because
+    // the graph is constrained to a maximum in-degree of 1 (a forest).
+    const visited = traverseDfs(roots, (id) => containmentAdjacency!.get(id));
 
-  if (visited.size !== nodes.size) {
-    for (const nodeId of nodes.keys()) {
-      if (!visited.has(nodeId)) {
-        throw new GraphModelError(`Containment cycle detected involving node "${nodeId}".`);
+    if (visited.size !== nodes.size) {
+      for (const nodeId of nodes.keys()) {
+        if (!visited.has(nodeId)) {
+          throw new GraphModelError(`Containment cycle detected involving node "${nodeId}".`);
+        }
       }
     }
   }
