@@ -2,6 +2,7 @@ import {
   createGraphSnapshot,
   GraphView,
   verticalLayout,
+  type GraphSchema,
   type GraphSnapshot,
   type GraphSnapshotJson,
   type SelectionState,
@@ -17,12 +18,12 @@ const applyDiffAddBtn = requireElement("#apply-diff-add");
 const applyDiffRemoveBtn = requireElement("#apply-diff-remove");
 
 let currentGraph: GraphSnapshot | null = null;
-let currentSchema: any = {};
+let currentSchema: GraphSchema = {} as GraphSchema;
 let currentSelection: SelectionState = {
   nodes: new Set(),
   edges: new Set(),
 };
-let graphView: any = null;
+let graphView: GraphView | null = null;
 
 const layoutOptions = {
   nodeWidth: 240,
@@ -78,9 +79,11 @@ function updateGraph(): void {
         removedEdges: [],
       });
       try {
-        graphView.applyDiff(diff);
-      } catch (e: any) {
-        console.error(e.message);
+        if (graphView) {
+          graphView.applyDiff(diff);
+        }
+      } catch (e: unknown) {
+        console.error(e instanceof Error ? e.message : String(e));
       }
     },
     onGraphChange: (graph: GraphSnapshot) => {
@@ -158,10 +161,12 @@ applyDiffAddBtn.addEventListener("click", () => {
   });
 
   try {
-    graphView.applyDiff(diff);
+    if (graphView) {
+      graphView.applyDiff(diff);
+    }
     diffCounter++;
-  } catch (e: any) {
-    alert(e.message);
+  } catch (e: unknown) {
+    alert(e instanceof Error ? e.message : String(e));
   }
 });
 
@@ -175,10 +180,12 @@ applyDiffRemoveBtn.addEventListener("click", () => {
   });
 
   try {
-    graphView.applyDiff(diff);
+    if (graphView) {
+      graphView.applyDiff(diff);
+    }
     diffCounter++;
-  } catch (e: any) {
-    alert(e.message);
+  } catch (e: unknown) {
+    alert(e instanceof Error ? e.message : String(e));
   }
 });
 
