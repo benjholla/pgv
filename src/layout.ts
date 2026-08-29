@@ -56,6 +56,83 @@ function findClosestCoordinateIndex(arr: readonly number[], val: number): number
 import type { GraphSnapshot, GraphEdge , GraphSchema} from "./model";
 import { isContainmentEdge, traverseDfs } from "./model";
 
+
+/**
+ * @internal
+ */
+type AStarNode = {
+  xIdx: number;
+  yIdx: number;
+  g: number;
+  f: number;
+  parent: AStarNode | null;
+  dirX: number;
+  dirY: number;
+  dir: number;
+};
+
+/**
+ * @internal
+ * Custom MinHeap for A* pathfinding openList.
+ * Avoids O(N) array scans and reduces memory allocations.
+ */
+class MinHeap {
+  heap: AStarNode[];
+  constructor() {
+    this.heap = [];
+  }
+  push(node: AStarNode) {
+    this.heap.push(node);
+    this.bubbleUp(this.heap.length - 1);
+  }
+  pop(): AStarNode | undefined {
+    if (this.heap.length === 0) return undefined;
+    if (this.heap.length === 1) return this.heap.pop();
+    const min = this.heap[0];
+    this.heap[0] = this.heap.pop() as AStarNode;
+    this.sinkDown(0);
+    return min;
+  }
+  private bubbleUp(idx: number) {
+    const node = this.heap[idx];
+    while (idx > 0) {
+      const parentIdx = (idx - 1) >> 1;
+      const parent = this.heap[parentIdx];
+      if (node.f >= parent.f) break;
+      this.heap[parentIdx] = node;
+      this.heap[idx] = parent;
+      idx = parentIdx;
+    }
+  }
+  private sinkDown(idx: number) {
+    const length = this.heap.length;
+    const node = this.heap[idx];
+    while (true) {
+      const leftIdx = (idx << 1) + 1;
+      const rightIdx = leftIdx + 1;
+      let swapIdx = -1;
+      let leftNode: AStarNode | undefined;
+
+      if (leftIdx < length) {
+        leftNode = this.heap[leftIdx];
+        if (leftNode.f < node.f) {
+          swapIdx = leftIdx;
+        }
+      }
+      if (rightIdx < length) {
+        const rightNode = this.heap[rightIdx];
+        if (rightNode.f < (swapIdx === -1 ? node.f : leftNode!.f)) {
+          swapIdx = rightIdx;
+        }
+      }
+      if (swapIdx === -1) break;
+      this.heap[idx] = this.heap[swapIdx];
+      this.heap[swapIdx] = node;
+      idx = swapIdx;
+    }
+  }
+}
+
 /**
  * Represents an absolute 2D coordinate point in the rendering coordinate system.
  *
@@ -474,7 +551,6 @@ export function routeEdgeOrthogonal(
   }
   yCoords.sort((a, b) => a - b);
 
-  type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number; dir: number };
 
 
   const startXIdx = findClosestCoordinateIndex(xCoords, sourcePt.x);
@@ -510,7 +586,7 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new MinHeap();
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
@@ -518,24 +594,12 @@ export function routeEdgeOrthogonal(
   const allowedY1 = sourcePt.y + sourceVerticalOffset;
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
-  while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+  while (openList.heap.length > 0) {
+    const curr = openList.pop()!;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
-      let c: Node | null = curr;
+      let c: AStarNode | null = curr;
       while (c) {
         path.push({ x: xCoords[c.xIdx], y: yCoords[c.yIdx] });
         c = c.parent;

@@ -14,6 +14,7 @@ const layout: LayoutSnapshot = {
     ])
   ),
   edges: [],
+  hierarchy: new Map(),
 };
 
 const sourcePt = { x: 50, y: 50 };
@@ -21,6 +22,6 @@ const targetPt = { x: 950, y: 950 };
 
 describe("routeEdgeOrthogonal", () => {
   bench("current", () => {
-    routeEdgeOrthogonal(layout, sourcePt, targetPt);
+    routeEdgeOrthogonal(sourcePt, targetPt, layout);
   });
 });
