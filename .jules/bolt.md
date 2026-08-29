@@ -47,3 +47,7 @@
 ## 2024-08-08 - Avoid Array.map() allocation and closures in hot diff inversion loops
 **Learning:** In `@pgv/graph-core`, the `invertGraphDiff` function inside `src/model.ts` used `.map()` to build arrays for `addedNodes`, `addedEdges`, `removedNodes`, and `removedEdges`. On very large graphs, mapping over tens of thousands of elements results in significant performance degradation due to closure generation, dynamic array resizing, and garbage collection overhead.
 **Action:** Replace `Array.prototype.map()` in hot, performance-critical algorithms with pre-allocated arrays (`new Array(length)`) populated via standard `for` loops. Benchmarks showed replacing `.map()` with pre-allocated `for` loops made `invertGraphDiff` ~1.8x faster when handling large diffs.
+
+## 2024-05-18 - A* Priority Queue Optimization
+**Learning:** In `@pgv/graph-core`, the `routeEdgeOrthogonal` A* pathfinding algorithm originally used an O(N) linear array scan and swap-pop to find the node with the minimum `f` score in the `openList`. For dense graphs or complex paths, this linear scan inside the pathfinding loop severely bottlenecks layout routing performance.
+**Action:** Replaced the array-based `openList` with a custom `MinHeap` priority queue. The `MinHeap` class is defined at the module level in `src/layout.ts` to avoid memory allocations and hidden class creation on every invocation of `routeEdgeOrthogonal`, enabling O(log N) minimum extraction and yielding significant routing speedups.
