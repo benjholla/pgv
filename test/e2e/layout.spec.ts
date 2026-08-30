@@ -1,9 +1,10 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import type { GraphSnapshotJson } from "../../src/model";
 
 // Helper script to inject graph JSON into the demo app
-async function injectGraph(page: any, graphJson: any) {
-  await page.evaluate((json: any) => {
-    (window as unknown as { __setTestGraph: (json: any) => void }).__setTestGraph(json);
+async function injectGraph(page: Page, graphJson: GraphSnapshotJson) {
+  await page.evaluate((json: GraphSnapshotJson) => {
+    (window as unknown as { __setTestGraph: (json: GraphSnapshotJson) => void }).__setTestGraph(json);
   }, graphJson);
 
   // Wait a small amount of time for render

@@ -5,7 +5,7 @@
  */
 
 import { edgeEndpoints, getHiddenNodes, verticalLayout, type LayoutSnapshot, type Point, type VerticalLayoutOptions } from "./layout";
-import { isContainmentEdge, traverseDfs, type AttributeValue, type GraphEdge, type GraphNode, type GraphSchema, type GraphSnapshot } from "./model";
+import { isContainmentEdge, traverseDfs, type AttributeValue, type GraphEdge, type GraphNode, type GraphSchema, type GraphSnapshot, type GraphSnapshotJson } from "./model";
 import { toSvg, toPng, toJpeg } from "html-to-image";
 
 let markerIdSequence = 0;
@@ -2690,7 +2690,7 @@ export class GraphView {
 
     try {
       if (this.#downloadFormat === "json") {
-      const json: any = graphSnapshotToJson(this.#graph);
+      const json = graphSnapshotToJson(this.#graph) as GraphSnapshotJson & { selection?: { nodes: string[], edges: string[] } };
 
       if (this.#options.selection) {
         json.selection = {

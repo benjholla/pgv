@@ -2,6 +2,7 @@ import {
   createGraphSnapshot,
   GraphView,
   type GraphSnapshot,
+  type GraphSchema,
   type GraphSnapshotJson,
   type SelectionState,
 } from "../../../src";
@@ -38,7 +39,7 @@ class GraphController {
   private currentTheme: "light" | "dark" = "light";
   private graphView: GraphView | null = null;
 
-  constructor(private container: HTMLElement, private schema: any) {}
+  constructor(private container: HTMLElement, private schema: GraphSchema) {}
 
   setGraph(graph: GraphSnapshot) {
     this.currentGraph = graph;

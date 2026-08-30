@@ -2,6 +2,8 @@ import {
   createGraphSnapshot,
   applyGraphDiff,
   type GraphDiff,
+  type GraphDiffJson,
+  type GraphSchema,
   GraphView,
   type GraphSnapshot,
   type GraphSnapshotJson,
@@ -11,7 +13,7 @@ import "../../../src/style.css";
 const graphElement = document.getElementById("graph") as HTMLElement;
 
 let currentGraph: GraphSnapshot | null = null;
-let currentSchema: any = {};
+let currentSchema: GraphSchema = {};
 let graphView: GraphView | null = null;
 
 const layoutOptions = {
@@ -40,13 +42,13 @@ function updateGraph(): void {
 }
 
 // Expose a way for e2e tests to inject a new graph directly
-(window as any).__setTestGraph = (json: any) => {
+(window as unknown as { __setTestGraph: (json: GraphSnapshotJson) => void }).__setTestGraph = (json: GraphSnapshotJson) => {
   currentGraph = createGraphSnapshot(json);
   currentSchema = json.schema || {};
   updateGraph();
 };
 
-(window as any).__applyGraphDiff = (diffJson: any) => {
+(window as unknown as { __applyGraphDiff: (diffJson: GraphDiffJson) => void }).__applyGraphDiff = (diffJson: GraphDiffJson) => {
   if (!currentGraph || !graphView) return;
   const diff = diffJson as GraphDiff;
   currentGraph = applyGraphDiff(currentGraph, diff);

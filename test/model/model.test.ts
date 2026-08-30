@@ -218,10 +218,10 @@ describe("model", () => {
     });
 
     it("throws on unsupported attribute value types", () => {
-      const invalidJson: any = {
+      const invalidJson = {
         nodes: [{ id: "n1", attributes: { obj: {} } }],
         edges: []
-      };
+      } as unknown as GraphSnapshotJson;
       expect(() => createGraphSnapshot(invalidJson)).toThrow(/unsupported value type/);
     });
 
