@@ -19,3 +19,6 @@
 ## 2026-08-19 - [Use human-readable names for expand/collapse toggle ARIA labels]
 **Learning:** In `@pgv/graph-core`, when dynamically creating expand/collapse toggle buttons for compound nodes, using the internal `node.id` (often a UUID or hash) for `title` and `aria-label` attributes creates an unhelpful experience for screen reader users and those reading tooltips.
 **Action:** Always use the human-readable `nodeTitle` (derived from `XCSG.name` or falling back to `id`) for accessibility labels to ensure meaningful context is provided.
+## 2024-12-09 - [Added role="group" and aria-label to interactive control button groups]
+**Learning:** In `@pgv/graph-core`, when grouping multiple interactive control buttons in the DOM (e.g., zoom, pan, or miscellaneous groups in `src/renderer.ts`), explicitly adding `role="group"` and an appropriate `aria-label` to the container element provides structural grouping and context for screen readers. This ensures users understand the relationship between the buttons within those groups.
+**Action:** When adding new button groups or containers that cluster related controls, ensure they are assigned `role="group"` and an `aria-label` describing the group's purpose.
