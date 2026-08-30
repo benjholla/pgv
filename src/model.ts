@@ -419,7 +419,11 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
 
   validateStructuralInvariants(nodes, edges.values(), input.schema);
 
-  const base: any = {
+  const base: {
+    nodes: ReadonlyMap<string, GraphNode>;
+    edges: ReadonlyMap<string, GraphEdge>;
+    schema?: GraphSchema;
+  } = {
     nodes,
     edges,
   };
@@ -438,7 +442,13 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
  * @returns A plain `GraphSnapshotJson` object.
  */
 export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson {
-  const result: any = {
+  const result: {
+    schema?: GraphSchemaJson;
+    nodes: GraphNodeJson[];
+    edges: GraphEdgeJson[];
+  } = {
+    nodes: [],
+    edges: []
   };
   if (snapshot.schema) {
     result.schema = { ...snapshot.schema };
@@ -654,7 +664,11 @@ export function applyGraphDiff(
   // not just the newly added elements. This ensures removals didn't orphan anything.
   validateStructuralInvariants(nodes, edges.values(), snapshot.schema);
 
-  const base: any = {
+  const base: {
+    nodes: ReadonlyMap<string, GraphNode>;
+    edges: ReadonlyMap<string, GraphEdge>;
+    schema?: GraphSchema;
+  } = {
     nodes,
     edges,
   };

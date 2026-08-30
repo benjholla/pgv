@@ -1,15 +1,16 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
+import type { GraphSnapshotJson, GraphDiffJson } from "../../src/model";
 
-async function injectGraph(page: any, graphJson: any) {
-  await page.evaluate((json: any) => {
-    (window as any).__setTestGraph(json);
+async function injectGraph(page: Page, graphJson: GraphSnapshotJson) {
+  await page.evaluate((json: GraphSnapshotJson) => {
+    (window as unknown as { __setTestGraph: (json: GraphSnapshotJson) => void }).__setTestGraph(json);
   }, graphJson);
   await page.waitForTimeout(500);
 }
 
-async function applyGraphDiff(page: any, diffJson: any) {
-  await page.evaluate((json: any) => {
-    (window as any).__applyGraphDiff(json);
+async function applyGraphDiff(page: Page, diffJson: GraphDiffJson) {
+  await page.evaluate((json: GraphDiffJson) => {
+    (window as unknown as { __applyGraphDiff: (json: GraphDiffJson) => void }).__applyGraphDiff(json);
   }, diffJson);
   await page.waitForTimeout(1000);
 }

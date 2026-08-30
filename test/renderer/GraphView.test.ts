@@ -226,9 +226,9 @@ describe('GraphView - Advanced Interaction Tests', () => {
 
   it('verifies minimap event handling', async () => {
     // Mock ResizeObserver
-    let observerCallback: any = null;
+    let observerCallback: ResizeObserverCallback | null = null;
     global.ResizeObserver = class ResizeObserver {
-        constructor(cb: any) { observerCallback = cb; }
+        constructor(cb: ResizeObserverCallback) { observerCallback = cb; }
         observe() {}
         unobserve() {}
         disconnect() {}
