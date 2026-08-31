@@ -1595,12 +1595,16 @@ export class GraphView {
 
       const zoomGroup = document.createElement("div");
       zoomGroup.className = "pgv-control-group pgv-zoom-group";
+      zoomGroup.setAttribute("role", "group");
+      zoomGroup.setAttribute("aria-label", "Zoom controls");
       for (const btn of zoomButtons) {
         zoomGroup.appendChild(this.#createControlButton(btn));
       }
 
       const panGroup = document.createElement("div");
       panGroup.className = "pgv-control-group pgv-pan-group";
+      panGroup.setAttribute("role", "group");
+      panGroup.setAttribute("aria-label", "Pan controls");
       for (const btn of panButtons) {
         const button = this.#createControlButton(btn);
         button.classList.add(`pgv-btn-${btn.id}`);
@@ -1613,6 +1617,8 @@ export class GraphView {
 
     const miscGroup = document.createElement("div");
       miscGroup.className = "pgv-misc-group";
+      miscGroup.setAttribute("role", "group");
+      miscGroup.setAttribute("aria-label", "Miscellaneous controls");
 
       const topButtonsContainer = document.createElement("div");
       topButtonsContainer.className = "pgv-misc-top-buttons";
@@ -1905,6 +1911,8 @@ export class GraphView {
     if (!this.#smartControlsExpanded) {
       const expandBtnGroup = document.createElement("div");
       expandBtnGroup.className = "pgv-control-group";
+      expandBtnGroup.setAttribute("role", "group");
+      expandBtnGroup.setAttribute("aria-label", "Smart view controls");
 
       const expandBtn = this.#createControlButton({
         icon: "M4 4h16v16H4z", // window maximize
@@ -1930,6 +1938,8 @@ export class GraphView {
     // Graph Type Dropdown (now styled like download format)
     const dropdownGroup = document.createElement("div");
     dropdownGroup.className = "pgv-smart-view-dropdown"; // This now acts like pgv-control-group
+    dropdownGroup.setAttribute("role", "group");
+    dropdownGroup.setAttribute("aria-label", "Graph type selection");
 
     const dropdownBtn = document.createElement("button");
     dropdownBtn.type = "button";
@@ -2020,6 +2030,8 @@ export class GraphView {
     // Set Origin Button (now an icon button using createControlButton)
     const originBtnGroup = document.createElement("div");
     originBtnGroup.className = "pgv-control-group";
+    originBtnGroup.setAttribute("role", "group");
+    originBtnGroup.setAttribute("aria-label", "Traversal origin controls");
 
     const originBtn = this.#createControlButton({
       icon: "M12 2v20m-10-10h20m-3 0a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z", // True Crosshair SVG
@@ -2097,6 +2109,8 @@ export class GraphView {
 
       const btnGroup = document.createElement("div");
       btnGroup.className = "pgv-smart-step-btns"; // We made this mimic pgv-control-group in CSS
+      btnGroup.setAttribute("role", "group");
+      btnGroup.setAttribute("aria-label", `${type} step controls`);
 
       const decBtn = document.createElement("button");
       decBtn.type = "button";
@@ -2219,6 +2233,8 @@ export class GraphView {
       if (type === "Reverse") {
         const shiftUpBtnGroup = document.createElement("div");
         shiftUpBtnGroup.className = "pgv-control-group";
+        shiftUpBtnGroup.setAttribute("role", "group");
+        shiftUpBtnGroup.setAttribute("aria-label", "Shift steps up");
 
         const shiftUpDisabled = this.#smartForwardSteps === 0;
         const shiftUpBtn = this.#createControlButton({
@@ -2248,6 +2264,8 @@ export class GraphView {
       } else {
         const shiftDownBtnGroup = document.createElement("div");
         shiftDownBtnGroup.className = "pgv-control-group";
+        shiftDownBtnGroup.setAttribute("role", "group");
+        shiftDownBtnGroup.setAttribute("aria-label", "Shift steps down");
 
         const shiftDownDisabled = this.#smartReverseSteps === 0;
         const shiftDownBtn = this.#createControlButton({
