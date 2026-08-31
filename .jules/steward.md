@@ -21,3 +21,7 @@ When a parameter (like `schema` in `GraphView` constructor) appears unused but s
 - Removed `static-tester` from `README.md` to prevent new users from misinterpreting internal testing tools as examples.
 - Corrected the `tsconfig.json` path that previously pointed to the non-existent `examples/static-tester` instead of `test/static-tester`.
 - Added the `@internal` tag to `traverseDfs` in `src/model.ts` to properly prevent it from appearing in TypeDoc-generated public API reference documentation.
+## 2026-07-09 - Ensure Explicit Typing in Test and Example Code
+- Removed generic `any` types in `examples/` and `test/` applications for core visualization models (`GraphSchema`, `GraphView`, `GraphSnapshotJson`, `GraphDiffJson`, `SelectionState`) and Playwright's `Page`.
+- Updated `catch (e: any)` blocks to use `catch (e: unknown)` with explicit `e instanceof Error` type narrowing across example apps, improving codebase hygiene and satisfying strict TypeScript configurations.
+- Using concrete types even in demo code prevents documentation drift, serves as better examples for users, and allows the compiler to catch breaking API changes automatically.
