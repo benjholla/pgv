@@ -268,10 +268,7 @@ export function verticalLayout(
   const depths = assignVerticalDepths(nodeIds, outgoing, incoming);
   const layers = groupByDepth(nodeIds, depths, incoming);
 
-
-
   const { positions, nodeSizes, width, height } = computeLayerPositions(graph, layers, nodeIds, config);
-
 
   const edgeRouting = computeEdgeRoutingHints(graph, edgeOutgoing, edgeIncoming, config);
 
@@ -377,6 +374,68 @@ export function edgeEndpoints(
  * @param layout The current layout containing node sizes and positions (obstacles).
  * @returns A readonly array of points defining the calculated orthogonal path.
  */
+type AStarNode = { xIdx: number; yIdx: number; g: number; f: number; parent: AStarNode | null; dirX: number; dirY: number; dir: number };
+
+class MinHeap {
+  public heap: AStarNode[];
+  constructor() {
+    this.heap = [];
+  }
+  push(node: AStarNode) {
+    this.heap.push(node);
+    this._bubbleUp(this.heap.length - 1);
+  }
+  pop(): AStarNode | undefined {
+    if (this.heap.length === 0) return undefined;
+    if (this.heap.length === 1) return this.heap.pop();
+    const min = this.heap[0];
+    this.heap[0] = this.heap.pop()!;
+    this._sinkDown(0);
+    return min;
+  }
+  _bubbleUp(index: number) {
+    let currentIndex = index;
+    while (currentIndex > 0) {
+      const parentIndex = (currentIndex - 1) >>> 1;
+      if (this.heap[currentIndex].f >= this.heap[parentIndex].f) break;
+      const temp = this.heap[currentIndex];
+      this.heap[currentIndex] = this.heap[parentIndex];
+      this.heap[parentIndex] = temp;
+      currentIndex = parentIndex;
+    }
+  }
+  _sinkDown(index: number) {
+    let currentIndex = index;
+    const length = this.heap.length;
+    const element = this.heap[currentIndex];
+    while (true) {
+      const leftChildIndex = (currentIndex << 1) + 1;
+      const rightChildIndex = leftChildIndex + 1;
+      let leftChild: AStarNode, rightChild: AStarNode;
+      let swap = null;
+      if (leftChildIndex < length) {
+        leftChild = this.heap[leftChildIndex];
+        if (leftChild.f < element.f) {
+          swap = leftChildIndex;
+        }
+      }
+      if (rightChildIndex < length) {
+        rightChild = this.heap[rightChildIndex];
+        if (
+          (swap === null && rightChild.f < element.f) ||
+          (swap !== null && rightChild.f < leftChild!.f)
+        ) {
+          swap = rightChildIndex;
+        }
+      }
+      if (swap === null) break;
+      this.heap[currentIndex] = this.heap[swap];
+      this.heap[swap] = element;
+      currentIndex = swap;
+    }
+  }
+}
+
 export function routeEdgeOrthogonal(
   sourcePt: Point,
   targetPt: Point,
@@ -474,8 +533,7 @@ export function routeEdgeOrthogonal(
   }
   yCoords.sort((a, b) => a - b);
 
-  type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number; dir: number };
-
+  type AStarNode = { xIdx: number; yIdx: number; g: number; f: number; parent: AStarNode | null; dirX: number; dirY: number; dir: number };
 
   const startXIdx = findClosestCoordinateIndex(xCoords, sourcePt.x);
   const startYIdx = findClosestCoordinateIndex(yCoords, sourcePt.y);
@@ -510,7 +568,7 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new MinHeap();
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
@@ -518,24 +576,12 @@ export function routeEdgeOrthogonal(
   const allowedY1 = sourcePt.y + sourceVerticalOffset;
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
-  while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+  while (openList.heap.length > 0) {
+    const curr = openList.pop()!;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
-      let c: Node | null = curr;
+      let c: AStarNode | null = curr;
       while (c) {
         path.push({ x: xCoords[c.xIdx], y: yCoords[c.yIdx] });
         c = c.parent;
@@ -841,7 +887,6 @@ function groupByDepth(
   return new Map(entries);
 }
 
-
 /**
  * Recursively collects all hidden descendant nodes of the given collapsed nodes.
  *
@@ -968,9 +1013,6 @@ function buildAdjacencyLists(graph: GraphSnapshot, nodeIds: readonly string[], p
 
   return { outgoing, incoming, edgeOutgoing, edgeIncoming };
 }
-
-
-
 
 function estimateNodeHeight(graph: GraphSnapshot, id: string, config: Required<VerticalLayoutOptions>) {
   const isCollapsed = config.collapsedNodes?.has(id) ?? false;
