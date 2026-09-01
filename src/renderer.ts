@@ -756,6 +756,8 @@ export class GraphView {
     this.#minimapAbortController = null;
     this.#downloadAbortController?.abort();
     this.#downloadAbortController = null;
+    this.#searchAbortController?.abort();
+    this.#searchAbortController = null;
 
     this.#smartDropdownAbortController?.abort();
     this.#smartDropdownAbortController = null;
