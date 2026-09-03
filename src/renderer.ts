@@ -3671,6 +3671,11 @@ function defaultNodeContent(node: GraphNode): HTMLElement {
   return content;
 }
 
+
+function getNodeTitle(node: GraphNode): string {
+  return typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
+}
+
 function createArrowMarker(markerId: string): SVGElement {
   return createSvgElement("defs", {}, [
     createSvgElement("marker", {
