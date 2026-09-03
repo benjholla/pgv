@@ -25,6 +25,12 @@
     "test/static-tester/src",
     "test/static-tester/vite.config.ts",
     "test/e2e",
-    "playwright.config.ts"
+    "playwright.config.ts",
+    "examples/vite-static-history/src",
+    "examples/vite-static-history/vite.config.ts",
+    "examples/vite-dynamic/src",
+    "examples/vite-dynamic/vite.config.ts",
+    "examples/vite-blog/src",
+    "examples/vite-blog/vite.config.ts"
   ]
 }

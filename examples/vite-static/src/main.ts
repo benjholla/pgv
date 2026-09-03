@@ -1,6 +1,7 @@
 import {
   createGraphSnapshot,
   GraphView,
+  type GraphSchema,
   type GraphSnapshot,
   type GraphSnapshotJson,
   type SelectionState,
@@ -11,12 +12,12 @@ import "./demo.css";
 const graphElement = requireElement("#graph");
 
 let currentGraph: GraphSnapshot | null = null;
-let currentSchema: any = {};
+let currentSchema: GraphSchema = {};
 let currentSelection: SelectionState = {
   nodes: new Set(),
   edges: new Set(),
 };
-let graphView: any = null;
+let graphView: GraphView | null = null;
 
 const layoutOptions = {
   nodeWidth: 240,
