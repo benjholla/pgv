@@ -594,7 +594,10 @@ export function routeEdgeOrthogonal(
           } else {
             if (outIndex > inIndex && y1 === allowedY2) penalty += 10;
             else if (inIndex > outIndex && y1 === allowedY1) penalty += 10;
-            else if (outIndex === inIndex && y1 === allowedY2) penalty += 10;
+            else if (outIndex === inIndex) {
+              if (outIndex % 2 === 0 && y1 === allowedY2) penalty += 10;
+              else if (outIndex % 2 === 1 && y1 === allowedY1) penalty += 10;
+            }
           }
         }
 
@@ -612,10 +615,15 @@ export function routeEdgeOrthogonal(
     }
   }
 
+  let targetLastY = allowedY2;
+  if (outIndex === inIndex) {
+    targetLastY = outIndex % 2 === 0 ? allowedY2 : allowedY1;
+  }
+
   return Object.freeze([
     sourcePt,
     { x: sourcePt.x, y: allowedY1 },
-    { x: targetPt.x, y: allowedY2 },
+    { x: targetPt.x, y: targetLastY },
     targetPt
   ]);
 }
