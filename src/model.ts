@@ -316,7 +316,7 @@ function validateStructuralInvariants(
 
   // PERF(Bolt): Consolidate structural validation and containment adjacency building
   // into a single pass over the edge iterable to avoid Array.from() allocation.
-  const containmentSet = schema?.containment ? new Set(schema.containment) : null;
+  const containmentSet = schema?.containment && schema.containment.length > 0 ? new Set(schema.containment) : null;
 
   for (const edge of edges) {
     if (!nodes.has(edge.source)) {
@@ -1026,6 +1026,7 @@ function assertNonEmptyString(value: unknown, fieldName: string): asserts value 
  * @returns True if the edge is a containment edge, false otherwise.
  */
 export function isContainmentEdge(edge: GraphEdge, tags: ReadonlySet<string>): boolean {
+  if (tags.size === 0) return false;
   if (edge.tags.length === 0) return false;
   for (let i = 0; i < edge.tags.length; i++) {
     if (tags.has(edge.tags[i])) {
