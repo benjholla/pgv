@@ -1595,12 +1595,16 @@ export class GraphView {
 
       const zoomGroup = document.createElement("div");
       zoomGroup.className = "pgv-control-group pgv-zoom-group";
+      zoomGroup.setAttribute("role", "group");
+      zoomGroup.setAttribute("aria-label", "Zoom controls");
       for (const btn of zoomButtons) {
         zoomGroup.appendChild(this.#createControlButton(btn));
       }
 
       const panGroup = document.createElement("div");
       panGroup.className = "pgv-control-group pgv-pan-group";
+      panGroup.setAttribute("role", "group");
+      panGroup.setAttribute("aria-label", "Pan controls");
       for (const btn of panButtons) {
         const button = this.#createControlButton(btn);
         button.classList.add(`pgv-btn-${btn.id}`);
@@ -1613,6 +1617,8 @@ export class GraphView {
 
     const miscGroup = document.createElement("div");
       miscGroup.className = "pgv-misc-group";
+      miscGroup.setAttribute("role", "group");
+      miscGroup.setAttribute("aria-label", "Miscellaneous controls");
 
       const topButtonsContainer = document.createElement("div");
       topButtonsContainer.className = "pgv-misc-top-buttons";
@@ -2097,6 +2103,8 @@ export class GraphView {
 
       const btnGroup = document.createElement("div");
       btnGroup.className = "pgv-smart-step-btns"; // We made this mimic pgv-control-group in CSS
+      btnGroup.setAttribute("role", "group");
+      btnGroup.setAttribute("aria-label", `${type} step controls`);
 
       const decBtn = document.createElement("button");
       decBtn.type = "button";
