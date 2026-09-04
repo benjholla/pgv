@@ -56,6 +56,68 @@ function findClosestCoordinateIndex(arr: readonly number[], val: number): number
 import type { GraphSnapshot, GraphEdge , GraphSchema} from "./model";
 import { isContainmentEdge, traverseDfs } from "./model";
 
+
+type AStarNode = { xIdx: number; yIdx: number; g: number; f: number; parent: AStarNode | null; dirX: number; dirY: number; dir: number };
+
+class MinHeap {
+  private data: AStarNode[] = [];
+
+  push(val: AStarNode) {
+    this.data.push(val);
+    this.bubbleUp(this.data.length - 1);
+  }
+
+  pop(): AStarNode | undefined {
+    if (this.data.length === 0) return undefined;
+    const min = this.data[0];
+    const last = this.data.pop()!;
+    if (this.data.length > 0) {
+      this.data[0] = last;
+      this.bubbleDown(0);
+    }
+    return min;
+  }
+
+  get length() {
+    return this.data.length;
+  }
+
+  private bubbleUp(index: number) {
+    while (index > 0) {
+      const parentIndex = (index - 1) >> 1;
+      if (this.data[parentIndex].f <= this.data[index].f) break;
+      const tmp = this.data[parentIndex];
+      this.data[parentIndex] = this.data[index];
+      this.data[index] = tmp;
+      index = parentIndex;
+    }
+  }
+
+  private bubbleDown(index: number) {
+    const length = this.data.length;
+    while (true) {
+      let left = (index << 1) + 1;
+      let right = left + 1;
+      let smallest = index;
+
+      if (left < length && this.data[left].f < this.data[smallest].f) {
+        smallest = left;
+      }
+      if (right < length && this.data[right].f < this.data[smallest].f) {
+        smallest = right;
+      }
+
+      if (smallest === index) break;
+
+      const tmp = this.data[index];
+      this.data[index] = this.data[smallest];
+      this.data[smallest] = tmp;
+      index = smallest;
+    }
+  }
+}
+
+
 /**
  * Represents an absolute 2D coordinate point in the rendering coordinate system.
  *
@@ -474,7 +536,7 @@ export function routeEdgeOrthogonal(
   }
   yCoords.sort((a, b) => a - b);
 
-  type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number; dir: number };
+
 
 
   const startXIdx = findClosestCoordinateIndex(xCoords, sourcePt.x);
@@ -510,7 +572,7 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new MinHeap();
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
@@ -519,23 +581,12 @@ export function routeEdgeOrthogonal(
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+    // PERF(Bolt): O(log N) MinHeap extraction is faster than O(N) linear scan
+    const curr = openList.pop()!;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
-      let c: Node | null = curr;
+      let c: AStarNode | null = curr;
       while (c) {
         path.push({ x: xCoords[c.xIdx], y: yCoords[c.yIdx] });
         c = c.parent;
