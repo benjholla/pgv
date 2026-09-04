@@ -2546,7 +2546,7 @@ export class GraphView {
     // Determine hidden nodes based on collapsed parents
     const hiddenNodes = getHiddenNodes(this.#collapsedNodes, (nodeId) => layout.hierarchy?.get(nodeId)?.children);
 
-    const containmentSet = this.#schema.containment ? new Set(this.#schema.containment) : null;
+    const containmentSet = this.#schema.containment && this.#schema.containment.length > 0 ? new Set(this.#schema.containment) : null;
 
     // Draw nodes - Ensure parents are rendered before their children
     const renderOrder: string[] = [];
@@ -3311,7 +3311,7 @@ function renderEdges(
     "aria-hidden": "true"
   }, [edgeLayer]) as SVGSVGElement;
 
-  const containmentSet = schema.containment ? new Set(schema.containment) : null;
+  const containmentSet = schema.containment && schema.containment.length > 0 ? new Set(schema.containment) : null;
 
   // Determine hidden nodes based on collapsed parents
   const hiddenNodes = getHiddenNodes(collapsedNodes, (nodeId) => layout.hierarchy?.get(nodeId)?.children);
@@ -3448,7 +3448,7 @@ function renderNodes(
     const hiddenChildIds = getHiddenNodes([nodeId], (id) => layout.hierarchy?.get(id)?.children);
     hiddenNodes = hiddenChildIds.size;
 
-    const containmentSet = schema?.containment ? new Set(schema.containment) : null;
+    const containmentSet = schema?.containment && schema.containment.length > 0 ? new Set(schema.containment) : null;
 
     for (const edge of graph.edges.values()) {
       if (!containmentSet || !isContainmentEdge(edge, containmentSet)) {

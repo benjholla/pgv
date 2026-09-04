@@ -869,9 +869,11 @@ function identifyCompoundNodes(graph: GraphSnapshot, config: Required<VerticalLa
   const parentNodes = new Set<string>();
 
   // First, find all parent nodes based on containment edges
-  for (const edge of graph.edges.values()) {
-    if (isContainmentEdge(edge, config.containmentTags)) {
-      parentNodes.add(edge.source);
+  if (config.containmentTags.size > 0) {
+    for (const edge of graph.edges.values()) {
+      if (isContainmentEdge(edge, config.containmentTags)) {
+        parentNodes.add(edge.source);
+      }
     }
   }
 
@@ -1123,7 +1125,7 @@ function computeCompoundNodeBounds(
   let minParentX = Infinity;
   let minParentY = Infinity;
 
-  if (schema?.containment) {
+  if (schema?.containment && schema.containment.length > 0) {
     hasHierarchy = true;
 
     // In some tests, schema.containment is provided but config.containmentTags wasn't explicitly populated
