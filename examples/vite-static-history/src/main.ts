@@ -5,6 +5,7 @@ import {
   type GraphSnapshot,
   type GraphSnapshotJson,
   type SelectionState,
+  type GraphSchema,
   createGraphDiff,
 } from "../../../src";
 import "../../../src/style.css";
@@ -16,12 +17,12 @@ const applyDiffAddBtn = requireElement("#apply-diff-add");
 const applyDiffRemoveBtn = requireElement("#apply-diff-remove");
 
 let currentGraph: GraphSnapshot | null = null;
-let currentSchema: any = {};
+let currentSchema: GraphSchema = {};
 let currentSelection: SelectionState = {
   nodes: new Set(),
   edges: new Set(),
 };
-let graphView: any = null;
+let graphView: GraphView | null = null;
 
 const layoutOptions = {
   nodeWidth: 240,
@@ -147,8 +148,8 @@ applyDiffAddBtn.addEventListener("click", () => {
   try {
     graphView.applyDiff(diff);
     diffCounter++;
-  } catch (e: any) {
-    alert(e.message);
+  } catch (e: unknown) {
+    alert(e instanceof Error ? e.message : String(e));
   }
 });
 
@@ -164,8 +165,8 @@ applyDiffRemoveBtn.addEventListener("click", () => {
   try {
     graphView.applyDiff(diff);
     diffCounter++;
-  } catch (e: any) {
-    alert(e.message);
+  } catch (e: unknown) {
+    alert(e instanceof Error ? e.message : String(e));
   }
 });
 
