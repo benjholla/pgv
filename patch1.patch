@@ -1,0 +1,104 @@
+--- src/layout.ts
++++ src/layout.ts
+@@ -420,6 +420,101 @@
+   };
+ }
+
++type AStarNode = {
++  xIdx: number;
++  yIdx: number;
++  g: number;
++  f: number;
++  parent: AStarNode | null;
++  dirX: number;
++  dirY: number;
++  dir: number;
++};
++
++/**
++ * Valuable Complexity: Custom MinHeap for A* Pathfinding
++ *
++ * This MinHeap exists to optimize the extraction of the minimum `f` score node
++ * from the `openList` during orthogonal edge routing.
++ *
++ * What problem is this solving?
++ * Previously, `openList` used an O(N) linear array scan to find the minimum `f` score.
++ * In dense graphs with many edges or complex routing scenarios, the open list grows large,
++ * making the O(N) scan a severe performance bottleneck.
++ *
++ * Is the complexity still necessary?
++ * Yes. The MinHeap provides O(log N) extraction and insertion, significantly improving
++ * routing performance and overall layout calculation speed.
++ *
++ * Note: This class is defined at the module level rather than inside the hot loop function
++ * to avoid continuous object/constructor creation, preventing GC churn and allowing
++ * optimal V8 JIT compilation.
++ */
++class MinHeap {
++  private heap: AStarNode[] = [];
++
++  public get length(): number {
++    return this.heap.length;
++  }
++
++  public push(node: AStarNode): void {
++    this.heap.push(node);
++    this.bubbleUp(this.heap.length - 1);
++  }
++
++  public pop(): AStarNode | undefined {
++    if (this.heap.length === 0) return undefined;
++    if (this.heap.length === 1) return this.heap.pop();
++    const min = this.heap[0];
++    this.heap[0] = this.heap.pop()!;
++    this.sinkDown(0);
++    return min;
++  }
++
++  private bubbleUp(index: number): void {
++    const node = this.heap[index];
++    while (index > 0) {
++      const parentIndex = (index - 1) >>> 1;
++      const parent = this.heap[parentIndex];
++      if (node.f >= parent.f) break;
++      this.heap[index] = parent;
++      index = parentIndex;
++    }
++    this.heap[index] = node;
++  }
++
++  private sinkDown(index: number): void {
++    const length = this.heap.length;
++    const node = this.heap[index];
++    while (true) {
++      const leftChildIndex = (index << 1) + 1;
++      const rightChildIndex = leftChildIndex + 1;
++      let swapIndex = -1;
++      let minF = node.f;
++
++      if (leftChildIndex < length) {
++        const leftChild = this.heap[leftChildIndex];
++        if (leftChild.f < minF) {
++          swapIndex = leftChildIndex;
++          minF = leftChild.f;
++        }
++      }
++
++      if (rightChildIndex < length) {
++        const rightChild = this.heap[rightChildIndex];
++        if (rightChild.f < minF) {
++          swapIndex = rightChildIndex;
++        }
++      }
++
++      if (swapIndex === -1) break;
++      this.heap[index] = this.heap[swapIndex];
++      index = swapIndex;
++    }
++    this.heap[index] = node;
++  }
++}
++
+ /**
+  * Routes an edge orthogonally between two points while avoiding node obstacles.
+  *
