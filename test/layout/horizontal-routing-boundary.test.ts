@@ -37,7 +37,7 @@ function segmentsOverlap(pathA: readonly Point[], pathB: readonly Point[]): bool
 
 describe("Horizontal Routing Boundary", () => {
   // We document the property that the software SHOULD exhibit, even if currently failing.
-  // We skip it using it.skip so CI doesn't break, while recording the executable specification.
+  // We skip it using it so CI doesn't break, while recording the executable specification.
   it.skip("Horizontal Alignment Non-Overlap Property: Paths to horizontally aligned children do not perfectly overlap (KNOWN BUG)", () => {
     const parentId = "parent";
 
