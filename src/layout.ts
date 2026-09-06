@@ -592,9 +592,8 @@ export function routeEdgeOrthogonal(
           if (y1 !== allowedY1 && y1 !== allowedY2) {
             penalty += 5000;
           } else {
-            if (outIndex > inIndex && y1 === allowedY2) penalty += 10;
-            else if (inIndex > outIndex && y1 === allowedY1) penalty += 10;
-            else if (outIndex === inIndex && y1 === allowedY2) penalty += 10;
+            if (outIndex % 2 === 0 && y1 === allowedY2) penalty += 10;
+            else if (outIndex % 2 !== 0 && y1 === allowedY1) penalty += 10;
           }
         }
 
