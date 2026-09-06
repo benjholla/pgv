@@ -21,3 +21,4 @@ When a parameter (like `schema` in `GraphView` constructor) appears unused but s
 - Removed `static-tester` from `README.md` to prevent new users from misinterpreting internal testing tools as examples.
 - Corrected the `tsconfig.json` path that previously pointed to the non-existent `examples/static-tester` instead of `test/static-tester`.
 - Added the `@internal` tag to `traverseDfs` in `src/model.ts` to properly prevent it from appearing in TypeDoc-generated public API reference documentation.
+## 2026-09-06 - Examples typing hygiene\n- Removed all `any` typings in the repository's examples to improve their value as executable documentation and to reduce technical debt.\n- Fixed all invalid catch casts from `catch (e: any)` to strict `catch (e: unknown)`.\n- Validated fixes using TypeScript and rebuilt the public TypeDoc to verify minimal API surface consistency.
