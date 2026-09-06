@@ -53,6 +53,91 @@ function findClosestCoordinateIndex(arr: readonly number[], val: number): number
   return dHigh <= dLow ? high : low;
 }
 
+/**
+ * A Priority Queue (MinHeap) used for A* pathfinding.
+ *
+ * RATIONALE (Valuable Complexity):
+ * While a simpler O(N) array scan (or swap-pop) is easier to read and can be faster
+ * for very small graphs, A* pathfinding on large, dense graph grids generates
+ * massively expanding open sets. An O(N) scan inside the routing loop causes pathfinding
+ * to degrade to O(N^2), severely bottlenecking layout performance.
+ * This explicit MinHeap guarantees O(log N) extraction time to preserve stable performance.
+ */
+class MinHeap<T> {
+  readonly #data: T[];
+  readonly #compare: (a: T, b: T) => number;
+
+  constructor(compare: (a: T, b: T) => number) {
+    this.#data = [];
+    this.#compare = compare;
+  }
+
+  get length(): number {
+    return this.#data.length;
+  }
+
+  push(val: T): void {
+    this.#data.push(val);
+    this.#bubbleUp(this.#data.length - 1);
+  }
+
+  pop(): T | undefined {
+    if (this.#data.length === 0) return undefined;
+    const top = this.#data[0];
+    const bottom = this.#data.pop()!;
+    if (this.#data.length > 0) {
+      this.#data[0] = bottom;
+      this.#sinkDown(0);
+    }
+    return top;
+  }
+
+  #bubbleUp(idx: number): void {
+    const el = this.#data[idx];
+    while (idx > 0) {
+      const parentIdx = (idx - 1) >> 1;
+      const parent = this.#data[parentIdx];
+      if (this.#compare(el, parent) >= 0) break;
+      this.#data[idx] = parent;
+      idx = parentIdx;
+    }
+    this.#data[idx] = el;
+  }
+
+  #sinkDown(idx: number): void {
+    const len = this.#data.length;
+    const el = this.#data[idx];
+    while (true) {
+      const leftIdx = (idx << 1) + 1;
+      const rightIdx = leftIdx + 1;
+      let swapIdx = -1;
+      let left: T | undefined;
+
+      if (leftIdx < len) {
+        left = this.#data[leftIdx];
+        if (this.#compare(left, el) < 0) {
+          swapIdx = leftIdx;
+        }
+      }
+
+      if (rightIdx < len) {
+        const right = this.#data[rightIdx];
+        if (
+          (swapIdx === -1 && this.#compare(right, el) < 0) ||
+          (swapIdx !== -1 && left !== undefined && this.#compare(right, left) < 0)
+        ) {
+          swapIdx = rightIdx;
+        }
+      }
+
+      if (swapIdx === -1) break;
+      this.#data[idx] = this.#data[swapIdx];
+      idx = swapIdx;
+    }
+    this.#data[idx] = el;
+  }
+}
+
 import type { GraphSnapshot, GraphEdge , GraphSchema} from "./model";
 import { isContainmentEdge, traverseDfs } from "./model";
 
@@ -510,7 +595,7 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new MinHeap<Node>((a, b) => a.f - b.f);
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
@@ -519,19 +604,7 @@ export function routeEdgeOrthogonal(
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+    const curr = openList.pop()!;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
