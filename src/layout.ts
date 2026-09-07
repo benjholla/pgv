@@ -377,6 +377,99 @@ export function edgeEndpoints(
  * @param layout The current layout containing node sizes and positions (obstacles).
  * @returns A readonly array of points defining the calculated orthogonal path.
  */
+/**
+ * A node in the A* pathfinding open list.
+ */
+type AStarNode = {
+  xIdx: number;
+  yIdx: number;
+  g: number;
+  f: number;
+  parent: AStarNode | null;
+  dirX: number;
+  dirY: number;
+  dir: number;
+};
+
+/**
+ * Valuable Complexity: MinHeap
+ *
+ * This custom priority queue is maintained to ensure O(log N) minimum `f` score
+ * extraction during A* pathfinding. Using a flat array with an O(N) scan or
+ * O(N log N) sort becomes a severe performance bottleneck for dense graph
+ * routing where edges traverse complex obstacles, as the open list can grow
+ * significantly.
+ *
+ * It is implemented as a binary heap using a flat array.
+ */
+class MinHeap {
+  private readonly heap: AStarNode[] = [];
+
+  public get length(): number {
+    return this.heap.length;
+  }
+
+  public push(node: AStarNode): void {
+    this.heap.push(node);
+    this.bubbleUp(this.heap.length - 1);
+  }
+
+  public pop(): AStarNode | undefined {
+    if (this.heap.length === 0) return undefined;
+    const result = this.heap[0];
+    const last = this.heap.pop();
+    if (this.heap.length > 0 && last !== undefined) {
+      this.heap[0] = last;
+      this.sinkDown(0);
+    }
+    return result;
+  }
+
+  private bubbleUp(index: number): void {
+    const node = this.heap[index];
+    while (index > 0) {
+      const parentIndex = (index - 1) >> 1;
+      const parent = this.heap[parentIndex];
+      if (node.f >= parent.f) break;
+      this.heap[index] = parent;
+      this.heap[parentIndex] = node;
+      index = parentIndex;
+    }
+  }
+
+  private sinkDown(index: number): void {
+    const length = this.heap.length;
+    const node = this.heap[index];
+    while (true) {
+      const leftChildIndex = (index << 1) + 1;
+      const rightChildIndex = leftChildIndex + 1;
+      let swapIndex = -1;
+      let minF = node.f;
+
+      if (leftChildIndex < length) {
+        const leftChild = this.heap[leftChildIndex];
+        if (leftChild.f < minF) {
+          minF = leftChild.f;
+          swapIndex = leftChildIndex;
+        }
+      }
+
+      if (rightChildIndex < length) {
+        const rightChild = this.heap[rightChildIndex];
+        if (rightChild.f < minF) {
+          swapIndex = rightChildIndex;
+        }
+      }
+
+      if (swapIndex === -1) break;
+
+      this.heap[index] = this.heap[swapIndex];
+      this.heap[swapIndex] = node;
+      index = swapIndex;
+    }
+  }
+}
+
 export function routeEdgeOrthogonal(
   sourcePt: Point,
   targetPt: Point,
@@ -474,8 +567,6 @@ export function routeEdgeOrthogonal(
   }
   yCoords.sort((a, b) => a - b);
 
-  type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number; dir: number };
-
 
   const startXIdx = findClosestCoordinateIndex(xCoords, sourcePt.x);
   const startYIdx = findClosestCoordinateIndex(yCoords, sourcePt.y);
@@ -510,7 +601,7 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new MinHeap();
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
@@ -519,23 +610,11 @@ export function routeEdgeOrthogonal(
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+    const curr = openList.pop()!;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
-      let c: Node | null = curr;
+      let c: AStarNode | null = curr;
       while (c) {
         path.push({ x: xCoords[c.xIdx], y: yCoords[c.yIdx] });
         c = c.parent;
