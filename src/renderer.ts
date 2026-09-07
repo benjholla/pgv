@@ -1472,6 +1472,8 @@ export class GraphView {
   #renderHistoryPanel(): HTMLElement {
     const controls = document.createElement("div");
     controls.className = `pgv-history-panel ${this.#historyOpen ? "pgv-history-panel-open" : ""}`;
+    controls.setAttribute("role", "group");
+    controls.setAttribute("aria-label", "History controls");
 
     const icons = {
       left: "M15 18l-6-6 6-6",
@@ -1595,12 +1597,16 @@ export class GraphView {
 
       const zoomGroup = document.createElement("div");
       zoomGroup.className = "pgv-control-group pgv-zoom-group";
+      zoomGroup.setAttribute("role", "group");
+      zoomGroup.setAttribute("aria-label", "Zoom controls");
       for (const btn of zoomButtons) {
         zoomGroup.appendChild(this.#createControlButton(btn));
       }
 
       const panGroup = document.createElement("div");
       panGroup.className = "pgv-control-group pgv-pan-group";
+      panGroup.setAttribute("role", "group");
+      panGroup.setAttribute("aria-label", "Pan controls");
       for (const btn of panButtons) {
         const button = this.#createControlButton(btn);
         button.classList.add(`pgv-btn-${btn.id}`);
@@ -1613,6 +1619,8 @@ export class GraphView {
 
     const miscGroup = document.createElement("div");
       miscGroup.className = "pgv-misc-group";
+      miscGroup.setAttribute("role", "group");
+      miscGroup.setAttribute("aria-label", "Miscellaneous controls");
 
       const topButtonsContainer = document.createElement("div");
       topButtonsContainer.className = "pgv-misc-top-buttons";
@@ -1902,6 +1910,8 @@ export class GraphView {
     // Left side: main controls (can be collapsed)
     const controls = document.createElement("div");
     controls.className = "pgv-smart-view-group";
+    controls.setAttribute("role", "group");
+    controls.setAttribute("aria-label", "Smart view controls");
     if (!this.#smartControlsExpanded) {
       const expandBtnGroup = document.createElement("div");
       expandBtnGroup.className = "pgv-control-group";
