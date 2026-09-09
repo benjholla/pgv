@@ -377,6 +377,89 @@ export function edgeEndpoints(
  * @param layout The current layout containing node sizes and positions (obstacles).
  * @returns A readonly array of points defining the calculated orthogonal path.
  */
+
+/**
+ * Valuable Complexity: MinHeap for A* Pathfinding
+ *
+ * Why does this exist?
+ * The A* pathfinding algorithm (`routeEdgeOrthogonal`) requires repeatedly extracting the node
+ * with the minimum `f` score from the `openList`.
+ *
+ * Tradeoffs:
+ * A simple array with a linear O(N) scan is easier to implement and might be marginally faster
+ * for very small graphs due to contiguous memory and lack of overhead. However, as graph density
+ * and obstacle count increase, the `openList` grows significantly. An O(N) scan severely bottlenecks
+ * dense graph routing performance.
+ *
+ * This MinHeap provides O(log N) extraction and O(log N) insertion, guaranteeing predictable
+ * and scalable performance for large, dense graphs.
+ *
+ * It is explicitly defined at the module level to avoid re-allocating the class/constructor
+ * on every hot-path function invocation.
+ */
+class MinHeap<T> {
+  private data: T[] = [];
+  constructor(private compare: (a: T, b: T) => number) {}
+
+  push(val: T) {
+    this.data.push(val);
+    this.bubbleUp(this.data.length - 1);
+  }
+
+  pop(): T | undefined {
+    if (this.data.length === 0) return undefined;
+    if (this.data.length === 1) return this.data.pop();
+    const top = this.data[0];
+    this.data[0] = this.data.pop()!;
+    this.sinkDown(0);
+    return top;
+  }
+
+  get length() {
+    return this.data.length;
+  }
+
+  private bubbleUp(index: number) {
+    const item = this.data[index];
+    while (index > 0) {
+      const parentIdx = (index - 1) >> 1;
+      const parent = this.data[parentIdx];
+      if (this.compare(item, parent) >= 0) break;
+      this.data[index] = parent;
+      index = parentIdx;
+    }
+    this.data[index] = item;
+  }
+
+  private sinkDown(index: number) {
+    const length = this.data.length;
+    const item = this.data[index];
+    while (true) {
+      let leftIdx = (index << 1) + 1;
+      let rightIdx = leftIdx + 1;
+      let swapIdx = -1;
+      let left: T;
+
+      if (leftIdx < length) {
+        left = this.data[leftIdx];
+        if (this.compare(left, item) < 0) swapIdx = leftIdx;
+      }
+
+      if (rightIdx < length) {
+        const right = this.data[rightIdx];
+        if (this.compare(right, swapIdx === -1 ? item : left!) < 0) {
+          swapIdx = rightIdx;
+        }
+      }
+
+      if (swapIdx === -1) break;
+      this.data[index] = this.data[swapIdx];
+      index = swapIdx;
+    }
+    this.data[index] = item;
+  }
+}
+
 export function routeEdgeOrthogonal(
   sourcePt: Point,
   targetPt: Point,
@@ -510,7 +593,7 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new MinHeap<Node>((a, b) => a.f - b.f);
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
@@ -519,19 +602,7 @@ export function routeEdgeOrthogonal(
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+    const curr = openList.pop()!;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
