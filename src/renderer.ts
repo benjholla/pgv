@@ -1472,6 +1472,8 @@ export class GraphView {
   #renderHistoryPanel(): HTMLElement {
     const controls = document.createElement("div");
     controls.className = `pgv-history-panel ${this.#historyOpen ? "pgv-history-panel-open" : ""}`;
+    controls.setAttribute("role", "group");
+    controls.setAttribute("aria-label", "History navigation controls");
 
     const icons = {
       left: "M15 18l-6-6 6-6",
@@ -1595,12 +1597,16 @@ export class GraphView {
 
       const zoomGroup = document.createElement("div");
       zoomGroup.className = "pgv-control-group pgv-zoom-group";
+      zoomGroup.setAttribute("role", "group");
+      zoomGroup.setAttribute("aria-label", "Zoom controls");
       for (const btn of zoomButtons) {
         zoomGroup.appendChild(this.#createControlButton(btn));
       }
 
       const panGroup = document.createElement("div");
       panGroup.className = "pgv-control-group pgv-pan-group";
+      panGroup.setAttribute("role", "group");
+      panGroup.setAttribute("aria-label", "Pan controls");
       for (const btn of panButtons) {
         const button = this.#createControlButton(btn);
         button.classList.add(`pgv-btn-${btn.id}`);
@@ -1616,6 +1622,8 @@ export class GraphView {
 
       const topButtonsContainer = document.createElement("div");
       topButtonsContainer.className = "pgv-misc-top-buttons";
+      topButtonsContainer.setAttribute("role", "group");
+      topButtonsContainer.setAttribute("aria-label", "Miscellaneous controls");
 
       // Row 1: Search, History, Minimap
       const searchToggleBtn = this.#createControlButton({
@@ -1726,6 +1734,8 @@ export class GraphView {
       // Download button split control
       const downloadGroup = document.createElement("div");
       downloadGroup.className = "pgv-control-split-button";
+      downloadGroup.setAttribute("role", "group");
+      downloadGroup.setAttribute("aria-label", "Download controls");
 
       const formatLabels: Record<string, string> = {
         svg: " SVG",
