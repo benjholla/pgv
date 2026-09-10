@@ -1110,6 +1110,8 @@ export class GraphView {
 
     const toggles = document.createElement("div");
     toggles.className = "pgv-search-toggles";
+    toggles.setAttribute("role", "group");
+    toggles.setAttribute("aria-label", "Search options");
     const matchCaseIcon = document.createTextNode("Aa");
     const matchWholeWordIcon = document.createElement("span");
     matchWholeWordIcon.style.textDecoration = "underline";
@@ -1408,6 +1410,8 @@ export class GraphView {
 
     const actionsContainer = document.createElement("div");
     actionsContainer.className = "pgv-search-actions";
+    actionsContainer.setAttribute("role", "group");
+    actionsContainer.setAttribute("aria-label", "Search actions");
 
     cycleBtn.addEventListener("click", () => {
       if (cycleBtn.getAttribute("aria-disabled") === "true") return;
@@ -2030,6 +2034,8 @@ export class GraphView {
     // Set Origin Button (now an icon button using createControlButton)
     const originBtnGroup = document.createElement("div");
     originBtnGroup.className = "pgv-control-group";
+    originBtnGroup.setAttribute("role", "group");
+    originBtnGroup.setAttribute("aria-label", "Smart view origin controls");
 
     const originBtn = this.#createControlButton({
       icon: "M12 2v20m-10-10h20m-3 0a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z", // True Crosshair SVG
@@ -2107,6 +2113,8 @@ export class GraphView {
 
       const btnGroup = document.createElement("div");
       btnGroup.className = "pgv-smart-step-btns"; // We made this mimic pgv-control-group in CSS
+      btnGroup.setAttribute("role", "group");
+      btnGroup.setAttribute("aria-label", `${type} step controls`);
 
       const decBtn = document.createElement("button");
       decBtn.type = "button";
