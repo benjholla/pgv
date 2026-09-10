@@ -21,3 +21,5 @@ When a parameter (like `schema` in `GraphView` constructor) appears unused but s
 - Removed `static-tester` from `README.md` to prevent new users from misinterpreting internal testing tools as examples.
 - Corrected the `tsconfig.json` path that previously pointed to the non-existent `examples/static-tester` instead of `test/static-tester`.
 - Added the `@internal` tag to `traverseDfs` in `src/model.ts` to properly prevent it from appearing in TypeDoc-generated public API reference documentation.
+- Refactored all example apps (`vite-blog`, `vite-dynamic`, `vite-static`, `vite-static-history`) to replace generic `any` types with strict `GraphSchema` and `GraphView` types, improving type safety and accurate documentation.
+- Modernized error handling blocks in examples from `catch (e: any)` to `catch (e: unknown)` with proper `e instanceof Error` checking, enforcing strict TypeScript standards.
