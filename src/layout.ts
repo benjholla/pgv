@@ -592,9 +592,21 @@ export function routeEdgeOrthogonal(
           if (y1 !== allowedY1 && y1 !== allowedY2) {
             penalty += 5000;
           } else {
-            if (outIndex > inIndex && y1 === allowedY2) penalty += 10;
-            else if (inIndex > outIndex && y1 === allowedY1) penalty += 10;
-            else if (outIndex === inIndex && y1 === allowedY2) penalty += 10;
+            // The Horizontal Alignment Non-Overlap Property requires paths to horizontally aligned children
+            // to not perfectly overlap. We achieve this by alternating which vertical offset they prefer.
+            // The test fails because outIndex % 2 is not enough to differentiate if edges go to children at same Y,
+            // we should penalize differently based on both inIndex and outIndex.
+            if (outIndex > inIndex && y1 === allowedY2) {
+                penalty += 10;
+            } else if (inIndex > outIndex && y1 === allowedY1) {
+                penalty += 10;
+            } else if (outIndex === inIndex) {
+                if (outIndex % 2 === 0) {
+                    if (y1 === allowedY2) penalty += 10;
+                } else {
+                    if (y1 === allowedY1) penalty += 10;
+                }
+            }
           }
         }
 
