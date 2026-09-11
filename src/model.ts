@@ -286,6 +286,7 @@ export interface GraphDiffJson {
  * - Duplicate element IDs.
  * - Edges referencing non-existent source or target nodes.
  * - Unsafe or excessively large string attributes triggering security constraints.
+ * - A containment cycle is detected (e.g. A contains B, B contains A).
  */
 export class GraphModelError extends Error {
   constructor(message: string) {

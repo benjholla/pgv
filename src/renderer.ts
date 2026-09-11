@@ -295,7 +295,7 @@ export class GraphView {
    * Initializes a new interactive graph visualization within the given DOM container.
    *
    * @param container The root DOM element where the graph view will be mounted.
-   * @param schema Groundwork for future graph presentation details (e.g., semantic containment relationships).
+   * @param schema Groundwork for future graph presentation details (e.g., semantic containment relationships). While currently unused internally, it is required for future capabilities.
    * @param options Optional configuration overrides to customize layout, behavior, and styling.
    */
   constructor(container: HTMLElement, schema: GraphSchema, options: GraphViewOptions = {}) {
