@@ -760,6 +760,9 @@ export class GraphView {
     this.#smartDropdownAbortController?.abort();
     this.#smartDropdownAbortController = null;
 
+    this.#searchAbortController?.abort();
+    this.#searchAbortController = null;
+
     this.container.replaceChildren();
   }
 
