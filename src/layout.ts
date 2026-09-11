@@ -4,6 +4,68 @@
  * Frontend-owned vertical layout and geometric routing calculations.
  */
 
+class MinHeap<T extends { f: number }> {
+  private data: T[] = [];
+
+  get length() {
+    return this.data.length;
+  }
+
+  push(node: T) {
+    this.data.push(node);
+    let index = this.data.length - 1;
+    while (index > 0) {
+      const parentIndex = (index - 1) >> 1;
+      const parent = this.data[parentIndex];
+      if (node.f >= parent.f) break;
+      this.data[parentIndex] = node;
+      this.data[index] = parent;
+      index = parentIndex;
+    }
+  }
+
+  pop(): T | undefined {
+    if (this.data.length === 0) return undefined;
+    const top = this.data[0];
+    const bottom = this.data.pop()!;
+    if (this.data.length > 0) {
+      this.data[0] = bottom;
+      let index = 0;
+      const length = this.data.length;
+      while (true) {
+        const leftChildIndex = (index << 1) + 1;
+        const rightChildIndex = leftChildIndex + 1;
+        let swapIndex = -1;
+        let leftChild: T | undefined;
+
+        if (leftChildIndex < length) {
+          leftChild = this.data[leftChildIndex];
+          if (leftChild.f < bottom.f) {
+            swapIndex = leftChildIndex;
+          }
+        }
+
+        if (rightChildIndex < length) {
+          const rightChild = this.data[rightChildIndex];
+          if (
+            (swapIndex === -1 && rightChild.f < bottom.f) ||
+            (swapIndex !== -1 && leftChild && rightChild.f < leftChild.f)
+          ) {
+            swapIndex = rightChildIndex;
+          }
+        }
+
+        if (swapIndex === -1) break;
+
+        this.data[index] = this.data[swapIndex];
+        this.data[swapIndex] = bottom;
+        index = swapIndex;
+      }
+    }
+    return top;
+  }
+}
+
 /**
  * Performs an O(log N) binary search on a sorted array of strings.
  *
@@ -510,7 +572,7 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new MinHeap<Node>();
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
@@ -519,19 +581,8 @@ export function routeEdgeOrthogonal(
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+    const curr = openList.pop();
+    if (!curr) break;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
