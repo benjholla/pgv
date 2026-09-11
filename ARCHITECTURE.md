@@ -43,11 +43,7 @@ The visual workhorse that mounts the mathematical layout into the browser DOM.
 Provides a highly polished, responsive stylesheet with built-in dark-mode support and hardware-accelerated transitions.
 
 * **Visual Compromises:** Avoids edge-routing illusions by anchoring color mappings via an inset `box-shadow` strictly in the header of compound nodes, preserving the clarity of execution paths.
-
-
 * **Absolute Coordinate Preservation:** Nodes utilize absolute positioning (`top: 0; left: 0`) dictated entirely by the TypeScript layout math. Standard borders are simulated via `box-shadow` to prevent the browser's box-model from interfering with the bottom-up bounding box coordinate system.
-
-
 * **Hit Detection:** Generates a thick, invisible SVG hit area directly over the active edge paths to ensure user clicks trigger selection states effortlessly without requiring pixel-perfect mouse precision.
 
 ---
@@ -56,7 +52,7 @@ Provides a highly polished, responsive stylesheet with built-in dark-mode suppor
 
 * **Sugiyama Framework & Kahn's Algorithm:** The vertical layout engine heavily utilizes the standard layered graph drawing approach (Sugiyama framework). Your choice to use Kahn's algorithm for rank assignment, combined with iterative DFS cycle breaking, aligns perfectly with classical directed graph literature for optimizing vertical flow.
 * **A* Pathfinding for Orthogonal Edge Routing:** Most standard open-source layout engines use simple splines or bezier curves, resulting in messy "hairball" intersections. Implementing a custom A* pathfinding algorithm over a generated obstacle grid directly mirrors the premium orthogonal routing techniques seen in high-end commercial libraries like yWorks.
-* **FLIP Animations to Maintain Deterministic Graph Rendering:** To guarantee absolute topological determinism, the layout engine operates as a mathematically pure, stateless function. Visual continuity during incremental updates is delegated entirely to the DOM rendering layer using hardware-accelerated FLIP (First, Last, Invert, Play) animations. This ensures that the layout output is strictly reproducible regardless of the order in which graph diffs are applied—meaning reloading a saved snapshot of the graph will always produce the exact same rendering. Ultimately, this modular architecture allows PGV to seamlessly process and animate complex topological structures, such as static call graphs and execution paths, without locking the host application into a specific transport layer.
+* **FLIP Animations to Maintain Deterministic Graph Rendering:** To guarantee absolute topological determinism, the layout engine operates as a mathematically pure, stateless function. Visual continuity during incremental updates is delegated entirely to the DOM rendering layer using hardware-accelerated FLIP (First, Last, Invert, Play) animations. This ensures that the layout output is strictly reproducible regardless of the order in which graph diffs are applied—meaning reloading a saved snapshot of the graph will always produce the exact same rendering.
 ---
 
 ### Roadmap & Future Integrations

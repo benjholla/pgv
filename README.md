@@ -3,12 +3,21 @@
 [![CI](https://github.com/benjholla/pgv/actions/workflows/ci.yml/badge.svg)](https://github.com/benjholla/pgv/actions/workflows/ci.yml)
 
 ## What is this?
-Frontend-only graph visualization primitives for immutable attributed program-analysis graphs.
+**@pgv/graph-core** is an embeddable, interactive frontend library designed to visualize immutable, attributed, compound graphs. It acts as a high-performance presentation layer, completely decoupling logical graph models from geometric layouts and DOM/SVG rendering.
 
-This repository is the `graph-core` package described in the design notes. It owns the graph model, frontend layout, and HTML/SVG renderer. Host integrations such as Vue, VSCode, and Jupyter should stay thin and reuse this package.
+While the core models are graph-agnostic, the layout and rendering heuristics are tuned specifically for the complex topological structures commonly found in program-analysis (e.g., control-flow graphs, call graphs, execution traces).
+
+This repository represents the `graph-core` package. It owns the mathematical graph models, the geometric layout calculations, and the hybrid HTML/SVG renderer. Host integrations—whether a VSCode extension, Jupyter Notebook widget, Vue app, or static blog—are intended to be extremely thin layers that simply pipe data into this library.
 
 ## Why does it exist?
-This project is designed to bridge the gap between complex external program-analysis systems and frontend visualization. By representing graphs as immutable snapshots and explicitly decoupling layout from logic, `@pgv/graph-core` guarantees stable, predictable rendering while making features like incremental rendering, historical diffs, and context projections dramatically simpler to build. It intentionally delegates heavy graph analysis to backends, acting strictly as a high-performance presentation layer.
+This project exists to bridge the gap between heavy, sophisticated graph analysis backends and rich frontend visualization.
+
+By representing graphs as strictly immutable snapshots, and explicitly separating layout mathematics from visualization logic, `@pgv/graph-core` guarantees:
+- **Topological Determinism:** Rendering the exact same graph data always produces the exact same layout, preserving the user's mental map.
+- **Portability:** Agnostic of the transport layer (WebSockets, `postMessage`, HTTP).
+- **Extensibility:** Features like incremental rendering, time-travel historical diffs, and context projections become dramatically simpler to build when the graph state cannot be mutated out from under them.
+
+It intentionally delegates heavy algorithmic graph analysis to backends, acting strictly as a high-performance presentation workspace where users can navigate, pan, zoom, search, and visually compare snapshots.
 
 ## Architecture Overview
 The architecture is designed as a strict, unidirectional pipeline:
