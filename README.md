@@ -33,6 +33,7 @@ The `@pgv/graph-core` package exposes several core models:
 - `LayoutSnapshot`: An immutable snapshot of computed layout geometry.
 - `GraphView`: The primary class used to render and interact with a `GraphSnapshot`.
 - `GraphDiff`: Represents an incremental change (additions and removals) between two graph states.
+- `getNodeTitle`: A utility function to retrieve the human-readable display title for a node.
 
 For full details, generate the TypeDoc API reference via `pnpm run docs` or explore the exported definitions in `src/index.ts`.
 
