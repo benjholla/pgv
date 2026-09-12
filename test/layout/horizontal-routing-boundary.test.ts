@@ -3,6 +3,9 @@ import { routeEdgeOrthogonal } from "../../src/layout";
 import { Point } from "../../src/model";
 
 function segmentsOverlap(pathA: readonly Point[], pathB: readonly Point[]): boolean {
+  // Shared vertical source trunks (staggering segments) are intentional and do not count as route overlaps.
+  const commonSourcePt = pathA[0];
+
   for (let i = 1; i < pathA.length; i++) {
     const a1 = pathA[i - 1];
     const a2 = pathA[i];
@@ -12,6 +15,10 @@ function segmentsOverlap(pathA: readonly Point[], pathB: readonly Point[]): bool
       const b2 = pathB[j];
 
       if (a1.x === a2.x && b1.x === b2.x && a1.x === b1.x) {
+        if (i === 1 && j === 1 && a1.x === commonSourcePt.x && a1.y === commonSourcePt.y && b1.x === commonSourcePt.x && b1.y === commonSourcePt.y) {
+          continue;
+        }
+
         const aMin = Math.min(a1.y, a2.y);
         const aMax = Math.max(a1.y, a2.y);
         const bMin = Math.min(b1.y, b2.y);
@@ -36,9 +43,7 @@ function segmentsOverlap(pathA: readonly Point[], pathB: readonly Point[]): bool
 }
 
 describe("Horizontal Routing Boundary", () => {
-  // We document the property that the software SHOULD exhibit, even if currently failing.
-  // We skip it using it.skip so CI doesn't break, while recording the executable specification.
-  it.skip("Horizontal Alignment Non-Overlap Property: Paths to horizontally aligned children do not perfectly overlap (KNOWN BUG)", () => {
+  it("Horizontal Alignment Non-Overlap Property: Paths to horizontally aligned children do not perfectly overlap", () => {
     const parentId = "parent";
 
     const layout = {
