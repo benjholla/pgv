@@ -56,6 +56,77 @@ function findClosestCoordinateIndex(arr: readonly number[], val: number): number
 import type { GraphSnapshot, GraphEdge , GraphSchema} from "./model";
 import { isContainmentEdge, traverseDfs } from "./model";
 
+class MinHeap<T> {
+  private heap: T[];
+  private compare: (a: T, b: T) => number;
+
+  constructor(compare: (a: T, b: T) => number) {
+    this.heap = [];
+    this.compare = compare;
+  }
+
+  get length(): number {
+    return this.heap.length;
+  }
+
+  push(val: T): void {
+    this.heap.push(val);
+    this._siftUp(this.heap.length - 1);
+  }
+
+  pop(): T | undefined {
+    if (this.heap.length === 0) return undefined;
+    const top = this.heap[0];
+    const bottom = this.heap.pop();
+    if (this.heap.length > 0 && bottom !== undefined) {
+      this.heap[0] = bottom;
+      this._siftDown(0);
+    }
+    return top;
+  }
+
+  private _siftUp(index: number): void {
+    let current = index;
+    while (current > 0) {
+      const parent = (current - 1) >>> 1;
+      if (this.compare(this.heap[current], this.heap[parent]) < 0) {
+        const temp = this.heap[current];
+        this.heap[current] = this.heap[parent];
+        this.heap[parent] = temp;
+        current = parent;
+      } else {
+        break;
+      }
+    }
+  }
+
+  private _siftDown(index: number): void {
+    const length = this.heap.length;
+    let current = index;
+
+    while (true) {
+      const left = (current << 1) + 1;
+      const right = left + 1;
+      let smallest = current;
+
+      if (left < length && this.compare(this.heap[left], this.heap[smallest]) < 0) {
+        smallest = left;
+      }
+      if (right < length && this.compare(this.heap[right], this.heap[smallest]) < 0) {
+        smallest = right;
+      }
+      if (smallest !== current) {
+        const temp = this.heap[current];
+        this.heap[current] = this.heap[smallest];
+        this.heap[smallest] = temp;
+        current = smallest;
+      } else {
+        break;
+      }
+    }
+  }
+}
+
 /**
  * Represents an absolute 2D coordinate point in the rendering coordinate system.
  *
@@ -510,7 +581,7 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new MinHeap<Node>((a, b) => a.f - b.f);
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
@@ -519,19 +590,8 @@ export function routeEdgeOrthogonal(
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+    // PERF(Bolt): O(log N) MinHeap extraction is faster than O(N) linear scans for dense graphs
+    const curr = openList.pop()!;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
