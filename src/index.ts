@@ -40,4 +40,4 @@ export type {
 export type { EdgeEndpointsResult } from "./layout";
 export { edgeEndpoints, verticalLayout } from "./layout";
 export type { GraphViewOptions, SelectionState, SmartTraversalState } from "./renderer";
-export { GraphView } from "./renderer";
+export { GraphView, getNodeTitle } from "./renderer";
