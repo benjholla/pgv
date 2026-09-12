@@ -23,3 +23,7 @@
 ## 2026-08-20 - [Structural Grouping for Interactive Controls]
 **Learning:** Multiple related interactive controls (like pan, zoom, miscellaneous, download, and history controls) visually grouped together must also be structurally grouped for screen readers using `role="group"` and an appropriate `aria-label` on their container element. Without this, non-visual users lose the spatial context of what the controls belong to.
 **Action:** When creating containers for grouped control buttons, always include `role="group"` and an `aria-label` describing the group's purpose.
+
+## 2026-09-12 - [Structural Grouping for Interactive Controls]
+**Learning:** Multiple related interactive controls (like pan, zoom, miscellaneous, download, and history controls) visually grouped together must also be structurally grouped for screen readers using `role="group"` and an appropriate `aria-label` on their container element. Without this, non-visual users lose the spatial context of what the controls belong to.
+**Action:** When creating containers for grouped control buttons, always include `role="group"` and an `aria-label` describing the group's purpose.
