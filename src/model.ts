@@ -338,7 +338,7 @@ function validateStructuralInvariants(
   }
 
   const roots: string[] = [];
-  for (const [nodeId, degree] of inDegree.entries()) {
+  for (const [nodeId, degree] of inDegree) {
     if (degree === 0) {
       roots.push(nodeId);
     }

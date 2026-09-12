@@ -389,7 +389,7 @@ export function routeEdgeOrthogonal(
   const margin = 20;
 
   const obstacles: { id: string; x: number; y: number; w: number; h: number }[] = [];
-  for (const [id, pos] of layout.positions.entries()) {
+  for (const [id, pos] of layout.positions) {
     // If this obstacle is a compound node container, it shouldn't block edge routing
     // traversing through it to connect to its inner children.
     if (layout.hierarchy?.has(id) && layout.hierarchy.get(id)!.children.length > 0) {
@@ -444,7 +444,7 @@ export function routeEdgeOrthogonal(
   ySet.add(sourcePt.y + sourceVerticalOffset);
   ySet.add(targetPt.y - targetVerticalOffset);
 
-  for (const [id, pos] of layout.positions.entries()) {
+  for (const [id, pos] of layout.positions) {
     const size = layout.nodeSizes?.get(id) || layout.nodeSize;
     xSet.add(pos.x - margin);
     xSet.add(pos.x + size.width + margin);
@@ -833,7 +833,7 @@ function groupByDepth(
 
   const entries = new Array<[number, readonly string[]]>(layers.size);
   let eIdx = 0;
-  for (const entry of layers.entries()) {
+  for (const entry of layers) {
     entries[eIdx++] = entry;
   }
   entries.sort(([a], [b]) => a - b);
@@ -1212,14 +1212,14 @@ function computeCompoundNodeBounds(
     if (minParentX !== Infinity && minParentX < config.margin) {
         const shiftX = config.margin - minParentX;
         finalWidth += shiftX;
-        for (const [id, p] of positions.entries()) {
+        for (const [id, p] of positions) {
             positions.set(id, { x: p.x + shiftX, y: p.y });
         }
     }
     if (minParentY !== Infinity && minParentY < config.margin) {
         const shiftY = config.margin - minParentY;
         finalHeight += shiftY;
-        for (const [id, p] of positions.entries()) {
+        for (const [id, p] of positions) {
             positions.set(id, { x: p.x, y: p.y + shiftY });
         }
     }

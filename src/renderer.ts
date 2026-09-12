@@ -2385,7 +2385,7 @@ export class GraphView {
     let maxY = -Infinity;
 
     if (this.#layout.positions && this.#layout.nodeSizes) {
-      for (const [id, pos] of this.#layout.positions.entries()) {
+      for (const [id, pos] of this.#layout.positions) {
         const size = this.#layout.nodeSizes.get(id);
         if (size) {
           minX = Math.min(minX, pos.x);
@@ -2563,7 +2563,7 @@ export class GraphView {
     if (layout.hierarchy) {
       // Find root nodes
       const roots = [];
-      for (const [id, data] of layout.hierarchy.entries()) {
+      for (const [id, data] of layout.hierarchy) {
         if (!data.parent) {
           roots.push(id);
         }
@@ -2726,7 +2726,7 @@ export class GraphView {
     let maxX = this.#layout.width;
     let maxY = this.#layout.height;
 
-    for (const [id, pos] of this.#layout.positions.entries()) {
+    for (const [id, pos] of this.#layout.positions) {
       const size = this.#layout.nodeSizes?.get(id) || this.#layout.nodeSize;
       if (pos.x < minX) minX = pos.x;
       if (pos.y < minY) minY = pos.y;
