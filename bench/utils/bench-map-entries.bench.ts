@@ -1,6 +1,6 @@
 import { bench, describe } from "vitest";
 
-describe("Map entries", () => {
+describe("Map iteration", () => {
   const map = new Map();
   for (let i = 0; i < 10000; i++) {
     map.set(String(i), i);
@@ -21,5 +21,25 @@ describe("Map entries", () => {
       count += vals[i];
     }
     return count;
+  });
+
+  bench("for...of map.entries()", () => {
+    let count = "";
+    let val = 0;
+    for (const [k, v] of map.entries()) {
+      count = k;
+      val += v;
+    }
+    return val + count.length;
+  });
+
+  bench("for...of map", () => {
+    let count = "";
+    let val = 0;
+    for (const [k, v] of map) {
+      count = k;
+      val += v;
+    }
+    return val + count.length;
   });
 });
