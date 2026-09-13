@@ -5,7 +5,7 @@
  */
 
 import { edgeEndpoints, getHiddenNodes, verticalLayout, type LayoutSnapshot, type Point, type VerticalLayoutOptions } from "./layout";
-import { isContainmentEdge, traverseDfs, type AttributeValue, type GraphEdge, type GraphNode, type GraphSchema, type GraphSnapshot } from "./model";
+import { isContainmentEdge, traverseDfs, graphSnapshotToJson, type AttributeValue, type GraphEdge, type GraphNode, type GraphSchema, type GraphSnapshot, type GraphSnapshotJson } from "./model";
 import { toSvg, toPng, toJpeg } from "html-to-image";
 
 let markerIdSequence = 0;
@@ -204,7 +204,7 @@ interface ViewportState {
   scale: number;
 }
 
-import { type GraphDiff, applyGraphDiff, graphSnapshotToJson } from "./model";
+import { type GraphDiff, applyGraphDiff } from "./model";
 
 /**
  * The primary class responsible for mounting and managing the interactive
@@ -764,7 +764,7 @@ export class GraphView {
   }
 
   #render(animate: boolean = false): void {
-    const activePlaceholder = document.activeElement && this.container.contains(document.activeElement) && document.activeElement.tagName === "INPUT" ? (document.activeElement as any).placeholder : null;
+    const activePlaceholder = document.activeElement instanceof HTMLInputElement && this.container.contains(document.activeElement) ? document.activeElement.placeholder : null;
     const activeCollapseToggleNodeId = document.activeElement && this.container.contains(document.activeElement) && document.activeElement.classList.contains("pgv-node-collapse-toggle") ? document.activeElement.closest<HTMLElement>(".pgv-graph-node, .pgv-compound-node")?.dataset.nodeId : null;
     if (!this.#graph || !this.#layout) {
       return;
@@ -1170,7 +1170,7 @@ export class GraphView {
       dropdownBtn,
       onClose: closeDropdown,
       onSelect: (value) => {
-        this.#searchMode = value as any;
+        this.#searchMode = value as "all" | "id" | "node-id" | "edge-id" | "node-tag" | "node-attribute" | "edge-tag" | "edge-attribute" | "tag" | "attribute";
         this.#searchDropdownOpen = false;
         toggleDropdownState(false, dropdownBtn, dropdownMenu);
 
@@ -1824,14 +1824,14 @@ export class GraphView {
         dropdownBtn,
         onClose: closeDropdown,
         onSelect: (value) => {
-          this.#downloadFormat = value as any;
+          this.#downloadFormat = value as "json" | "svg" | "png" | "jpeg";
           this.#downloadDropdownOpen = false;
           toggleDropdownState(false, dropdownBtn, dropdownMenu);
           updateFormatLabel();
           const opts = dropdownMenu.querySelectorAll(".pgv-dropdown-option");
           for (let i = 0; i < opts.length; i++) {
             const opt = opts[i];
-            if (opt.textContent === formatLabels[value as any]) {
+            if (opt.textContent === formatLabels[value as "json" | "svg" | "png" | "jpeg"]) {
               opt.classList.add("selected");
               opt.setAttribute("aria-checked", "true");
             } else {
@@ -2700,7 +2700,7 @@ export class GraphView {
 
     try {
       if (this.#downloadFormat === "json") {
-      const json: any = graphSnapshotToJson(this.#graph);
+      const json = graphSnapshotToJson(this.#graph) as GraphSnapshotJson & { selection?: { nodes: string[], edges: string[] } };
 
       if (this.#options.selection) {
         json.selection = {
