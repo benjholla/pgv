@@ -419,7 +419,7 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
 
   validateStructuralInvariants(nodes, edges.values(), input.schema);
 
-  const base: any = {
+  const base: { nodes: Map<string, GraphNode>; edges: Map<string, GraphEdge>; schema?: Readonly<GraphSchema> } = {
     nodes,
     edges,
   };
@@ -438,7 +438,7 @@ export function createGraphSnapshot(input: GraphSnapshotJson): GraphSnapshot {
  * @returns A plain `GraphSnapshotJson` object.
  */
 export function graphSnapshotToJson(snapshot: GraphSnapshot): GraphSnapshotJson {
-  const result: any = {
+  const result: { schema?: GraphSchemaJson; nodes?: GraphNodeJson[]; edges?: GraphEdgeJson[] } = {
   };
   if (snapshot.schema) {
     result.schema = { ...snapshot.schema };
@@ -654,7 +654,7 @@ export function applyGraphDiff(
   // not just the newly added elements. This ensures removals didn't orphan anything.
   validateStructuralInvariants(nodes, edges.values(), snapshot.schema);
 
-  const base: any = {
+  const base: { nodes: Map<string, GraphNode>; edges: Map<string, GraphEdge>; schema?: Readonly<GraphSchema> } = {
     nodes,
     edges,
   };
@@ -772,12 +772,12 @@ function freezeAttributes(
         }
       }
       if (keyCount === 1) {
-        if (innerKey === "integer" && typeof (value as any).integer === "number") {
-          sanitizedAttributes[key] = Object.freeze({ integer: (value as any).integer });
-        } else if (innerKey === "float" && typeof (value as any).float === "number") {
-          sanitizedAttributes[key] = Object.freeze({ float: (value as any).float });
-        } else if (innerKey === "bytes" && typeof (value as any).bytes === "string") {
-          sanitizedAttributes[key] = Object.freeze({ bytes: sanitizeString((value as any).bytes) });
+        if (innerKey === "integer" && typeof (value as { integer?: number }).integer === "number") {
+          sanitizedAttributes[key] = Object.freeze({ integer: (value as { integer: number }).integer });
+        } else if (innerKey === "float" && typeof (value as { float?: number }).float === "number") {
+          sanitizedAttributes[key] = Object.freeze({ float: (value as { float: number }).float });
+        } else if (innerKey === "bytes" && typeof (value as { bytes?: string }).bytes === "string") {
+          sanitizedAttributes[key] = Object.freeze({ bytes: sanitizeString((value as { bytes: string }).bytes) });
         } else {
           throw new GraphModelError(`Attribute "${key}" has unsupported value type.`);
         }
