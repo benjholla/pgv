@@ -868,7 +868,9 @@ export function sanitizeString(value: string): string {
   sanitized = sanitized.replace(/(^|[^a-z0-9])o[\s\x00-\x1F\x7F]*n(?:[\s\x00-\x1F\x7F]*[a-z])+[\s\x00-\x1F\x7F]*(?:=|&equals;?|&#x0*3d;?|&#0*61;?)/gi, "$1data-blocked=");
 
   // Strip CSS expressions
-  sanitized = sanitized.replace(/\bexpression\b\s*\(/gi, "blocked-expr(");
+  // We use (^|[^a-z0-9]) instead of \b to properly handle cases where control characters
+  // are embedded inside the expression name (like e\x00xpression) which break \b boundaries.
+  sanitized = sanitized.replace(/(^|[^a-z0-9])e[\s\x00-\x1F\x7F]*x[\s\x00-\x1F\x7F]*p[\s\x00-\x1F\x7F]*r[\s\x00-\x1F\x7F]*e[\s\x00-\x1F\x7F]*s[\s\x00-\x1F\x7F]*s[\s\x00-\x1F\x7F]*i[\s\x00-\x1F\x7F]*o[\s\x00-\x1F\x7F]*n[\s\x00-\x1F\x7F]*\(/gi, "$1blocked-expr(");
 
   // Basic XSS/script sanitization on the stripped payload
   let clean = sanitized;
