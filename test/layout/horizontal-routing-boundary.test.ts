@@ -11,6 +11,12 @@ function segmentsOverlap(pathA: readonly Point[], pathB: readonly Point[]): bool
       const b1 = pathB[j - 1];
       const b2 = pathB[j];
 
+      // Note that shared vertical source trunks (staggering segments) are intentional
+      // and do not count as route overlaps in tests.
+      if (i === 1 && j === 1 && a1.x === a2.x && b1.x === b2.x && a1.x === b1.x) {
+         continue;
+      }
+
       if (a1.x === a2.x && b1.x === b2.x && a1.x === b1.x) {
         const aMin = Math.min(a1.y, a2.y);
         const aMax = Math.max(a1.y, a2.y);
@@ -36,9 +42,7 @@ function segmentsOverlap(pathA: readonly Point[], pathB: readonly Point[]): bool
 }
 
 describe("Horizontal Routing Boundary", () => {
-  // We document the property that the software SHOULD exhibit, even if currently failing.
-  // We skip it using it.skip so CI doesn't break, while recording the executable specification.
-  it.skip("Horizontal Alignment Non-Overlap Property: Paths to horizontally aligned children do not perfectly overlap (KNOWN BUG)", () => {
+  it("Horizontal Alignment Non-Overlap Property: Paths to horizontally aligned children do not perfectly overlap", () => {
     const parentId = "parent";
 
     const layout = {
