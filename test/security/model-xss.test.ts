@@ -76,4 +76,10 @@ describe("sanitizeString XSS named entities bypass", () => {
     const result = sanitizeString(input);
     expect(result).toBe('<a target="_self" rel="opener">Link</a>');
   });
+
+  it("blocks CSS expression obfuscated with control characters", () => {
+    expect(sanitizeString("width: expression(alert(1))")).toBe("width: blocked-expr(alert(1))");
+    expect(sanitizeString("width: e\x00xpression(alert(1))")).toBe("width: blocked-expr(alert(1))");
+    expect(sanitizeString("width: e\x09xpression(alert(1))")).toBe("width: blocked-expr(alert(1))");
+  });
 });
