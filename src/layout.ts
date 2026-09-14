@@ -362,6 +362,104 @@ export function edgeEndpoints(
 }
 
 /**
+ * @internal
+ * Represents a node in the A* pathfinding open list.
+ */
+export type RouteNode = {
+  xIdx: number;
+  yIdx: number;
+  g: number;
+  f: number;
+  parent: RouteNode | null;
+  dirX: number;
+  dirY: number;
+  dir: number;
+};
+
+/**
+ * A specialized Min-Heap priority queue for A* edge routing.
+ *
+ * This abstraction exists because it provides O(log N) extraction of the minimum
+ * `f` score node from the open list. While a linear scan is sufficient for simple
+ * graphs, dense graphs with many obstacles or complex routing paths cause the
+ * open list to grow significantly, making O(N) extraction a severe bottleneck.
+ * Preserving this algorithmic complexity is valuable for scalable layout performance.
+ *
+ * @internal
+ */
+export class RouteMinHeap {
+  private heap: RouteNode[] = [];
+
+  public get length(): number {
+    return this.heap.length;
+  }
+
+  public push(node: RouteNode): void {
+    this.heap.push(node);
+    this.bubbleUp(this.heap.length - 1);
+  }
+
+  public pop(): RouteNode | undefined {
+    if (this.heap.length === 0) return undefined;
+    const result = this.heap[0];
+    const end = this.heap.pop();
+    if (this.heap.length > 0 && end !== undefined) {
+      this.heap[0] = end;
+      this.sinkDown(0);
+    }
+    return result;
+  }
+
+  private bubbleUp(n: number): void {
+    const element = this.heap[n];
+    const score = element.f;
+    while (n > 0) {
+      const parentN = (n - 1) >> 1;
+      const parent = this.heap[parentN];
+      if (score >= parent.f) break;
+      this.heap[n] = parent;
+      n = parentN;
+    }
+    this.heap[n] = element;
+  }
+
+  private sinkDown(n: number): void {
+    const length = this.heap.length;
+    const element = this.heap[n];
+    const elemScore = element.f;
+
+    while (true) {
+      const child2N = (n + 1) << 1;
+      const child1N = child2N - 1;
+      let swap = -1;
+      let child1Score = 0;
+
+      if (child1N < length) {
+        const child1 = this.heap[child1N];
+        child1Score = child1.f;
+        if (child1Score < elemScore) {
+          swap = child1N;
+        }
+      }
+
+      if (child2N < length) {
+        const child2 = this.heap[child2N];
+        const child2Score = child2.f;
+        if (child2Score < (swap === -1 ? elemScore : child1Score)) {
+          swap = child2N;
+        }
+      }
+
+      if (swap === -1) break;
+
+      this.heap[n] = this.heap[swap];
+      n = swap;
+    }
+    this.heap[n] = element;
+  }
+}
+
+/**
  * Routes an edge orthogonally between two points while avoiding node obstacles.
  *
  * This function uses an A* pathfinding algorithm over a dynamically generated
@@ -474,9 +572,6 @@ export function routeEdgeOrthogonal(
   }
   yCoords.sort((a, b) => a - b);
 
-  type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number; dir: number };
-
-
   const startXIdx = findClosestCoordinateIndex(xCoords, sourcePt.x);
   const startYIdx = findClosestCoordinateIndex(yCoords, sourcePt.y);
   const endXIdx = findClosestCoordinateIndex(xCoords, targetPt.x);
@@ -510,7 +605,7 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new RouteMinHeap();
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
   openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
@@ -519,23 +614,12 @@ export function routeEdgeOrthogonal(
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+    const curr = openList.pop();
+    if (!curr) break;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
-      let c: Node | null = curr;
+      let c: RouteNode | null = curr;
       while (c) {
         path.push({ x: xCoords[c.xIdx], y: yCoords[c.yIdx] });
         c = c.parent;
