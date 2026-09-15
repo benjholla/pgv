@@ -59,6 +59,12 @@ describe("sanitizeString XSS named entities bypass", () => {
     expect(sanitizeString("<a href=`javascript:alert(1)`>Click me</a>")).toBe("#blocked-uri");
   });
 
+  it("blocks CSS expressions obfuscated with control characters", () => {
+    expect(sanitizeString("<div style=\"e\x00xpression(alert(1))\">")).toBe("<div style=\"blocked-expr(alert(1))\">");
+    expect(sanitizeString("<div style=\"e\x09xpression(alert(1))\">")).toBe("<div style=\"blocked-expr(alert(1))\">");
+    expect(sanitizeString("<div style=\"e\x00x\x00p\x00r\x00e\x00s\x00s\x00i\x00o\x00n(alert(1))\">")).toBe("<div style=\"blocked-expr(alert(1))\">");
+  });
+
   it("handles anchor tags with missing rel attribute but target _blank", () => {
     const input = '<a target="_blank">Link</a>';
     const result = sanitizeString(input);
