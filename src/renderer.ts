@@ -3710,6 +3710,8 @@ function attributeToText(value: AttributeValue): string {
 /**
  * Returns the human-readable display title for a node.
  * Falls back to the node's internal ID if no XCSG.name is provided.
+ *
+ * @internal
  */
 export function getNodeTitle(node: GraphNode): string {
   return typeof node.attributes["XCSG.name"] === "string" ? node.attributes["XCSG.name"] : node.id;
