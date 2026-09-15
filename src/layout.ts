@@ -291,6 +291,106 @@ export function verticalLayout(
   });
 }
 
+
+/**
+ * Internal representation of a pathfinding node during A* edge routing.
+ *
+ * Preserved as a class at the module level to ensure V8 uses a single hidden class
+ * for optimal JIT compilation during high-frequency allocation in hot routing loops,
+ * avoiding garbage collection churn and constructor recreation.
+ */
+class RouteNode {
+  constructor(
+    public xIdx: number,
+    public yIdx: number,
+    public g: number,
+    public f: number,
+    public parent: RouteNode | null,
+    public dirX: number,
+    public dirY: number,
+    public dir: number
+  ) {}
+}
+
+/**
+ * A specialized Min-Heap priority queue for A* pathfinding.
+ *
+ * Provides O(log N) extraction of the minimum f-score node, which is significantly
+ * faster than O(N) linear array scans for dense graph layouts with long routes.
+ *
+ * Preserved complexity: The overhead of maintaining a heap is justified by avoiding
+ * O(N^2) pathfinding worst-case scenarios in complex graph visualizations.
+ */
+class RouteMinHeap {
+  private heap: RouteNode[] = [];
+
+  public get length(): number {
+    return this.heap.length;
+  }
+
+  public push(node: RouteNode): void {
+    this.heap.push(node);
+    this.bubbleUp(this.heap.length - 1);
+  }
+
+  public pop(): RouteNode | undefined {
+    const min = this.heap[0];
+    const end = this.heap.pop();
+    if (this.heap.length > 0 && end !== undefined) {
+      this.heap[0] = end;
+      this.sinkDown(0);
+    }
+    return min;
+  }
+
+  private bubbleUp(n: number): void {
+    const element = this.heap[n];
+    let i = n;
+    while (i > 0) {
+      const parentN = (i - 1) >> 1;
+      const parent = this.heap[parentN];
+      if (element.f >= parent.f) break;
+      this.heap[i] = parent;
+      i = parentN;
+    }
+    this.heap[i] = element;
+  }
+
+  private sinkDown(n: number): void {
+    const length = this.heap.length;
+    const element = this.heap[n];
+    let i = n;
+
+    while (true) {
+      const child2N = (i + 1) * 2;
+      const child1N = child2N - 1;
+      let swap = null;
+      let child1Score = 0;
+
+      if (child1N < length) {
+        const child1 = this.heap[child1N];
+        child1Score = child1.f;
+        if (child1Score < element.f) {
+          swap = child1N;
+        }
+      }
+
+      if (child2N < length) {
+        const child2 = this.heap[child2N];
+        if (child2.f < (swap === null ? element.f : child1Score)) {
+          swap = child2N;
+        }
+      }
+
+      if (swap === null) break;
+
+      this.heap[i] = this.heap[swap];
+      i = swap;
+    }
+    this.heap[i] = element;
+  }
+}
+
 /**
  * Result of calculating the geometric endpoints and orthogonal routing path for a rendered edge.
  *
@@ -474,9 +574,6 @@ export function routeEdgeOrthogonal(
   }
   yCoords.sort((a, b) => a - b);
 
-  type Node = { xIdx: number; yIdx: number; g: number; f: number; parent: Node | null; dirX: number; dirY: number; dir: number };
-
-
   const startXIdx = findClosestCoordinateIndex(xCoords, sourcePt.x);
   const startYIdx = findClosestCoordinateIndex(yCoords, sourcePt.y);
   const endXIdx = findClosestCoordinateIndex(xCoords, targetPt.x);
@@ -510,32 +607,20 @@ export function routeEdgeOrthogonal(
     return true;
   };
 
-  const openList: Node[] = [];
+  const openList = new RouteMinHeap();
   const closedSet = new Uint8Array(xCoords.length * yCoords.length * 4);
 
-  openList.push({ xIdx: startXIdx, yIdx: startYIdx, g: 0, f: 0, parent: null, dirX: 0, dirY: 1, dir: 1 });
+  openList.push(new RouteNode(startXIdx, startYIdx, 0, 0, null, 0, 1, 1));
 
   const allowedY1 = sourcePt.y + sourceVerticalOffset;
   const allowedY2 = targetPt.y - targetVerticalOffset;
 
   while (openList.length > 0) {
-    // PERF(Bolt): O(N) linear scan + swap-pop is faster than O(N log N) sorting
-    let minIdx = 0;
-    let minF = openList[0].f;
-    for (let i = 1; i < openList.length; i++) {
-      if (openList[i].f < minF) {
-        minF = openList[i].f;
-        minIdx = i;
-      }
-    }
-    const lastIdx = openList.length - 1;
-    const curr = openList[minIdx];
-    openList[minIdx] = openList[lastIdx];
-    openList.pop();
+    const curr = openList.pop()!;
 
     if (curr.xIdx === endXIdx && curr.yIdx === endYIdx) {
       const path: Point[] = [];
-      let c: Node | null = curr;
+      let c: RouteNode | null = curr;
       while (c) {
         path.push({ x: xCoords[c.xIdx], y: yCoords[c.yIdx] });
         c = c.parent;
@@ -607,7 +692,7 @@ export function routeEdgeOrthogonal(
         const h = Math.abs(dx1) + Math.abs(dy1) + crossProduct * 0.001;
         const f = g + h;
 
-        openList.push({ xIdx: nxIdx, yIdx: nyIdx, g, f, parent: curr, dirX: dx, dirY: dy, dir: i });
+        openList.push(new RouteNode(nxIdx, nyIdx, g, f, curr, dx, dy, i));
       }
     }
   }
