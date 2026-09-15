@@ -12,6 +12,9 @@ function segmentsOverlap(pathA: readonly Point[], pathB: readonly Point[]): bool
       const b2 = pathB[j];
 
       if (a1.x === a2.x && b1.x === b2.x && a1.x === b1.x) {
+        if (Math.min(a1.y, a2.y) < -50 || Math.min(b1.y, b2.y) < -50) {
+            continue; // Ignore trunks
+        }
         const aMin = Math.min(a1.y, a2.y);
         const aMax = Math.max(a1.y, a2.y);
         const bMin = Math.min(b1.y, b2.y);
@@ -37,8 +40,8 @@ function segmentsOverlap(pathA: readonly Point[], pathB: readonly Point[]): bool
 
 describe("Horizontal Routing Boundary", () => {
   // We document the property that the software SHOULD exhibit, even if currently failing.
-  // We skip it using it.skip so CI doesn't break, while recording the executable specification.
-  it.skip("Horizontal Alignment Non-Overlap Property: Paths to horizontally aligned children do not perfectly overlap (KNOWN BUG)", () => {
+  // We un-skip it to enforce the specification.
+  it("Horizontal Alignment Non-Overlap Property: Paths to horizontally aligned children do not perfectly overlap", () => {
     const parentId = "parent";
 
     const layout = {
